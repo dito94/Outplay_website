@@ -10,7 +10,7 @@ import{s as e}from"./store.D9P4KDa8.js";var t=JSON.parse(document.getElementById
             </div>
           </div>
         </div>
-      </section>`,p&&(p.hidden=!0),document.querySelector(`[data-scta]`)?.setAttribute(`hidden`,``),document.title=`${n.missingTitle} · OUTPLAY`}function y(e){let r=s(e.name)||e.id,i=t.categories[e.category],m=s(e.tagline),h=s(e.summary),v=c((e.sections??[]).flatMap(e=>e.paragraphs??[])),y=c(e.features),b=(e.specs??[]).map(e=>({label:s(e.label),value:s(e.value)})).filter(e=>e.label||e.value),x=(e.images??[]).filter(e=>typeof e==`string`&&e.startsWith(`data:image/`)),S=x[0],C=v.length?x[1]:void 0,w=x.slice(C?2:1),T=t.phones[0],E=`${t.contact}?product=${encodeURIComponent(e.id)}#inquiry`;d.innerHTML=`<section class="ci-hero" aria-labelledby="ci-title">
+      </section>`,p&&(p.hidden=!0),document.querySelector(`[data-scta]`)?.setAttribute(`hidden`,``),document.title=`${n.missingTitle} · OUTPLAY`}function y(e){let r=s(e.name)||e.id,i=t.categories[e.category],m=s(e.tagline),h=s(e.summary),v=c((e.sections??[]).flatMap(e=>e.paragraphs??[])),y=c(e.features),b=(e.specs??[]).map(e=>({label:s(e.label),value:s(e.value)})).filter(e=>e.label||e.value),x=(e.images??[]).filter(e=>typeof e==`string`&&e.startsWith(`data:image/`)),S=x[0],C=v.length?x[1]:void 0,w=x.slice(C?2:1),T=t.phones[0];d.innerHTML=`<section class="ci-hero" aria-labelledby="ci-title">
         <div class="wrap">
           ${g([{label:n.home,href:t.home},{label:n.products,href:t.products},...i?[{label:i.name,href:i.href}]:[],{label:r}])}
           <div class="ci-top${S?``:` no-media`}">
@@ -31,17 +31,17 @@ import{s as e}from"./store.D9P4KDa8.js";var t=JSON.parse(document.getElementById
           </div>
           ${e.hidden?`<p class="ci-notice">${l(u.info,18)}<span>${a(n.hiddenNote)}</span></p>`:``}
         </div>
-      </section>`;let D=[v.length&&`overview`,(y.length||b.length)&&`specs`,w.length&&`gallery`,`inquiry`].filter(Boolean),O=Object.fromEntries(D.map((e,t)=>[e,t%2?`mist`:``])),k=[];if(v.length){let e=`<div class="prose">${v.map(e=>`<p>${a(e)}</p>`).join(``)}</div>`;k.push(`<section id="overview" data-sn-section="overview" class="section ${O.overview}" aria-labelledby="ci-overview">
+      </section>`;let E=[v.length&&`overview`,(y.length||b.length)&&`specs`,w.length&&`gallery`,`inquiry`].filter(Boolean),D=Object.fromEntries(E.map((e,t)=>[e,t%2?`mist`:``])),O=[];if(v.length){let e=`<div class="prose">${v.map(e=>`<p>${a(e)}</p>`).join(``)}</div>`;O.push(`<section id="overview" data-sn-section="overview" class="section ${D.overview}" aria-labelledby="ci-overview">
           <div class="wrap">${C?`<article class="ci-row"><div class="ci-row-text"><h2 id="ci-overview" class="h2 rule">${a(n.navOverview)}</h2>${e}</div>
                  <div class="ci-row-media media"><img src="${C}" alt="${a(`${r}, ${n.photo} 2`)}" loading="lazy" /></div></article>`:`<article class="ci-solo"><h2 id="ci-overview" class="h2 rule">${a(n.navOverview)}</h2>${e}</article>`}</div>
-        </section>`)}if((y.length||b.length)&&k.push(`<section id="specs" data-sn-section="specs" class="section ${O.specs}">
+        </section>`)}if((y.length||b.length)&&O.push(`<section id="specs" data-sn-section="specs" class="section ${D.specs}">
           <div class="wrap"><div class="ci-spec-grid${y.length&&b.length?``:` one`}">
             ${y.length?`<div class="ci-spec-col"><h2 class="h3 rule">${a(n.features)}</h2><ul class="ticks">${y.map(e=>`<li>${a(e)}</li>`).join(``)}</ul></div>`:``}
             ${b.length?`<div class="ci-spec-col"><h2 class="h3 rule" id="ci-specs-title">${a(n.specs)}</h2>
                    <table class="spec-table" aria-labelledby="ci-specs-title"><tbody>${b.map(e=>`<tr><th scope="row">${a(e.label)}</th><td>${a(e.value)}</td></tr>`).join(``)}</tbody></table>
                    <p class="ci-spec-note small muted">${a(n.specsNote)} ${a(n.noPrices)}</p></div>`:``}
           </div></div>
-        </section>`),w.length){let e=_(w.length),t=w.length>1&&(w.length-1)%2==1,i=C?3:2;k.push(`<section id="gallery" data-sn-section="gallery" class="section ${O.gallery}" aria-labelledby="ci-gallery">
+        </section>`),w.length){let e=_(w.length),t=w.length>1&&(w.length-1)%2==1,i=C?3:2;O.push(`<section id="gallery" data-sn-section="gallery" class="section ${D.gallery}" aria-labelledby="ci-gallery">
           <div class="wrap">
             <div class="ci-head"><h2 id="ci-gallery" class="h2 rule">${a(n.gallery)}</h2><p class="lead">${a(o(n.galleryIntro,{name:r}))}</p></div>
             <ul class="ci-pgal" role="list">${w.map((o,s)=>{let[c,d]=e[s],f=`${r}, ${n.photo} ${i+s}`;return`<li class="ci-tile${s===0||t&&s===w.length-1?` m-wide`:``}" style="--c:${c};--r:${d}">
@@ -50,21 +50,4 @@ import{s as e}from"./store.D9P4KDa8.js";var t=JSON.parse(document.getElementById
                     <span class="ci-zoom" aria-hidden="true">${l(u.expand,18)}</span><span class="sr-only">${a(n.open)}</span>
                   </a></li>`}).join(``)}</ul>
           </div>
-        </section>`)}if(k.push(`<section id="inquiry" data-sn-section="inquiry" data-sticky-cta-hide class="section ${O.inquiry}" aria-labelledby="ci-inquiry">
-        <div class="wrap ci-inq">
-          <div class="ci-inq-copy">
-            <h2 id="ci-inquiry" class="h2 rule">${a(o(n.quoteTitle,{product:r}))}</h2>
-            <p class="lead">${a(n.quoteLead)}</p>
-            <div class="btn-row"><a class="btn" href="${a(E)}">${a(n.toForm)} ${l(u.arrow,18)}</a></div>
-            <p class="small muted">${a(n.noPrices)}</p>
-          </div>
-          <div class="ci-inq-contacts">
-            <p class="ci-inq-k">${a(n.talk)}</p>
-            <ul>
-              ${t.phones.map(e=>`<li><a class="num" href="tel:${a(e.e164)}">${l(u.phone,18)} ${a(e.display)}</a></li>`).join(``)}
-              <li><a href="${a(t.viber)}">${l(u.viber,18)} ${a(n.viber)}</a></li>
-            </ul>
-            <p class="ci-demo small muted">${a(n.demoNote)}</p>
-          </div>
-        </div>
-      </section>`),f.innerHTML=k.join(``),p){p.querySelectorAll(`[data-sn-link]`).forEach(e=>{document.getElementById(e.dataset.snLink??``)||e.closest(`li`)?.remove()});let e=p.querySelector(`.sn-title`);e&&(e.textContent=r)}document.title=`${r} · OUTPLAY`;let A=document.querySelector(`meta[name="description"]`);A&&(h||m)&&A.setAttribute(`content`,h||m)}h?y(h):v();
+        </section>`)}f.innerHTML=O.join(``);let k=document.querySelector(`[data-ci-inquiry]`);if(k){let e=k.querySelector(`[data-ci-inq-title]`);e&&(e.textContent=o(n.quoteTitle,{product:r})),D.inquiry&&k.classList.add(D.inquiry),k.hidden=!1}if(p){p.querySelectorAll(`[data-sn-link]`).forEach(e=>{document.getElementById(e.dataset.snLink??``)||e.closest(`li`)?.remove()});let e=p.querySelector(`.sn-title`);e&&(e.textContent=r)}document.title=`${r} · OUTPLAY`;let A=document.querySelector(`meta[name="description"]`);A&&(h||m)&&A.setAttribute(`content`,h||m)}h?y(h):v();

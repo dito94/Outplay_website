@@ -189,7 +189,7 @@ import{_ as e,a as t,c as n,d as r,f as i,g as a,h as o,i as s,l as c,n as l,o a
       <header class="adm-vh">
         <div>
           <h2 id="adm-h-custom" tabindex="-1">${g(r)}</h2>
-          <p class="adm-ed-state">${H(y.newBadge,`new`)}<span data-cp-state>${g(e?Ct(e):y.cpAddedState)}</span></p>
+          <p class="adm-ed-state">${H(y.newBadge,`new`)}<span data-cp-state>${g(e?Ct(e):y.cpNewState)}</span></p>
         </div>
         ${e?`<div class="adm-ed-tools"><span data-cp-vis>${it(e)}</span><a class="adm-btn" href="${g(Ae(e.id))}" target="_blank" rel="noopener">${E(`external`,16)}<span>${g(y.viewPage)}</span>${Ie}</a></div>`:``}
       </header>
