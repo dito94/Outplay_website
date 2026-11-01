@@ -103,13 +103,14 @@ const itemList = {
   const root = document.querySelector('[data-filter]');
   if (root) {
     const btns = Array.from(root.querySelectorAll('[data-filter-btn]'));
-    const groups = Array.from(document.querySelectorAll('[data-group]'));
+    // read live: the admin demo may remove a category whose products are all hidden
+    const groups = () => Array.from(document.querySelectorAll('[data-group]'));
     const status = root.querySelector('[data-filter-status]');
     const apply = (id, announce) => {
-      const valid = id === 'all' || groups.some((g) => g.dataset.group === id);
+      const valid = id === 'all' || groups().some((g) => g.dataset.group === id);
       const key = valid ? id : 'all';
       btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filterBtn === key)));
-      groups.forEach((g) => {
+      groups().forEach((g) => {
         g.hidden = key !== 'all' && g.dataset.group !== key;
       });
       const active = btns.find((b) => b.dataset.filterBtn === key);
@@ -123,6 +124,10 @@ const itemList = {
     btns.forEach((b) => b.addEventListener('click', () => apply(b.dataset.filterBtn ?? 'all', true)));
     const initial = new URL(window.location.href).searchParams.get('c');
     if (initial) apply(initial, false);
+    window.addEventListener('outplay:catalogue', () => {
+      const current = btns.find((b) => b.getAttribute('aria-pressed') === 'true')?.dataset.filterBtn ?? 'all';
+      if (current !== 'all') apply(current, false);
+    });
   }
 </script>
 

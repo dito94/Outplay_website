@@ -1604,7 +1604,14 @@ export function boot(): void {
       danger: true,
     });
     if (!res.ok) return;
-    mutate(() => deleteCustomProduct(c.id));
+    let result: { ok: boolean } = { ok: true };
+    mutate(() => {
+      result = deleteCustomProduct(c.id);
+    });
+    if (!result.ok) {
+      failed();
+      return;
+    }
     state.draft = null;
     location.hash = '#products';
     toast(S.cpDeleted);

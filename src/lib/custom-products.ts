@@ -21,6 +21,8 @@ export interface CustomProductsConfig {
   item: { bg: string; en: string };
   /** catalogue product names */
   names?: Record<string, Pair>;
+  inline?: Record<string, Pair>;
+  full?: Record<string, Pair>;
   /** subgroups per category with their catalogue product ids */
   subgroups?: Record<string, { id: string; productIds: string[] }[]>;
 }
@@ -111,6 +113,30 @@ function applyEdits(x: Ctx): void {
     if (renamed.includes(id)) {
       const before = document.title;
       document.title = before.includes(cfg.names![id][lang]) ? swap(before, id) : `${ov[id].name![lang]} · OUTPLAY`;
+      // On the product's own page every visible mention follows the new name: the catalogue subtitle, spec plate,
+      // inquiry heading and the sentences that mention the product.
+      const next = ov[id].name![lang]!;
+      const olds = [cfg.full?.[id]?.[lang], cfg.inline?.[id]?.[lang], cfg.names![id][lang]].filter(
+        (v): v is string => !!v && v.length > 1,
+      );
+      const main = document.querySelector('main');
+      if (main) {
+        const walker = document.createTreeWalker(main, NodeFilter.SHOW_TEXT);
+        const nodes: Text[] = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+        nodes.forEach((n) => {
+          if (n.parentElement?.closest('script, style, [data-pfield], input, textarea, select, option')) return;
+          let v = n.nodeValue ?? '';
+          let changed = false;
+          for (const o of olds) {
+            if (v.includes(o)) {
+              v = v.split(o).join(next);
+              changed = true;
+            }
+          }
+          if (changed) n.nodeValue = v;
+        });
+      }
     }
   }
   // hotspot cards repeat the product summary
@@ -443,6 +469,8 @@ export function applyCatalogue(cfg: CustomProductsConfig): void {
     delta[cat] = added.filter((p) => p.category === cat).length - hiddenHere;
   }
   updateCounts(cfg, delta, lang);
+  // let page scripts (e.g. the products filter) re-check what is still on the page
+  window.dispatchEvent(new CustomEvent('outplay:catalogue'));
 }
 
 /** Kept for older callers and the test harness */

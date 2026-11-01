@@ -159,6 +159,30 @@ p,
 li {
   text-wrap: pretty;
 }
+/* a single very long word (e.g. a product name typed in the admin) wraps instead of widening the page */
+h1,
+h2,
+h3,
+h4,
+a,
+p,
+li,
+dd,
+td,
+th {
+  overflow-wrap: break-word;
+}
+h1,
+h2,
+h3 {
+  min-width: 0;
+}
+.pcard-title,
+.p-h1,
+.mega-col a,
+.drawer a {
+  overflow-wrap: anywhere;
+}
 [hidden] {
   display: none !important;
 }

@@ -601,8 +601,11 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     let hoverTimer: number | undefined;
     // true while the panel is open only because the pointer is hovering; a click then pins it instead of closing it
     let hoverOpen = false;
+    // after a click the panel stays open until a click, Escape, focus leaving or an outside click
+    let pinned = false;
     const setMega = (open: boolean) => {
       if (!toggle || !mega) return;
+      if (!open) pinned = false;
       toggle.setAttribute('aria-expanded', String(open));
       mega.hidden = !open;
       header.classList.toggle('mega-open', open);
@@ -610,13 +613,28 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     toggle?.addEventListener('click', (e) => {
       if (hoverOpen && toggle.getAttribute('aria-expanded') === 'true') {
         hoverOpen = false;
+        pinned = true;
         return;
       }
+      pinned = false;
       hoverOpen = false;
       const open = toggle.getAttribute('aria-expanded') !== 'true';
       setMega(open);
       // opened from the keyboard: move focus into the panel
       if (open && (e as MouseEvent).detail === 0) mega?.querySelector<HTMLElement>('a')?.focus();
+    });
+    // the panel sits after the header tools in the page, so keep Tab order natural around it
+    mega?.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab' || !toggle) return;
+      const links = Array.from(mega.querySelectorAll<HTMLElement>('a'));
+      if (e.shiftKey && document.activeElement === links[0]) {
+        e.preventDefault();
+        toggle.focus();
+      } else if (!e.shiftKey && document.activeElement === links[links.length - 1]) {
+        e.preventDefault();
+        setMega(false);
+        header.querySelector<HTMLElement>('.primary li:nth-child(2) a')?.focus();
+      }
     });
     header.addEventListener('focusout', (e) => {
       const next = (e as FocusEvent).relatedTarget as Node | null;
@@ -656,7 +674,9 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
       };
       const close = () => {
         clearTimeout(hoverTimer);
-        hoverTimer = window.setTimeout(() => setMega(false), 220);
+        hoverTimer = window.setTimeout(() => {
+          if (!pinned) setMega(false);
+        }, 220);
       };
       toggle.addEventListener('mouseenter', open);
       toggle.addEventListener('mouseleave', close);
@@ -713,5 +733,11 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
   });
   drawer?.querySelectorAll('[data-search-open]').forEach((b) => b.addEventListener('click', () => setDrawer(false)));
   // in-page anchors (e.g. #inquiry on product pages) close the drawer first
-  drawer?.querySelectorAll<HTMLAnchorElement>('a[href^="#"]').forEach((a) => a.addEventListener('click', () => setDrawer(false)));
+  drawer?.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((a) =>
+    a.addEventListener('click', () => {
+      // a link that stays on this page (e.g. #inquiry, or /contact/#inquiry while on /contact/) must close the drawer
+      const u = new URL(a.href, location.href);
+      if (u.pathname === location.pathname && u.search === location.search) setDrawer(false);
+    }),
+  );
 </script>

@@ -2072,7 +2072,10 @@ const optional = tx(ui.form.hints.optional);
       if (!opt || !cfg.products[pid] || pid.startsWith('c-')) continue;
       const name = o.name?.[cfg.lang]?.trim();
       if (name) {
+        const before = cfg.products[pid].name;
         cfg.products[pid].name = name;
+        // the catalogue line in the summary ("… серия Balance") follows the new name too
+        if (before && cfg.products[pid].full) cfg.products[pid].full = cfg.products[pid].full.split(before).join(name);
         opt.textContent = name;
       }
       if (o.hidden && pid !== ownProduct) {

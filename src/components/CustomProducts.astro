@@ -15,6 +15,9 @@ const data = {
   item: { bg: url('bg', '/products/item/'), en: url('en', '/products/item/') },
   /** catalogue names, to rename them inside longer texts (page title, aria-labels) */
   names: Object.fromEntries(products.map((p) => [p.id, p.name])),
+  /** mid-sentence forms ("стационарен стъклен покрив") and full catalogue names, also renamed on the product's page */
+  inline: Object.fromEntries(products.filter((p) => p.nameInline).map((p) => [p.id, p.nameInline])),
+  full: Object.fromEntries(products.map((p) => [p.id, p.fullName])),
   /** subgroups per category with their catalogue product ids (added products can join one) */
   subgroups: Object.fromEntries(
     categories.map((c) => [c.id, (c.subgroups ?? []).map((sg) => ({ id: sg.id, productIds: sg.productIds }))]),

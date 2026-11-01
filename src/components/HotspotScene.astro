@@ -303,7 +303,6 @@ const crowded = hotspots.some((a, i) =>
           // On phones the cards are replaced by the legend: highlight the matching row
           const rows = Array.from(scene.querySelectorAll<HTMLElement>('.scene-legend li'));
           rows.forEach((r, k) => r.classList.toggle('is-active', k === i));
-          btns.forEach((x) => x.setAttribute('aria-expanded', String(x === b)));
           rows[i]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
           return;
         }

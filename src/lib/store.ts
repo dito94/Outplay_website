@@ -193,8 +193,8 @@ export function updateCustomProduct(id: string, patch: Partial<CustomProduct>): 
   return writeCustom(list);
 }
 
-export function deleteCustomProduct(id: string): void {
-  writeCustom(loadCustomProducts().filter((p) => p.id !== id));
+export function deleteCustomProduct(id: string): SaveResult {
+  return writeCustom(loadCustomProducts().filter((p) => p.id !== id));
 }
 
 const TRANSLIT: Record<string, string> = {

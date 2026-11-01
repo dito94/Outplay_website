@@ -101,13 +101,16 @@ const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <SearchPalette lang={lang} />
     <CustomProducts />
     <script>
-      // Language switches keep the current query (e.g. /products/item/?id=…, /search/?q=…)
-      if (location.search) {
-        document.querySelectorAll<HTMLAnchorElement>('.lang a, .drawer-lang a, .langs a').forEach((a) => {
-          const href = a.getAttribute('href') ?? '';
-          if (href && !href.includes('?')) a.setAttribute('href', href + location.search);
-        });
-      }
+      // Language switches keep the query the page has right now (/products/item/?id=…, /search/?q=…, filters),
+      // read at the moment the link is used, since filters update the URL after load.
+      const syncLang = (e: Event) => {
+        const a = (e.target as HTMLElement).closest?.<HTMLAnchorElement>('.lang a, .drawer-lang a, .langs a');
+        if (!a) return;
+        const base = a.dataset.base ?? (a.getAttribute('href') ?? '').split('?')[0];
+        a.dataset.base = base;
+        a.setAttribute('href', base + location.search);
+      };
+      ['pointerdown', 'focusin', 'click', 'mouseover'].forEach((t) => document.addEventListener(t, syncLang, true));
       // Restored from the back/forward cache: close any open dialog (search, lightbox)
       window.addEventListener('pageshow', (e) => {
         if (e.persisted) document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((d) => d.close());

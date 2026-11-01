@@ -9,8 +9,10 @@ const nf = pages.notFound;
 ---
 
 <Base lang="bg" title={t(nf.title, 'bg')} description={t(nf.intro, 'bg')}>
-  <script is:inline slot="head" define:vars={{ enPage: url('en', '/not-found/') }}>
-    if (/\/en(\/|$)/.test(location.pathname)) location.replace(enPage);
+  <script is:inline slot="head" define:vars={{ enPage: url('en', '/not-found/'), enHome: url('en', '/') }}>
+    // only a real /en/ language prefix right after the base path counts
+    const p = location.pathname;
+    if (p.startsWith(enHome) || p === enHome.slice(0, -1)) location.replace(enPage);
   </script>
   <NotFound langs={['bg']} />
 </Base>

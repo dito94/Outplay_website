@@ -213,11 +213,20 @@ export function search(prepared: Prepared[], q: string): SearchHit[] {
 
 /** Hits grouped by type (in GROUP_ORDER); weak fuzzy hits far below the group's best match are dropped */
 export function groupHits(hits: SearchHit[], minRatio = 0.2): { type: DocType; hits: SearchHit[] }[] {
-  return GROUP_ORDER.map((type) => {
+  const groups = GROUP_ORDER.map((type) => {
     const list = hits.filter((h) => h.doc.type === type);
     const top = list[0]?.score ?? 0;
     return { type, hits: list.filter((h) => h.score >= top * minRatio) };
   }).filter((g) => g.hits.length);
+  // Keep the usual order, unless another group clearly wins (e.g. "contact" → the Contact page, not a fuzzy "Compact")
+  if (groups.length > 1) {
+    const best = groups.reduce((a, g) => (g.hits[0].score > a.hits[0].score ? g : a), groups[0]);
+    if (best !== groups[0] && best.hits[0].score >= groups[0].hits[0].score * 1.5) {
+      groups.splice(groups.indexOf(best), 1);
+      groups.unshift(best);
+    }
+  }
+  return groups;
 }
 
 // ---------------------------------------------------------------------------
