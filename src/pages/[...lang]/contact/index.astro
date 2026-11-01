@@ -37,7 +37,7 @@ const nextSteps = [
 ];
 
 const address = t(site.address, lang);
-const mapSrc = `https://www.google.com/maps?q=${encodeURIComponent(site.address.en)}&hl=${lang}&z=15&output=embed`;
+const mapSrc = `https://www.google.com/maps?q=${encodeURIComponent(site.mapsQuery)}&hl=${lang}&z=16&output=embed`;
 
 const jsonLd = {
   '@context': 'https://schema.org',

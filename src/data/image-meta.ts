@@ -104,8 +104,8 @@ export const imageMeta: Record<string, ImageMeta> = {
   },
   'categories/sun-protection.jpg': {
     alt: {
-      bg: 'Бяла модерна къща с жълти вертикални ZIP завеси на прозорците и зимна градина с покривна сенника',
-      en: 'White modern house with yellow vertical ZIP screens on the windows and a glass conservatory with a roof shade',
+      bg: 'Бяла модерна къща с жълти вертикални ZIP завеси на прозорците и зимна градина с покривна ZIP завеса',
+      en: 'White modern house with yellow vertical ZIP screens on the windows and a glass winter garden with a roof ZIP screen',
     },
     focal: '50% 55%',
   },
@@ -562,7 +562,7 @@ export const imageMeta: Record<string, ImageMeta> = {
   'products/vertical-zip/gallery-02.jpg': {
     alt: {
       bg: 'Бяла кубична къща с жълти вертикални ZIP завеси на прозорците и на зимната градина',
-      en: 'White cubic house with yellow vertical ZIP screens on the windows and the conservatory',
+      en: 'White cubic house with yellow vertical ZIP screens on the windows and the winter garden',
     },
     focal: '45% 55%',
   },
@@ -582,26 +582,26 @@ export const imageMeta: Record<string, ImageMeta> = {
   // ---------------------------------------------------------------- roof zip
   'products/roof-zip/hero.jpg': {
     alt: {
-      bg: 'Поглед отгоре към черна зимна градина със стъклен покрив и лайм-зелена покривна ZIP сенника, морава',
-      en: 'Aerial view of a black glass-roof conservatory with a lime-green roof ZIP shade, on a lawn',
+      bg: 'Поглед отгоре към черна зимна градина със стъклен покрив и лайм-зелена покривна ZIP завеса, морава',
+      en: 'Aerial view of a black glass-roof winter garden with a lime-green roof ZIP screen, on a lawn',
     },
   },
   'products/roof-zip/gallery-01.jpg': {
     alt: {
-      bg: 'Антрацитна пергола със стъклен покрив и сива ZIP сенника под стъклото пред бетонна къща привечер',
-      en: 'Anthracite glass-roof pergola with a grey ZIP shade under the glass, in front of a concrete house at dusk',
+      bg: 'Антрацитна пергола със стъклен покрив и сива ZIP завеса под стъклото пред бетонна къща привечер',
+      en: 'Anthracite glass-roof pergola with a grey ZIP screen under the glass, in front of a concrete house at dusk',
     },
   },
   'products/roof-zip/gallery-02.jpg': {
     alt: {
-      bg: 'Стъклен покрив на зимна градина с бели покривни ZIP сенници, гледан отгоре под ъгъл',
-      en: 'Conservatory glass roof with white roof ZIP shades, seen from above at an angle',
+      bg: 'Стъклен покрив на зимна градина с бели покривни ZIP завеси, гледан отгоре под ъгъл',
+      en: 'Winter garden glass roof with white roof ZIP screens, seen from above at an angle',
     },
   },
   'products/roof-zip/gallery-03.jpg': {
     alt: {
-      bg: 'Зимна градина с бяла сенника върху стъкления покрив и жълта вертикална ZIP завеса отстрани',
-      en: 'Glass conservatory with a white shade over the glass roof and a yellow vertical ZIP screen on the side',
+      bg: 'Зимна градина с бяла ZIP завеса върху стъкления покрив и жълта вертикална ZIP завеса отстрани',
+      en: 'Glass winter garden with a white ZIP screen over the glass roof and a yellow vertical ZIP screen on the side',
     },
   },
 

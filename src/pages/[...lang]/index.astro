@@ -17,7 +17,7 @@ import { pages } from '../../data/pages';
 import { houseHotspots } from '../../data/hotspots';
 import { beforeAfter } from '../../data/before-after';
 import { references } from '../../data/references';
-import { langParams, getLang, url, categoryUrl, productUrl, t } from '../../lib/i18n';
+import { langParams, getLang, url, categoryUrl, productUrl, productCount, t } from '../../lib/i18n';
 
 export function getStaticPaths() {
   return langParams();
@@ -76,7 +76,7 @@ const jsonLd = {
           <li>
             <a href={categoryUrl(lang, c.id)}>
               <span class="cs-name">{t(c.name, lang)}</span>
-              <span class="cs-count num">{String(countOf(c.id)).padStart(2, '0')}</span>
+              <span class="cs-count">{productCount(lang, countOf(c.id))}</span>
             </a>
           </li>
         ))
@@ -242,10 +242,10 @@ const jsonLd = {
   }
   .cat-strip a {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--s-3);
-    padding: 1.35rem var(--s-5);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    padding: 1.1rem var(--s-5);
     text-decoration: none;
     transition: background-color 0.2s var(--ease);
   }
@@ -260,9 +260,11 @@ const jsonLd = {
     font-size: var(--step-1);
   }
   .cs-count {
-    color: var(--yellow);
+    flex: none;
+    color: var(--alu);
     font-size: var(--step--1);
-    font-weight: 600;
+    font-weight: 500;
+    white-space: nowrap;
   }
   @media (max-width: 900px) {
     .cat-strip ul {

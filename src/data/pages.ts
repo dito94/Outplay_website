@@ -436,7 +436,7 @@ export const pages = {
   admin: {
     title: { bg: 'Административен панел', en: 'Admin panel' },
     banner: {
-      bg: 'Демо режим — промените се пазят само в този браузър',
+      bg: 'Демо режим – промените се пазят само в този браузър',
       en: 'Demo mode: changes are saved in this browser only',
     },
     login: {
@@ -491,7 +491,7 @@ export const pages = {
       addVideo: { bg: 'Добави видео (URL)', en: 'Add video (URL)' },
       exportJson: { bg: 'Експорт (JSON)', en: 'Export (JSON)' },
       resetDemo: { bg: 'Възстанови демо данните', en: 'Reset demo data' },
-      resetConfirm: { bg: 'Всички промени в този браузър ще бъдат изтрити. Продължаване?', en: 'All changes in this browser will be deleted. Continue?' },
+      resetConfirm: { bg: 'Всички промени в този браузър ще бъдат изтрити. Да продължим ли?', en: 'All changes in this browser will be deleted. Continue?' },
     },
     fields: {
       nameBg: { bg: 'Име (BG)', en: 'Name (BG)' },

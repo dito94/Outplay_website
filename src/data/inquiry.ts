@@ -223,7 +223,7 @@ export const inquiryFamilies: Record<InquiryFamily, InquiryFamilyDef> = {
         type: 'single',
         choices: [
           { id: 'guillotine', label: { bg: 'Гилотина – вертикално плъзгане', en: 'Guillotine, vertical sliding' } },
-          { id: 'sliding', label: { bg: 'Хоризонтално плъзгащи панели', en: 'Horizontal sliding panels' } },
+          { id: 'sliding', label: { bg: 'Хоризонтално плъзгащи се панели', en: 'Horizontal sliding panels' } },
           { id: 'folding', label: { bg: 'Сгъваема система (Compact, Accord, Harmonia)', en: 'Folding system (Compact, Accord, Harmonia)' } },
           notSure,
         ],

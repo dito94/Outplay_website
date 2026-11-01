@@ -104,7 +104,7 @@ export const ui = {
     hints: {
       optional: { bg: 'по желание', en: 'optional' },
       required: { bg: 'задължително', en: 'required' },
-      phone: { bg: 'Ще Ви се обадим или ще пишем във Viber на този номер.', en: 'We will call or message you on Viber at this number.' },
+      phone: { bg: 'Ще Ви се обадим или ще Ви пишем във Viber на този номер.', en: 'We will call or message you on Viber at this number.' },
       photos: { bg: 'До няколко снимки – помагат ни да предложим точно решение.', en: 'A few photos help us suggest the right solution.' },
       dimensions: {
         bg: 'Приблизителните размери са достатъчни – точният замер се прави при огледа.',

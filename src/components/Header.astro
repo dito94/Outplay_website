@@ -581,7 +581,7 @@ const isProducts = route.startsWith('/products/');
 </style>
 
 <script>
-  const header = document.querySelector<HTMLElement>('[data-header]');
+  const header = document.querySelector<HTMLElement>('header.site-header');
   // Show the right shortcut for the platform
   if (!/Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent)) {
     document.querySelectorAll<HTMLElement>('.kbd').forEach((k) => (k.textContent = 'Ctrl K'));

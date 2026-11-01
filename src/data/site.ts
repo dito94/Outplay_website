@@ -43,7 +43,9 @@ export const site = {
   email: 'office@outplay.bg',
   website: 'www.outplay.bg',
   websiteUrl: 'https://www.outplay.bg',
-  mapsUrl: 'https://www.google.com/maps/search/?api=1&query=bul.+Nikola+Mushanov+151%2C+1330+Sofia%2C+Bulgaria',
+  /** Google Maps search for the Bulgarian address (resolves more reliably than the transliteration) */
+  mapsQuery: 'бул. Никола Мушанов 151, 1330 София, България',
+  mapsUrl: 'https://www.google.com/maps/search/?api=1&query=%D0%B1%D1%83%D0%BB.%20%D0%9D%D0%B8%D0%BA%D0%BE%D0%BB%D0%B0%20%D0%9C%D1%83%D1%88%D0%B0%D0%BD%D0%BE%D0%B2%20151%2C%201330%20%D0%A1%D0%BE%D1%84%D0%B8%D1%8F%2C%20%D0%91%D1%8A%D0%BB%D0%B3%D0%B0%D1%80%D0%B8%D1%8F',
   /** Manufacturers named in the catalogue ("… и др.") */
   partners: [
     'REYNAERS',

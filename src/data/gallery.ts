@@ -68,7 +68,7 @@ export const gallery: GalleryItem[] = [
     image: 'products/roof-zip/hero.jpg',
     category: 'sun-protection',
     productId: 'roof-zip',
-    caption: { bg: 'Покривна ZIP сенника върху зимна градина', en: 'Roof ZIP shade on a conservatory' },
+    caption: { bg: 'Покривна ZIP завеса върху зимна градина', en: 'Roof ZIP screen on a winter garden' },
   },
   {
     image: 'products/accord/hero.jpg',
@@ -133,7 +133,7 @@ export const gallery: GalleryItem[] = [
     image: 'products/infinity/gallery-03.jpg',
     category: 'bioclimatic-pergolas',
     productId: 'infinity',
-    caption: { bg: 'Пергола в цвят по избор по залез', en: 'Pergola in a custom colour at sunset' },
+    caption: { bg: 'Пергола в цвят по избор при залез', en: 'Pergola in a custom colour at sunset' },
   },
   {
     image: 'products/guillotine/gallery-01.jpg',
@@ -151,7 +151,7 @@ export const gallery: GalleryItem[] = [
     image: 'products/roof-zip/gallery-01.jpg',
     category: 'sun-protection',
     productId: 'roof-zip',
-    caption: { bg: 'ZIP сенника под стъклен покрив привечер', en: 'ZIP shade under a glass roof at dusk' },
+    caption: { bg: 'ZIP завеса под стъклен покрив привечер', en: 'ZIP screen under a glass roof at dusk' },
   },
   {
     image: 'products/sliding-glass/gallery-02.jpg',
@@ -235,7 +235,7 @@ export const gallery: GalleryItem[] = [
     image: 'products/roof-zip/gallery-03.jpg',
     category: 'sun-protection',
     productId: 'roof-zip',
-    caption: { bg: 'Зимна градина с покривна и вертикална ZIP защита', en: 'Conservatory with roof and vertical ZIP shading' },
+    caption: { bg: 'Зимна градина с покривна и вертикална ZIP защита', en: 'Winter garden with roof and vertical ZIP screens' },
   },
   {
     image: 'products/fixed-glass-roof/gallery-02.jpg',

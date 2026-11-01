@@ -58,3 +58,9 @@ export const categoryUrl = (lang: Lang, category: string) => url(lang, `/product
 export function fmt(template: string, vars: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
 }
+
+/** "7 продукта" / "1 продукт" / "7 products" */
+export function productCount(lang: Lang, n: number): string {
+  if (lang === 'bg') return `${n} ${n === 1 ? 'продукт' : 'продукта'}`;
+  return `${n} ${n === 1 ? 'product' : 'products'}`;
+}

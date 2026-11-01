@@ -31,7 +31,7 @@
   --font-display: 'Jost Variable', 'Jost', 'Century Gothic', 'Futura', 'Avenir Next', sans-serif;
   --font-body: 'Onest Variable', 'Onest', -apple-system, 'Segoe UI', Roboto, sans-serif;
   --step--2: 0.75rem;
-  --step--1: clamp(0.84rem, 0.82rem + 0.1vw, 0.9rem);
+  --step--1: clamp(0.875rem, 0.85rem + 0.1vw, 0.9375rem);
   --step-0: clamp(1rem, 0.97rem + 0.15vw, 1.0625rem);
   --step-1: clamp(1.15rem, 1.08rem + 0.35vw, 1.35rem);
   --step-2: clamp(1.4rem, 1.25rem + 0.75vw, 1.8rem);
@@ -299,6 +299,22 @@ textarea {
   line-height: 1.68;
 }
 
+/* Standard page hero for non-overlay pages: same breadcrumb offset and H1 size everywhere */
+.page-hero {
+  padding-top: clamp(1.25rem, 1rem + 1vw, 2rem);
+  padding-bottom: clamp(2.5rem, 2rem + 3vw, 4.5rem);
+}
+.page-hero .crumbs {
+  margin-bottom: clamp(2rem, 1.5rem + 2.5vw, 3.5rem);
+}
+.page-hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 1.7rem + 3vw, 4.25rem);
+  font-weight: 300;
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+}
+
 /* Brand device: the catalogue's short yellow rule above a heading */
 .rule {
   position: relative;
@@ -453,6 +469,14 @@ textarea {
   text-decoration: none;
   border-bottom: 1px solid currentColor;
   padding-bottom: 2px;
+}
+.link-arrow {
+  position: relative;
+}
+.link-arrow::after {
+  content: '';
+  position: absolute;
+  inset: -12px -6px;
 }
 .link-arrow svg {
   width: 16px;
@@ -645,10 +669,10 @@ textarea {
 @media (prefers-reduced-motion: no-preference) {
   .rv-ready [data-reveal] {
     opacity: 0.001;
-    transform: translateY(18px);
+    transform: translateY(8px);
     transition:
-      opacity 0.7s var(--ease),
-      transform 0.7s var(--ease);
+      opacity 0.45s var(--ease),
+      transform 0.45s var(--ease);
   }
   .rv-ready [data-reveal].is-in {
     opacity: 1;
