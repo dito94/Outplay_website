@@ -148,8 +148,10 @@ const inLang = (route, lang) => BASE + (lang === 'en' ? 'en/' : '') + route.repl
     const expectLang = route.endsWith('404.html') ? null : langOf(route);
     if (expectLang && data.htmlLang !== expectLang) fail('html-lang', route, `lang="${data.htmlLang}" expected ${expectLang}`);
 
+    // 404 pages (the shared 404.html and the English /en/not-found/) have no canonical, and their language switch goes home
+    const is404 = route.endsWith('404.html') || /\/not-found\/$/.test(route);
     // ---- canonical / hreflang
-    if (!route.endsWith('404.html')) {
+    if (!is404) {
       const want = SITE + route;
       if (data.canonical !== want) fail('canonical', route, `${data.canonical} ≠ ${want}`);
       if (data.ogUrl !== want) fail('og:url', route, `${data.ogUrl} ≠ ${want}`);
@@ -168,7 +170,7 @@ const inLang = (route, lang) => BASE + (lang === 'en' ? 'en/' : '') + route.repl
     }
 
     // ---- language switches (header tools, drawer, footer): every link with hreflang/aria-current inside a switch
-    if (!route.endsWith('404.html')) {
+    if (!is404) {
       const other = langOf(route) === 'bg' ? 'en' : 'bg';
       const wantOther = inLang(neutral(route), other);
       const wantSame = route;
@@ -237,7 +239,8 @@ const inLang = (route, lang) => BASE + (lang === 'en' ? 'en/' : '') + route.repl
       if (u.hash && u.hash.length > 1 && !/\/admin\/$/.test(targetRoute)) {
         const frag = decodeURIComponent(u.hash.slice(1));
         const set = ids.get(targetRoute);
-        if (set && !set.has(frag)) fail('missing-anchor', route, `${href} → #${frag} not on ${targetRoute} ("${l.text}")`);
+        // /products/item/ builds its sections in the browser from saved data, so its anchors aren't in the static HTML
+        if (set && !set.has(frag) && !/\/products\/item\//.test(targetRoute)) fail('missing-anchor', route, `${href} → #${frag} not on ${targetRoute} ("${l.text}")`);
       }
       // query params
       for (const [k, v] of u.searchParams) {
