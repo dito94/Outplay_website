@@ -155,6 +155,7 @@ const T = {
     let items: HTMLAnchorElement[] = [];
     let index = 0;
     let opener: HTMLElement | null = null;
+    let pushed = false;
 
     const show = (i: number) => {
       index = (i + items.length) % items.length;
@@ -184,12 +185,29 @@ const T = {
       show(items.indexOf(a));
       dlg.showModal();
       document.body.style.overflow = 'hidden';
+      // a history entry so the phone Back gesture closes the viewer instead of leaving the page
+      try {
+        history.pushState({ outplayLightbox: true }, '');
+        pushed = true;
+      } catch {
+        pushed = false;
+      }
     });
 
     dlg.querySelector('[data-lb-prev]')?.addEventListener('click', () => show(index - 1));
     dlg.querySelector('[data-lb-next]')?.addEventListener('click', () => show(index + 1));
     dlg.querySelector('[data-lb-close]')?.addEventListener('click', () => dlg.close());
+    window.addEventListener('popstate', () => {
+      if (dlg.open) {
+        pushed = false;
+        dlg.close();
+      }
+    });
     dlg.addEventListener('close', () => {
+      if (pushed) {
+        pushed = false;
+        if (history.state?.outplayLightbox) history.back();
+      }
       document.body.style.overflow = '';
       imgEl.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
       opener?.focus();

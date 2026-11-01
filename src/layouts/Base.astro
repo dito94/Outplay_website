@@ -101,6 +101,19 @@ const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <SearchPalette lang={lang} />
     <CustomProducts />
     <script>
+      // Language switches keep the current query (e.g. /products/item/?id=…, /search/?q=…)
+      if (location.search) {
+        document.querySelectorAll<HTMLAnchorElement>('.lang a, .drawer-lang a, .langs a').forEach((a) => {
+          const href = a.getAttribute('href') ?? '';
+          if (href && !href.includes('?')) a.setAttribute('href', href + location.search);
+        });
+      }
+      // Restored from the back/forward cache: close any open dialog (search, lightbox)
+      window.addEventListener('pageshow', (e) => {
+        if (e.persisted) document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((d) => d.close());
+      });
+    </script>
+    <script>
       // Reveal-on-scroll enhancement. Content is visible without JS; elements already in view never animate.
       const els = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches || navigator.webdriver === true;

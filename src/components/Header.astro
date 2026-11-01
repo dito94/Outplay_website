@@ -41,7 +41,8 @@ const nav = [
 ];
 const isProducts = route.startsWith('/products/');
 // On a product page the quote buttons jump to that product's own inquiry form
-const isProductPage = /^\/products\/[^/]+\/[^/]+\/$/.test(route);
+// /products/<category>/<id>/ and the admin-added product page /products/item/ both embed an #inquiry form
+const isProductPage = /^\/products\/[^/]+\/[^/]+\/$/.test(route) || route === '/products/item/';
 const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
 ---
 
@@ -598,6 +599,8 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     const toggle = header.querySelector<HTMLButtonElement>('[data-mega-toggle]');
     const mega = header.querySelector<HTMLElement>('[data-mega]');
     let hoverTimer: number | undefined;
+    // true while the panel is open only because the pointer is hovering; a click then pins it instead of closing it
+    let hoverOpen = false;
     const setMega = (open: boolean) => {
       if (!toggle || !mega) return;
       toggle.setAttribute('aria-expanded', String(open));
@@ -605,6 +608,11 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
       header.classList.toggle('mega-open', open);
     };
     toggle?.addEventListener('click', (e) => {
+      if (hoverOpen && toggle.getAttribute('aria-expanded') === 'true') {
+        hoverOpen = false;
+        return;
+      }
+      hoverOpen = false;
       const open = toggle.getAttribute('aria-expanded') !== 'true';
       setMega(open);
       // opened from the keyboard: move focus into the panel
@@ -641,7 +649,10 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     if (fine.matches && toggle && mega) {
       const open = () => {
         clearTimeout(hoverTimer);
-        hoverTimer = window.setTimeout(() => setMega(true), 120);
+        hoverTimer = window.setTimeout(() => {
+          if (toggle.getAttribute('aria-expanded') !== 'true') hoverOpen = true;
+          setMega(true);
+        }, 120);
       };
       const close = () => {
         clearTimeout(hoverTimer);
@@ -676,6 +687,14 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     else openBtn.focus();
   };
   openBtn?.addEventListener('click', () => setDrawer(true));
+  // Restored from the back/forward cache: never come back with the drawer open
+  window.addEventListener('pageshow', (e) => {
+    if ((e as PageTransitionEvent).persisted && drawer && !drawer.hidden) {
+      drawer.hidden = true;
+      openBtn?.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('drawer-lock');
+    }
+  });
   closeBtn?.addEventListener('click', () => setDrawer(false));
   drawer?.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') setDrawer(false);

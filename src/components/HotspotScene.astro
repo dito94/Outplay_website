@@ -40,9 +40,15 @@ const more = lang === 'bg' ? 'Виж продукта' : 'View product';
 const moreCat = lang === 'bg' ? 'Виж системите' : 'View the systems';
 const meta = img(image);
 const ratio = meta ? `aspect-ratio:${meta.width}/${meta.height}` : undefined;
+// On a ~358px-wide phone image, would any two 30px dots overlap? Then phones rely on the numbered legend instead.
+const aspect = meta ? meta.width / meta.height : 16 / 9;
+const W = 358;
+const crowded = hotspots.some((a, i) =>
+  hotspots.slice(i + 1).some((b) => Math.hypot(((a.x - b.x) / 100) * W, ((a.y - b.y) / 100) * (W / aspect)) < 34),
+);
 ---
 
-<div class="scene" data-scene>
+<div class:list={['scene', { 'dots-crowded': crowded }]} data-scene>
   <div class="scene-stage" style={ratio}>
     <Img src={image} lang={lang} sizes={sizes} />
     {
@@ -116,8 +122,15 @@ const ratio = meta ? `aspect-ratio:${meta.width}/${meta.height}` : undefined;
     height: 0;
     z-index: 2;
   }
+  /* the open card sits above the image; the other dots stay above the card so they remain clickable */
   .hs:has(.hs-dot[aria-expanded='true']) {
+    z-index: 3;
+  }
+  .scene-stage:has(.hs-dot[aria-expanded='true']) .hs:not(:has(.hs-dot[aria-expanded='true'])) {
     z-index: 4;
+  }
+  .scene-stage:has(.hs-dot[aria-expanded='true']) .hs:not(:has(.hs-dot[aria-expanded='true'])) .hs-dot {
+    opacity: 0.75;
   }
   .hs-dot {
     position: absolute;
@@ -263,6 +276,9 @@ const ratio = meta ? `aspect-ratio:${meta.width}/${meta.height}` : undefined;
     }
     .scene-legend li.is-active {
       background: var(--mist);
+    }
+    .dots-crowded .hs {
+      display: none;
     }
     .hs-card {
       display: none !important;

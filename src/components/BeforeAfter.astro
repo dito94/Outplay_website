@@ -122,6 +122,7 @@ const uid = `ba-${pair.id}-${Math.random().toString(36).slice(2, 7)}`;
     box-shadow: 0 8px 24px -6px rgba(10, 10, 8, 0.45);
     transition: transform 0.2s var(--ease);
   }
+  /* The range input stays for keyboard and screen readers; pointer and touch are handled on the stage */
   .ba-range {
     position: absolute;
     inset: 0;
@@ -129,9 +130,12 @@ const uid = `ba-${pair.id}-${Math.random().toString(36).slice(2, 7)}`;
     height: 100%;
     margin: 0;
     opacity: 0;
-    cursor: ew-resize;
+    pointer-events: none;
     -webkit-appearance: none;
     appearance: none;
+  }
+  .ba-stage {
+    cursor: ew-resize;
   }
   .ba-range::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -147,7 +151,7 @@ const uid = `ba-${pair.id}-${Math.random().toString(36).slice(2, 7)}`;
     outline: 3px solid var(--yellow);
     outline-offset: 3px;
   }
-  .ba-stage:has(.ba-range:active) .ba-knob {
+  .ba-stage.is-dragging .ba-knob {
     transform: scale(0.94);
   }
   @media (max-width: 600px) {
@@ -178,12 +182,61 @@ const uid = `ba-${pair.id}-${Math.random().toString(36).slice(2, 7)}`;
 <script>
   document.querySelectorAll<HTMLElement>('[data-ba]').forEach((fig) => {
     const range = fig.querySelector<HTMLInputElement>('[data-ba-range]');
-    if (!range) return;
+    const stage = fig.querySelector<HTMLElement>('.ba-stage');
+    if (!range || !stage) return;
     const update = () => {
       fig.style.setProperty('--pos', `${range.value}%`);
       range.setAttribute('aria-valuetext', `${Math.round(Number(range.value))}%`);
     };
+    const setFromX = (clientX: number) => {
+      const r = stage.getBoundingClientRect();
+      const pct = Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100));
+      range.value = String(Math.round(pct * 2) / 2);
+      update();
+    };
     range.addEventListener('input', update);
+
+    // Mouse drags right away; touch moves the divider only on a horizontal swipe or a tap,
+    // so a vertical scroll that starts on the image keeps scrolling the page.
+    let id: number | null = null;
+    let x0 = 0;
+    let y0 = 0;
+    let dragging = false;
+    stage.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      id = e.pointerId;
+      x0 = e.clientX;
+      y0 = e.clientY;
+      dragging = e.pointerType === 'mouse';
+      if (dragging) {
+        stage.setPointerCapture(id);
+        stage.classList.add('is-dragging');
+        setFromX(e.clientX);
+        e.preventDefault();
+      }
+    });
+    stage.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== id) return;
+      if (!dragging) {
+        const dx = Math.abs(e.clientX - x0);
+        const dy = Math.abs(e.clientY - y0);
+        if (dx > 8 && dx > dy) {
+          dragging = true;
+          stage.setPointerCapture(e.pointerId);
+          stage.classList.add('is-dragging');
+        } else return;
+      }
+      setFromX(e.clientX);
+    });
+    const end = (e: PointerEvent, tap: boolean) => {
+      if (e.pointerId !== id) return;
+      if (tap && !dragging && Math.abs(e.clientX - x0) < 6 && Math.abs(e.clientY - y0) < 6) setFromX(e.clientX);
+      id = null;
+      dragging = false;
+      stage.classList.remove('is-dragging');
+    };
+    stage.addEventListener('pointerup', (e) => end(e, true));
+    stage.addEventListener('pointercancel', (e) => end(e, false));
     update();
   });
 </script>
