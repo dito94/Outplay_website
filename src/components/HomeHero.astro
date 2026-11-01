@@ -19,7 +19,7 @@ const SLATS = 12;
 
 <section class="hero night" aria-labelledby="hero-title">
   <div class="hero-media">
-    <Img src={image} lang={lang} priority sizes="100vw" class="hero-img" />
+    <Img src={image} lang={lang} priority sizes="(max-width: 600px) 300vw, (max-width: 1100px) 160vw, 100vw" class="hero-img" />
     <div class="hero-scrim" aria-hidden="true"></div>
     <div class="louvres" aria-hidden="true">
       {Array.from({ length: SLATS }, (_, i) => <span style={`--i:${i}`} />)}

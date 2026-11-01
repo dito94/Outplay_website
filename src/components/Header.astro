@@ -235,13 +235,13 @@ const isProducts = route.startsWith('/products/');
   .brand :global(.logo) {
     height: 44px;
   }
-  .logo-on-dark {
+  .brand :global(.logo-on-dark) {
     display: none !important;
   }
-  .site-header[data-variant='overlay']:not(.is-solid):not(.mega-open) .logo-on-dark {
+  .site-header[data-variant='overlay']:not(.is-solid):not(.mega-open) .brand :global(.logo-on-dark) {
     display: inline-flex !important;
   }
-  .site-header[data-variant='overlay']:not(.is-solid):not(.mega-open) .logo-on-light {
+  .site-header[data-variant='overlay']:not(.is-solid):not(.mega-open) .brand :global(.logo-on-light) {
     display: none !important;
   }
   .primary {
