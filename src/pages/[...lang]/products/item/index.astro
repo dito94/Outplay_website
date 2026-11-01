@@ -1,0 +1,808 @@
+---
+// Public page for products added in the admin demo: /products/item/?id=c-… (and /en/…).
+// A static shell: the product lives in this browser's localStorage (src/lib/store.ts), so the page is
+// rendered client-side in the same layout as src/pages/[...lang]/products/[category]/[product].astro.
+import Base from '../../../../layouts/Base.astro';
+import Lightbox from '../../../../components/Lightbox.astro';
+import StickyCta from '../../../../components/StickyCta.astro';
+import SubNav from '../../../../components/SubNav.astro';
+import { categories } from '../../../../data/categories';
+import { site } from '../../../../data/site';
+import { ui } from '../../../../data/ui';
+import { categoryUrl, getLang, langParams, t, url } from '../../../../lib/i18n';
+
+export function getStaticPaths() {
+  return langParams();
+}
+const lang = getLang(Astro.params.lang);
+
+const T = {
+  metaTitle: { bg: 'Продукт', en: 'Product' },
+  metaDesc: {
+    bg: 'Продукт на OUTPLAY, добавен в демото на административния панел.',
+    en: 'An OUTPLAY product added in the admin panel demo.',
+  },
+  home: { bg: 'Начало', en: 'Home' },
+  products: { bg: 'Продукти', en: 'Products' },
+  crumbs: { bg: 'Навигационна пътека', en: 'Breadcrumb' },
+  quote: { bg: 'Направете запитване', en: 'Request a quote' },
+  quoteShort: { bg: 'Запитване', en: 'Get a quote' },
+  navOverview: { bg: 'Описание', en: 'Overview' },
+  navSpecs: { bg: 'Параметри', en: 'Specifications' },
+  navGallery: { bg: 'Галерия', en: 'Gallery' },
+  navInquiry: { bg: 'Запитване', en: 'Inquiry' },
+  features: ui.product.features,
+  specs: ui.product.specs,
+  specsNote: ui.product.specsNote,
+  noPrices: ui.product.noPrices,
+  gallery: ui.product.gallery,
+  galleryIntro: {
+    bg: 'Снимки на {name}. Отворете изображение, за да го разгледате в цял размер.',
+    en: 'Photos of {name}. Open any image to view it full size.',
+  },
+  open: { bg: 'Отвори снимката', en: 'Open image' },
+  photo: { bg: 'снимка', en: 'photo' },
+  quoteTitle: ui.product.quoteTitle,
+  quoteLead: ui.product.quoteLead,
+  toForm: { bg: 'Към формата за запитване', en: 'Go to the quote form' },
+  talk: { bg: 'Предпочитате да говорим?', en: 'Prefer to talk?' },
+  viber: { bg: 'Пишете ни във Viber', en: 'Message us on Viber' },
+  demoNote: {
+    bg: 'Демо: продуктът е добавен от админ панела и се вижда само в този браузър.',
+    en: 'Demo: this product was added in the admin panel and shows in this browser only.',
+  },
+  hiddenNote: {
+    bg: 'Продуктът е скрит от списъците на сайта. Виждате страницата, защото я отваряте с директна връзка.',
+    en: 'This product is hidden from the site listings. You can see the page because you opened a direct link.',
+  },
+  missingTitle: { bg: 'Продуктът не е наличен в този браузър', en: 'This product is not available in this browser' },
+  missingText: {
+    bg: 'Продуктите, добавени в админ демото, се пазят само в браузъра, в който са създадени. Отворете връзката там или разгледайте всички продукти на OUTPLAY.',
+    en: 'Products added in the admin demo are kept only in the browser where they were created. Open the link there, or browse all OUTPLAY products.',
+  },
+  allProducts: { bg: 'Разгледайте продуктите', en: 'Explore the products' },
+  admin: { bg: 'Админ панел (демо)', en: 'Admin panel (demo)' },
+  loading: { bg: 'Зареждане…', en: 'Loading…' },
+  noscript: {
+    bg: 'Тази страница показва продукт, добавен в админ демото, и има нужда от JavaScript.',
+    en: 'This page shows a product added in the admin demo and needs JavaScript.',
+  },
+};
+const S = Object.fromEntries(Object.entries(T).map(([k, v]) => [k, t(v, lang)]));
+const cfg = {
+  lang,
+  s: S,
+  home: url(lang, '/'),
+  products: url(lang, '/products/'),
+  admin: url(lang, '/admin/'),
+  contact: url(lang, '/contact/'),
+  categories: Object.fromEntries(categories.map((c) => [c.id, { name: t(c.name, lang), href: categoryUrl(lang, c.id) }])),
+  phones: site.phones.map((p) => ({ display: p.display, e164: p.e164 })),
+  viber: site.viberUrl,
+};
+const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
+---
+
+<Base lang={lang} title={S.metaTitle} description={S.metaDesc}>
+  <div class="ci" data-ci-hero>
+    <section class="section wrap ci-loading">
+      <p class="muted" data-ci-loading>{S.loading}</p>
+      <noscript><p>{S.noscript}</p></noscript>
+    </section>
+  </div>
+  <script type="application/json" id="ci-data" is:inline set:html={json}></script>
+  <script>
+    import { getCustomProduct, type CustomProduct } from '../../../../lib/store';
+
+    type Pair = { bg: string; en: string };
+    interface Cfg {
+      lang: 'bg' | 'en';
+      s: Record<string, string>;
+      home: string;
+      products: string;
+      admin: string;
+      contact: string;
+      categories: Record<string, { name: string; href: string }>;
+      phones: { display: string; e164: string }[];
+      viber: string;
+    }
+    const cfg = JSON.parse(document.getElementById('ci-data')?.textContent || '{}') as Cfg;
+    const S = cfg.s;
+    const L = cfg.lang;
+    const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
+    const fmt = (s: string, v: Record<string, string>) => s.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? '');
+    /** Text in the page language; empty English falls back to Bulgarian (as the admin promises) */
+    const pick = (p?: Partial<Pair>) => ((p?.[L] || p?.bg || p?.en || '') as string).trim();
+    const pickList = (list: Partial<Pair>[] = []) => {
+      const own = list.map((x) => (x[L] ?? '').trim()).filter(Boolean);
+      return own.length ? own : list.map((x) => (x.bg || x.en || '').trim()).filter(Boolean);
+    };
+    const icon = (d: string, size = 20) =>
+      `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+    const I = {
+      arrow: '<path d="M4 12h15"/><path d="m13 6 6 6-6 6"/>',
+      phone:
+        '<path d="M5 4h3.2l1.6 4-2 1.3a10.5 10.5 0 0 0 4.9 4.9l1.3-2 4 1.6V17a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2Z"/>',
+      viber:
+        '<path d="M12 2.8c5 0 8.4 2.4 8.4 7.9 0 5.2-3.2 7.8-8.2 7.8-.7 0-1.4 0-2-.1L7 21v-3.3c-2.4-1.2-3.4-3.6-3.4-7 0-5.5 3.4-7.9 8.4-7.9Z"/><path d="M9.3 7.3c.4-.3 1-.2 1.2.2l.7 1.3c.2.4.1.8-.2 1.1l-.4.3c.4 1 1.3 1.9 2.3 2.3l.3-.4c.3-.3.7-.4 1.1-.2l1.3.7c.4.2.5.8.2 1.2-.6.8-1.6 1.1-2.6.7a7.6 7.6 0 0 1-4.6-4.6c-.4-1 0-2 .7-2.6Z"/>',
+      expand: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+      info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>',
+    };
+
+    const heroEl = document.querySelector<HTMLElement>('[data-ci-hero]')!;
+    const bodyEl = document.querySelector<HTMLElement>('[data-ci-body]')!;
+    const subnav = document.querySelector<HTMLElement>('[data-subnav]');
+    const id = new URLSearchParams(location.search).get('id') ?? '';
+    const product = id ? getCustomProduct(id) : undefined;
+
+    const crumbs = (items: { label: string; href?: string }[]) =>
+      `<nav class="ci-crumbs" aria-label="${esc(S.crumbs)}"><ol>${items
+        .map((it, i) =>
+          it.href && i < items.length - 1 ? `<li><a href="${esc(it.href)}">${esc(it.label)}</a></li>` : `<li><span aria-current="page">${esc(it.label)}</span></li>`,
+        )
+        .join('')}</ol></nav>`;
+
+    /** Same tile spans as src/components/ProductGallery.astro: [columns of 12, rows], every row filled */
+    function layout(n: number): [number, number][] {
+      if (n <= 0) return [];
+      if (n === 1) return [[12, 3]];
+      if (n === 2) return [[7, 2], [5, 2]];
+      if (n === 4) return [[7, 2], [5, 2], [5, 2], [7, 2]];
+      const out: [number, number][] = [[8, 2], [4, 1], [4, 1]];
+      let r = n - 3;
+      while (r > 0) {
+        if (r === 1) {
+          out.push([12, 2]);
+          r -= 1;
+        } else if (r === 2 || r === 4) {
+          out.push([6, 2], [6, 2]);
+          r -= 2;
+        } else {
+          out.push([4, 2], [4, 2], [4, 2]);
+          r -= 3;
+        }
+      }
+      return out;
+    }
+
+    function renderMissing() {
+      heroEl.innerHTML = `<section class="section ci-missing" aria-labelledby="ci-title">
+        <div class="wrap">
+          ${crumbs([{ label: S.home, href: cfg.home }, { label: S.products, href: cfg.products }, { label: S.metaTitle }])}
+          <div class="ci-missing-box">
+            <h1 id="ci-title" class="h2 rule">${esc(S.missingTitle)}</h1>
+            <p class="lead">${esc(S.missingText)}</p>
+            <div class="btn-row">
+              <a class="btn" href="${esc(cfg.products)}">${esc(S.allProducts)} ${icon(I.arrow, 18)}</a>
+              <a class="btn btn-ghost" href="${esc(cfg.admin)}">${esc(S.admin)}</a>
+            </div>
+          </div>
+        </div>
+      </section>`;
+      if (subnav) subnav.hidden = true;
+      document.querySelector<HTMLElement>('[data-scta]')?.setAttribute('hidden', '');
+      document.title = `${S.missingTitle} · OUTPLAY`;
+    }
+
+    function renderProduct(p: CustomProduct) {
+      const name = pick(p.name) || p.id;
+      const cat = cfg.categories[p.category];
+      const tagline = pick(p.tagline);
+      const summary = pick(p.summary);
+      const paragraphs = pickList((p.sections ?? []).flatMap((s) => s.paragraphs ?? []));
+      const features = pickList(p.features);
+      const specs = (p.specs ?? []).map((r) => ({ label: pick(r.label), value: pick(r.value) })).filter((r) => r.label || r.value);
+      const images = (p.images ?? []).filter((src) => typeof src === 'string' && src.startsWith('data:image/'));
+      const hero = images[0];
+      const rowImage = paragraphs.length ? images[1] : undefined;
+      const galleryImages = images.slice(rowImage ? 2 : 1);
+      const phone = cfg.phones[0];
+      const contactHref = `${cfg.contact}?product=${encodeURIComponent(p.id)}#inquiry`;
+
+      heroEl.innerHTML = `<section class="ci-hero" aria-labelledby="ci-title">
+        <div class="wrap">
+          ${crumbs([
+            { label: S.home, href: cfg.home },
+            { label: S.products, href: cfg.products },
+            ...(cat ? [{ label: cat.name, href: cat.href }] : []),
+            { label: name },
+          ])}
+          <div class="ci-top${hero ? '' : ' no-media'}">
+            <div class="ci-titles">
+              <h1 id="ci-title" class="ci-h1${name.length > 14 ? ' is-long' : ''}">${esc(name)}</h1>
+              ${cat ? `<p class="ci-full">${esc(cat.name)}</p>` : ''}
+            </div>
+            ${hero ? `<div class="ci-hero-media"><div class="media ci-hero-img"><img src="${hero}" alt="${esc(name)}" /></div></div>` : ''}
+            <div class="ci-intro">
+              ${tagline ? `<p class="ci-tagline">${esc(tagline)}</p>` : ''}
+              ${summary ? `<p class="lead ci-sum">${esc(summary)}</p>` : ''}
+              <div class="btn-row ci-ctas" data-sticky-cta-start>
+                <a class="btn" href="#inquiry">${esc(S.quote)} ${icon(I.arrow, 18)}</a>
+                <a class="btn btn-viber ci-alt" href="${esc(cfg.viber)}">${icon(I.viber, 18)} Viber</a>
+                ${phone ? `<a class="ci-phone ci-alt num" href="tel:${esc(phone.e164)}">${icon(I.phone, 18)} ${esc(phone.display)}</a>` : ''}
+              </div>
+            </div>
+          </div>
+          ${p.hidden ? `<p class="ci-notice">${icon(I.info, 18)}<span>${esc(S.hiddenNote)}</span></p>` : ''}
+        </div>
+      </section>`;
+
+      // Bands alternate white / light grey down the page, as on the catalogue product pages
+      const order = [paragraphs.length && 'overview', (features.length || specs.length) && 'specs', galleryImages.length && 'gallery', 'inquiry'].filter(
+        Boolean,
+      ) as string[];
+      const band = Object.fromEntries(order.map((k, i) => [k, i % 2 ? 'mist' : '']));
+      const out: string[] = [];
+
+      if (paragraphs.length) {
+        const prose = `<div class="prose">${paragraphs.map((x) => `<p>${esc(x)}</p>`).join('')}</div>`;
+        out.push(`<section id="overview" data-sn-section="overview" class="section ${band.overview}" aria-labelledby="ci-overview">
+          <div class="wrap">${
+            rowImage
+              ? `<article class="ci-row"><div class="ci-row-text"><h2 id="ci-overview" class="h2 rule">${esc(S.navOverview)}</h2>${prose}</div>
+                 <div class="ci-row-media media"><img src="${rowImage}" alt="${esc(`${name}, ${S.photo} 2`)}" loading="lazy" /></div></article>`
+              : `<article class="ci-solo"><h2 id="ci-overview" class="h2 rule">${esc(S.navOverview)}</h2>${prose}</article>`
+          }</div>
+        </section>`);
+      }
+
+      if (features.length || specs.length) {
+        out.push(`<section id="specs" data-sn-section="specs" class="section ${band.specs}">
+          <div class="wrap"><div class="ci-spec-grid${features.length && specs.length ? '' : ' one'}">
+            ${
+              features.length
+                ? `<div class="ci-spec-col"><h2 class="h3 rule">${esc(S.features)}</h2><ul class="ticks">${features.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>`
+                : ''
+            }
+            ${
+              specs.length
+                ? `<div class="ci-spec-col"><h2 class="h3 rule" id="ci-specs-title">${esc(S.specs)}</h2>
+                   <table class="spec-table" aria-labelledby="ci-specs-title"><tbody>${specs
+                     .map((r) => `<tr><th scope="row">${esc(r.label)}</th><td>${esc(r.value)}</td></tr>`)
+                     .join('')}</tbody></table>
+                   <p class="ci-spec-note small muted">${esc(S.specsNote)} ${esc(S.noPrices)}</p></div>`
+                : ''
+            }
+          </div></div>
+        </section>`);
+      }
+
+      if (galleryImages.length) {
+        const spans = layout(galleryImages.length);
+        const wideLast = galleryImages.length > 1 && (galleryImages.length - 1) % 2 === 1;
+        const first = rowImage ? 3 : 2;
+        out.push(`<section id="gallery" data-sn-section="gallery" class="section ${band.gallery}" aria-labelledby="ci-gallery">
+          <div class="wrap">
+            <div class="ci-head"><h2 id="ci-gallery" class="h2 rule">${esc(S.gallery)}</h2><p class="lead">${esc(fmt(S.galleryIntro, { name }))}</p></div>
+            <ul class="ci-pgal" role="list">${galleryImages
+              .map((src, i) => {
+                const [c, r] = spans[i];
+                const alt = `${name}, ${S.photo} ${first + i}`;
+                const wide = i === 0 || (wideLast && i === galleryImages.length - 1);
+                return `<li class="ci-tile${wide ? ' m-wide' : ''}" style="--c:${c};--r:${r}">
+                  <a class="ci-tile-link media" href="${src}" data-lightbox="custom-product" data-caption="${esc(alt)}">
+                    <img src="${src}" alt="${esc(alt)}" loading="lazy" />
+                    <span class="ci-zoom" aria-hidden="true">${icon(I.expand, 18)}</span><span class="sr-only">${esc(S.open)}</span>
+                  </a></li>`;
+              })
+              .join('')}</ul>
+          </div>
+        </section>`);
+      }
+
+      out.push(`<section id="inquiry" data-sn-section="inquiry" data-sticky-cta-hide class="section ${band.inquiry}" aria-labelledby="ci-inquiry">
+        <div class="wrap ci-inq">
+          <div class="ci-inq-copy">
+            <h2 id="ci-inquiry" class="h2 rule">${esc(fmt(S.quoteTitle, { product: name }))}</h2>
+            <p class="lead">${esc(S.quoteLead)}</p>
+            <div class="btn-row"><a class="btn" href="${esc(contactHref)}">${esc(S.toForm)} ${icon(I.arrow, 18)}</a></div>
+            <p class="small muted">${esc(S.noPrices)}</p>
+          </div>
+          <div class="ci-inq-contacts">
+            <p class="ci-inq-k">${esc(S.talk)}</p>
+            <ul>
+              ${cfg.phones.map((ph) => `<li><a class="num" href="tel:${esc(ph.e164)}">${icon(I.phone, 18)} ${esc(ph.display)}</a></li>`).join('')}
+              <li><a href="${esc(cfg.viber)}">${icon(I.viber, 18)} ${esc(S.viber)}</a></li>
+            </ul>
+            <p class="ci-demo small muted">${esc(S.demoNote)}</p>
+          </div>
+        </div>
+      </section>`);
+      bodyEl.innerHTML = out.join('');
+
+      // In-page navigation: keep only the sections this product has, and show its name
+      if (subnav) {
+        subnav.querySelectorAll<HTMLAnchorElement>('[data-sn-link]').forEach((a) => {
+          if (!document.getElementById(a.dataset.snLink ?? '')) a.closest('li')?.remove();
+        });
+        const title = subnav.querySelector('.sn-title');
+        if (title) title.textContent = name;
+      }
+      document.title = `${name} · OUTPLAY`;
+      const desc = document.querySelector('meta[name="description"]');
+      if (desc && (summary || tagline)) desc.setAttribute('content', summary || tagline);
+    }
+
+    if (product) renderProduct(product);
+    else renderMissing();
+  </script>
+
+  <SubNav
+    lang={lang}
+    items={[
+      { id: 'overview', label: S.navOverview },
+      { id: 'specs', label: S.navSpecs },
+      { id: 'gallery', label: S.navGallery },
+      { id: 'inquiry', label: S.navInquiry },
+    ]}
+    title=" "
+    cta={{ label: S.quoteShort, href: '#inquiry' }}
+  />
+  <div class="ci" data-ci-body></div>
+  <Lightbox lang={lang} />
+  <StickyCta lang={lang} href="#inquiry" />
+</Base>
+
+<style is:global>
+  /* Mirrors the hero and section styles of the catalogue product page ([product].astro) */
+  .ci-loading {
+    min-height: 50vh;
+  }
+  .ci-crumbs ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--step--1);
+  }
+  .ci-crumbs li {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+  }
+  .ci-crumbs li + li::before {
+    content: '';
+    width: 14px;
+    height: 1px;
+    margin: 0 0.6rem;
+    background: currentColor;
+    opacity: 0.4;
+  }
+  .ci-crumbs a {
+    padding: 6px 0;
+    text-decoration: none;
+    opacity: 0.7;
+  }
+  .ci-crumbs a:hover {
+    opacity: 1;
+    text-decoration: underline;
+  }
+  .ci-crumbs span[aria-current] {
+    max-width: 60vw;
+    overflow: hidden;
+    font-weight: 500;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .ci-hero {
+    padding-top: var(--s-5);
+    padding-bottom: clamp(2.5rem, 1.5rem + 3vw, 4.5rem);
+  }
+  .ci-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    grid-template-areas:
+      'titles intro'
+      'media media';
+    gap: clamp(2.5rem, 1.5rem + 3vw, 4.5rem) clamp(2rem, 1rem + 4vw, 6rem);
+    align-items: end;
+    padding-top: clamp(2rem, 1.2rem + 3vw, 4.5rem);
+  }
+  .ci-titles {
+    grid-area: titles;
+    display: grid;
+    gap: var(--s-4);
+    align-content: end;
+  }
+  .ci-intro {
+    grid-area: intro;
+    display: grid;
+    gap: var(--s-4);
+    justify-items: start;
+  }
+  .ci-hero-media {
+    grid-area: media;
+  }
+  .ci-h1 {
+    font-weight: 300;
+    font-size: clamp(3rem, 1.6rem + 6vw, 6rem);
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+    overflow-wrap: anywhere;
+  }
+  .ci-h1.is-long {
+    max-width: 14ch;
+    font-size: clamp(2.3rem, 1.5rem + 3.4vw, 4.6rem);
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+  }
+  .ci-full {
+    max-width: 44ch;
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--hair);
+    color: var(--muted);
+  }
+  .ci-tagline {
+    max-width: 22ch;
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: var(--step-3);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .ci-sum {
+    max-width: 52ch;
+  }
+  .ci-ctas {
+    margin-top: var(--s-3);
+    align-items: center;
+  }
+  .ci-ctas .btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  .ci-phone {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 52px;
+    padding: 0 0.4rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .ci-phone:hover {
+    text-decoration: underline;
+  }
+  .ci-hero-media {
+    --bw: 8px;
+    --bl: clamp(40px, 2rem + 3vw, 88px);
+    position: relative;
+  }
+  .ci-hero-media::before,
+  .ci-hero-media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-image:
+      linear-gradient(var(--bc), var(--bc)), linear-gradient(var(--bc), var(--bc)), linear-gradient(var(--bc), var(--bc)),
+      linear-gradient(var(--bc), var(--bc));
+    background-size:
+      var(--bl) var(--bw),
+      var(--bw) var(--bl),
+      var(--bl) var(--bw),
+      var(--bw) var(--bl);
+  }
+  .ci-hero-media::before {
+    --bc: var(--ink);
+    background-position:
+      left top,
+      left top,
+      right top,
+      right top;
+  }
+  .ci-hero-media::after {
+    --bc: var(--yellow);
+    background-position:
+      left bottom,
+      left bottom,
+      right bottom,
+      right bottom;
+  }
+  .ci-hero-img {
+    aspect-ratio: 2 / 1;
+  }
+  .ci-notice {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-top: var(--s-6);
+    padding: 12px 16px;
+    background: var(--mist);
+    color: var(--graphite);
+    font-size: var(--step--1);
+  }
+  .ci-notice svg {
+    flex: none;
+    margin-top: 2px;
+  }
+  [data-ci-body] [data-sn-section] {
+    scroll-margin-top: 46px;
+  }
+
+  .ci-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--s-6) var(--s-5);
+    align-items: center;
+  }
+  .ci-row-text {
+    grid-column: 1 / span 5;
+    display: grid;
+    gap: var(--s-5);
+  }
+  .ci-row-media {
+    grid-column: 7 / span 6;
+    aspect-ratio: 3 / 2;
+  }
+  .ci-solo {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--s-5);
+    align-items: start;
+  }
+  .ci-solo h2 {
+    grid-column: 1 / span 5;
+  }
+  .ci-solo .prose {
+    grid-column: 7 / span 6;
+  }
+  .ci-row .prose,
+  .ci-solo .prose {
+    color: var(--muted);
+  }
+  .ci-row .prose p:first-child,
+  .ci-solo .prose p:first-child {
+    color: var(--fg);
+  }
+
+  .ci-spec-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+    gap: var(--s-8) clamp(2rem, 1rem + 4vw, 6rem);
+    align-items: start;
+  }
+  .ci-spec-grid.one {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 920px;
+  }
+  .ci-spec-col {
+    display: grid;
+    gap: var(--s-6);
+    align-content: start;
+  }
+  .ci-spec-col .spec-table {
+    border-top: 1px solid var(--hair);
+  }
+  .ci-spec-note {
+    max-width: 60ch;
+  }
+
+  .ci-head {
+    display: grid;
+    gap: var(--s-4);
+    max-width: 60ch;
+    margin-bottom: var(--s-7);
+  }
+  .ci-pgal {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-auto-rows: clamp(170px, 15vw, 250px);
+    gap: var(--s-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ci-tile {
+    grid-column: span var(--c);
+    grid-row: span var(--r);
+    min-width: 0;
+  }
+  .ci-tile-link {
+    display: block;
+    width: 100%;
+    height: 100%;
+    color: #fff;
+  }
+  .ci-tile-link img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.35s var(--ease);
+  }
+  .ci-tile-link:hover img {
+    opacity: 0.88;
+  }
+  .ci-zoom {
+    position: absolute;
+    right: var(--s-4);
+    bottom: var(--s-4);
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(10, 10, 8, 0.55);
+    color: #fff;
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 0.25s var(--ease),
+      transform 0.25s var(--ease),
+      background-color 0.2s var(--ease);
+  }
+  .ci-tile-link:hover .ci-zoom,
+  .ci-tile-link:focus-visible .ci-zoom {
+    opacity: 1;
+    transform: none;
+  }
+  .ci-tile-link:hover .ci-zoom {
+    background: var(--yellow);
+    color: var(--ink);
+  }
+  @media (hover: none) {
+    .ci-zoom {
+      right: var(--s-3);
+      bottom: var(--s-3);
+      width: 36px;
+      height: 36px;
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .ci-inq {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    gap: var(--s-6) clamp(2rem, 1rem + 4vw, 6rem);
+    align-items: start;
+  }
+  .ci-inq-copy {
+    display: grid;
+    gap: var(--s-5);
+    align-content: start;
+    justify-items: start;
+  }
+  .ci-inq-copy .btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  .ci-inq-contacts {
+    display: grid;
+    gap: var(--s-3);
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--hair);
+  }
+  .ci-inq-k {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+  }
+  .ci-inq-contacts ul {
+    display: grid;
+    gap: var(--s-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ci-inq-contacts a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 44px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .ci-inq-contacts a:hover {
+    text-decoration: underline;
+  }
+  .ci-demo {
+    margin-top: var(--s-3);
+  }
+
+  .ci-missing-box {
+    display: grid;
+    gap: var(--s-5);
+    justify-items: start;
+    max-width: 62ch;
+    padding-top: clamp(2rem, 1rem + 4vw, 5rem);
+  }
+  .ci-missing-box .btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  @media (max-width: 1100px) {
+    .ci-hero-img {
+      aspect-ratio: 16 / 9;
+    }
+  }
+  @media (max-width: 900px) {
+    .ci-top {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: none;
+      align-items: start;
+      row-gap: var(--s-6);
+    }
+    .ci-titles,
+    .ci-intro,
+    .ci-hero-media {
+      grid-area: auto;
+    }
+    .ci-row,
+    .ci-solo,
+    .ci-spec-grid,
+    .ci-inq {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .ci-row-text,
+    .ci-row-media,
+    .ci-solo h2,
+    .ci-solo .prose {
+      grid-column: 1;
+    }
+    .ci-row-media {
+      order: -1;
+    }
+    [data-ci-body] [data-sn-section] {
+      scroll-margin-top: 40px;
+    }
+  }
+  @media (max-width: 699px) {
+    .ci-pgal {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: 34vw;
+      gap: var(--s-2);
+    }
+    .ci-tile {
+      grid-column: span 1;
+      grid-row: span 1;
+    }
+    .ci-tile.m-wide {
+      grid-column: 1 / -1;
+      grid-row: span 2;
+    }
+  }
+  @media (max-width: 640px) {
+    .ci-hero {
+      padding-top: var(--s-4);
+    }
+    .ci-top {
+      padding-top: var(--s-5);
+      row-gap: var(--s-5);
+    }
+    .ci-full {
+      display: none;
+    }
+    .ci-hero-media {
+      --bw: 6px;
+      --bl: 36px;
+    }
+    .ci-hero-img {
+      aspect-ratio: 3 / 2;
+    }
+    .ci-intro {
+      gap: var(--s-3);
+    }
+    .ci-tagline {
+      font-size: var(--step-2);
+      line-height: 1.18;
+    }
+    .ci-ctas {
+      width: 100%;
+      margin-top: var(--s-2);
+    }
+    .ci-ctas .btn:first-child {
+      flex: 1 1 100%;
+    }
+    .ci-alt {
+      display: none;
+    }
+  }
+</style>

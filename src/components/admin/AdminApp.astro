@@ -394,6 +394,7 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
     }
   }
   .adm .input,
+  .adm .select,
   .adm .textarea {
     min-height: 44px;
     padding: 0.6rem 0.8rem;
@@ -890,6 +891,14 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
   .adm-badge-edited {
     border-color: var(--ink);
     color: var(--ink);
+  }
+  .adm-badge-new {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .adm-ed-state .adm-badge {
+    margin-left: 0;
   }
   .adm-pill {
     display: inline-flex;
@@ -2161,6 +2170,204 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
     .adm-imgs {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       padding: 16px;
+    }
+  }
+
+  /* ---------- Custom product editor ---------- */
+  .adm-cp-form {
+    display: grid;
+    gap: 24px;
+    min-width: 0;
+  }
+  .adm-cp-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 20px;
+    padding: 20px 24px 22px;
+    align-items: start;
+  }
+  .adm .select {
+    appearance: none;
+    padding-right: 40px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%232b2f33' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    cursor: pointer;
+  }
+  .adm-cp-body {
+    padding: 4px 24px 22px;
+  }
+  .adm-req {
+    color: var(--steel);
+    font-size: 0.75rem;
+  }
+  .adm-cp-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .adm-cp-specs {
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+  }
+  .adm-specs {
+    display: grid;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+  }
+  .adm-spec-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .adm-cp-empty,
+  .adm-cp-noimg {
+    font-size: 0.875rem;
+  }
+  .adm-cp-empty {
+    margin-bottom: 12px;
+  }
+  .adm-cp-noimg {
+    padding: 18px 20px 0;
+  }
+  .adm-thumbs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px 14px;
+    margin: 0;
+    padding: 20px 20px 0;
+    list-style: none;
+  }
+  .adm-thumb-media {
+    position: relative;
+    aspect-ratio: 3 / 2;
+    overflow: hidden;
+    background: var(--graphite);
+  }
+  .adm-thumb-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .adm-thumb:first-child .adm-thumb-media {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  .adm-thumb-main {
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    padding: 3px 7px;
+    background: var(--yellow);
+    color: var(--ink);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+  }
+  .adm-thumb-tools {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-top: 6px;
+  }
+  .adm-thumb-tools .adm-icon-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+    background: none;
+  }
+  .adm-thumb-tools .adm-btn-text {
+    padding: 0 6px;
+    font-size: 0.75rem;
+  }
+  .adm-thumb-x {
+    margin-left: auto;
+  }
+  .adm-thumb-x:hover {
+    color: var(--danger);
+  }
+  .adm-drop {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px 14px;
+    margin: 18px 20px 0;
+    padding: 22px 16px;
+    border: 1px dashed var(--adm-line-strong);
+    background: var(--adm-hover);
+    font-size: 0.875rem;
+    transition: border-color 0.15s var(--ease), background-color 0.15s var(--ease);
+  }
+  .adm-drop.is-over {
+    border-color: var(--ink);
+    background: var(--paper);
+  }
+  .adm-drop label {
+    cursor: pointer;
+  }
+  .adm-drop input:focus-visible + label {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+  .adm-cp-full {
+    margin: 16px 20px 0;
+  }
+  .adm-cp-storage {
+    padding: 14px 20px 18px;
+  }
+  .adm-cp-error {
+    padding: 12px 14px;
+    border-left: 3px solid var(--danger);
+    background: #fdf4f3;
+    color: var(--danger);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  .adm-cp-error:empty {
+    display: none;
+  }
+  .adm-cp-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    margin-top: 0;
+    padding: 14px 0 calc(14px + env(safe-area-inset-bottom, 0px));
+    background: var(--paper);
+  }
+  .adm-cp-del {
+    margin-left: auto;
+  }
+  .adm-pv-title.is-empty {
+    color: var(--steel);
+  }
+  @container (max-width: 640px) {
+    .adm-cp-grid {
+      grid-template-columns: minmax(0, 1fr);
+      padding: 16px;
+    }
+    .adm-cp-body {
+      padding: 4px 16px 18px;
+    }
+    .adm-cp-body .adm-tabs {
+      margin: 0 -16px 18px;
+      padding: 0 8px;
+    }
+    .adm-spec-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .adm-spec-row .input:first-child {
+      grid-column: 1 / -1;
+    }
+    .adm-thumbs {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding: 16px 16px 0;
+    }
+    .adm-drop {
+      margin: 16px 16px 0;
     }
   }
 

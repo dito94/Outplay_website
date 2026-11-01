@@ -1,4 +1,7 @@
 ---
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import Base from '../../../../layouts/Base.astro';
 import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
 import SectionHead from '../../../../components/SectionHead.astro';
@@ -12,6 +15,7 @@ import { products } from '../../../../data/products';
 import { pages } from '../../../../data/pages';
 import { ui } from '../../../../data/ui';
 import { LANGS, DEFAULT_LANG, getLang, url, categoryUrl, productUrl, t } from '../../../../lib/i18n';
+import { productImages, img } from '../../../../lib/images';
 
 export function getStaticPaths() {
   return LANGS.flatMap((l) =>
@@ -39,6 +43,29 @@ const T = {
 
 const isBio = category.id === 'bioclimatic-pergolas';
 const inCat = products.filter((p) => p.category === category.id).sort((a, b) => a.order - b.order);
+
+// No photo twice on a page: when the category photo is the same file as a listed product's card photo,
+// the hero uses one of that product's gallery photos instead (wide ones first).
+const fingerprint = (p: string | undefined) => {
+  if (!p) return '';
+  try {
+    return createHash('md5')
+      .update(readFileSync(join(process.cwd(), 'src/assets/img', p)))
+      .digest('hex');
+  } catch {
+    return '';
+  }
+};
+const catImage = `categories/${category.id}.jpg`;
+const catPrint = fingerprint(catImage);
+const clash = catPrint ? inCat.find((p) => fingerprint(productImages(p.id).hero) === catPrint) : undefined;
+const heroImage =
+  (clash &&
+    [...productImages(clash.id).gallery].sort((a, b) => {
+      const r = (x: string) => (img(x)?.width ?? 1) / (img(x)?.height ?? 1);
+      return r(b) - r(a);
+    })[0]) ||
+  catImage;
 const countLabel = t(inCat.length === 1 ? T.inCatOne : T.inCat, lang);
 
 type Group = { id: string; title: string; intro?: string; items: Product[] };
@@ -81,7 +108,7 @@ const othersBand = nextBand();
   <!-- Hero -->
   <section class="c-hero night" aria-labelledby="c-title">
     <div class="c-media">
-      <Img src={`categories/${category.id}.jpg`} lang={lang} priority sizes="(max-width: 700px) 240vw, 100vw" class="c-img" />
+      <Img src={heroImage} lang={lang} priority sizes="(max-width: 700px) 240vw, 100vw" class="c-img" />
       <div class="c-scrim" aria-hidden="true"></div>
     </div>
     <div class="wrap c-content">

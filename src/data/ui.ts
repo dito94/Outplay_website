@@ -86,7 +86,7 @@ export const ui = {
       photos: { bg: 'Снимки на мястото', en: 'Photos of the space' },
       contactChannel: { bg: 'Предпочитан начин за връзка', en: 'Preferred way to contact you' },
       consent: {
-        bg: 'Съгласен/на съм OUTPLAY да използва данните ми, за да отговори на запитването.',
+        bg: 'Съгласявам се OUTPLAY да използва данните ми, за да отговори на запитването.',
         en: 'I agree that OUTPLAY may use my details to respond to this request.',
       },
     },
