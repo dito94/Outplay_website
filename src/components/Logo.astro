@@ -1,0 +1,56 @@
+---
+// Inlines the vectorised logo so it stays crisp; `tone` picks the variant for light or dark grounds.
+interface Props {
+  tone?: 'dark' | 'light';
+  class?: string;
+  tagline?: boolean;
+}
+const { tone = 'dark', class: cls, tagline = false } = Astro.props;
+
+const svgs = import.meta.glob<string>('/src/assets/img/brand/*.svg', { query: '?raw', import: 'default', eager: true });
+const file = tagline ? 'logo-tagline' : tone === 'light' ? 'logo-light' : 'logo';
+let raw = svgs[`/src/assets/img/brand/${file}.svg`] ?? svgs['/src/assets/img/brand/logo.svg'];
+if (raw && tagline && tone === 'light') {
+  raw = raw.replace(/#0a0a08|#000000|#000\b|black/gi, '#ffffff');
+}
+if (raw) {
+  raw = raw
+    .replace(/<\?xml[^>]*>/, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/\s(width|height)="[^"]*"/g, '')
+    .replace('<svg', '<svg aria-hidden="true" focusable="false" preserveAspectRatio="xMinYMid meet"');
+}
+---
+
+<span class:list={['logo', `logo-${tone}`, cls]}>
+  {
+    raw ? (
+      <Fragment set:html={raw} />
+    ) : (
+      <svg viewBox="0 0 240 120" aria-hidden="true">
+        <g fill={tone === 'light' ? '#fff' : '#0a0a08'}>
+          <path d="M40 0h22v34H40zM178 0h22v34h-22z" />
+          <path d="M70 0h6l-3 22h-6zM84 0h5l-2 22h-5zM97 0h5l-1 22h-5zM110 0h5v22h-5zM123 0h5l1 22h-5zM136 0h5l2 22h-5zM149 0h5l3 22h-5zM162 0h6l3 22h-6z" />
+        </g>
+        <text x="120" y="78" text-anchor="middle" font-family="Jost, sans-serif" font-size="44" font-weight="400" letter-spacing="1">
+          <tspan fill="#f9c823">OUT</tspan><tspan fill={tone === 'light' ? '#fff' : '#0a0a08'}>PLAY</tspan>
+        </text>
+        <path d="M40 92h22v6h116v-6h22v28H40z" fill="#f9c823" />
+      </svg>
+    )
+  }
+  <span class="sr-only">OUTPLAY</span>
+</span>
+
+<style>
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
+  }
+  .logo :global(svg) {
+    height: 100%;
+    width: auto;
+    max-width: none;
+  }
+</style>

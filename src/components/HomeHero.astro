@@ -1,0 +1,158 @@
+---
+// Full-bleed hero. Signature moment: dark aluminium louvres rotate open on load (0° → 90°), revealing the photo,
+// echoing a bioclimatic roof opening. Pure CSS; skipped entirely with reduced motion.
+import type { Lang } from '../data/types';
+import Img from './Img.astro';
+import Icon from './Icon.astro';
+
+interface Props {
+  lang: Lang;
+  image: string;
+  title: string;
+  lead: string;
+  primary: { label: string; href: string };
+  secondary: { label: string; href: string };
+}
+const { lang, image, title, lead, primary, secondary } = Astro.props;
+const SLATS = 12;
+---
+
+<section class="hero night" aria-labelledby="hero-title">
+  <div class="hero-media">
+    <Img src={image} lang={lang} priority sizes="100vw" class="hero-img" />
+    <div class="hero-scrim" aria-hidden="true"></div>
+    <div class="louvres" aria-hidden="true">
+      {Array.from({ length: SLATS }, (_, i) => <span style={`--i:${i}`} />)}
+    </div>
+  </div>
+  <div class="wrap hero-content">
+    <h1 id="hero-title" class="display hero-title">{title}</h1>
+    <p class="hero-lead">{lead}</p>
+    <div class="btn-row hero-ctas">
+      <a class="btn" href={primary.href}>{primary.label} <Icon name="arrow-right" class="arrow" /></a>
+      <a class="btn btn-ghost" href={secondary.href}>{secondary.label}</a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: clamp(560px, 92svh, 940px);
+    display: grid;
+    align-items: end;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .hero-media {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+  }
+  .hero-media :global(.hero-img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .hero-scrim {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to top, rgba(10, 10, 8, 0.82) 0%, rgba(10, 10, 8, 0.35) 38%, rgba(10, 10, 8, 0) 62%),
+      linear-gradient(to right, rgba(10, 10, 8, 0.45) 0%, rgba(10, 10, 8, 0) 55%);
+  }
+  .hero-content {
+    position: relative;
+    padding-top: calc(var(--header-h) + var(--s-8));
+    padding-bottom: clamp(3rem, 2rem + 5vw, 6.5rem);
+    display: grid;
+    gap: var(--s-5);
+    justify-items: start;
+  }
+  .hero-title {
+    max-width: 15ch;
+    color: #fff;
+    font-size: clamp(2.7rem, 1.6rem + 4.8vw, 6rem);
+  }
+  .hero-lead {
+    max-width: 52ch;
+    font-size: var(--step-1);
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.86);
+  }
+  .hero-ctas {
+    margin-top: var(--s-2);
+  }
+  .hero .btn-ghost {
+    --btn-fg: #fff;
+    --btn-bd: rgba(255, 255, 255, 0.5);
+  }
+  .hero .btn-ghost:hover {
+    --btn-bg: #fff;
+    --btn-fg: var(--ink);
+    --btn-bd: #fff;
+  }
+
+  .louvres {
+    display: none;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .louvres {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-rows: repeat(12, 1fr);
+      perspective: 1600px;
+      pointer-events: none;
+    }
+    .louvres span {
+      display: block;
+      margin-bottom: -1px;
+      background: linear-gradient(to bottom, #3a3f44 0%, #23262a 46%, #121315 100%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+      transform-origin: 50% 50%;
+      animation: louvre-open 1.15s var(--ease) forwards;
+      animation-delay: calc(180ms + var(--i) * 55ms);
+      will-change: transform, opacity;
+    }
+    @keyframes louvre-open {
+      0% {
+        transform: rotateX(0deg);
+        opacity: 1;
+      }
+      75% {
+        opacity: 1;
+      }
+      100% {
+        transform: rotateX(-90deg);
+        opacity: 0;
+      }
+    }
+    .hero-media :global(.hero-img) {
+      animation: hero-settle 2.2s var(--ease) both;
+    }
+    @keyframes hero-settle {
+      from {
+        transform: scale(1.06);
+      }
+    }
+    .hero-content > * {
+      animation: hero-rise 0.9s var(--ease) both;
+    }
+    .hero-title {
+      animation-delay: 0.75s !important;
+    }
+    .hero-lead {
+      animation-delay: 0.9s !important;
+    }
+    .hero-ctas {
+      animation-delay: 1.02s !important;
+    }
+    @keyframes hero-rise {
+      from {
+        opacity: 0;
+        transform: translateY(22px);
+      }
+    }
+  }
+</style>

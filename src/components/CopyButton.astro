@@ -1,0 +1,70 @@
+---
+import type { Lang } from '../data/types';
+import Icon from './Icon.astro';
+interface Props {
+  text: string;
+  lang: Lang;
+  class?: string;
+}
+const { text, lang, class: cls } = Astro.props;
+const label = lang === 'bg' ? 'Копирай' : 'Copy';
+const done = lang === 'bg' ? 'Копирано' : 'Copied';
+---
+
+<button type="button" class:list={['copy-btn', cls]} data-copy={text} data-done={done} aria-label={`${label}: ${text}`}>
+  <Icon name="copy" size={16} />
+  <span class="copy-status" aria-live="polite"></span>
+</button>
+
+<style>
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 0.5rem;
+    border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+    border-radius: var(--radius);
+    background: none;
+    color: inherit;
+    font-size: var(--step--2);
+    font-weight: 600;
+  }
+  .copy-btn:hover {
+    border-color: currentColor;
+  }
+  .copy-status:empty {
+    display: none;
+  }
+</style>
+
+<script>
+  document.addEventListener('click', async (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-copy]');
+    if (!btn) return;
+    const text = btn.dataset.copy ?? '';
+    const status = btn.querySelector<HTMLElement>('.copy-status');
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+      } catch {
+        /* selection left for manual copy */
+      }
+      ta.remove();
+    }
+    if (status) {
+      status.textContent = btn.dataset.done ?? 'OK';
+      window.setTimeout(() => (status.textContent = ''), 1800);
+    }
+  });
+</script>

@@ -1,0 +1,56 @@
+---
+import type { Lang } from '../data/types';
+import { url } from '../lib/i18n';
+interface Props {
+  lang: Lang;
+  items: { label: string; href?: string }[];
+  tone?: 'dark' | 'light';
+}
+const { lang, items, tone = 'dark' } = Astro.props;
+const all = [{ label: lang === 'bg' ? 'Начало' : 'Home', href: url(lang, '/') }, ...items];
+const site = Astro.site ?? new URL('https://dito94.github.io');
+const ld = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: all.map((it, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: it.label,
+    ...(it.href ? { item: new URL(it.href, site).href } : {}),
+  })),
+};
+---
+<nav class:list={['crumbs', `crumbs-${tone}`]} aria-label={lang === 'bg' ? 'Навигационна пътека' : 'Breadcrumb'}>
+  <ol>
+    {all.map((it, i) => (
+      <li>
+        {it.href && i < all.length - 1 ? <a href={it.href}>{it.label}</a> : <span aria-current="page">{it.label}</span>}
+      </li>
+    ))}
+  </ol>
+  <script type="application/ld+json" set:html={JSON.stringify(ld)} />
+</nav>
+<style>
+  .crumbs ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: var(--step--1);
+  }
+  .crumbs li { display: inline-flex; align-items: center; min-width: 0; }
+  .crumbs li + li::before {
+    content: '';
+    width: 14px;
+    height: 1px;
+    margin: 0 0.6rem;
+    background: currentColor;
+    opacity: 0.4;
+  }
+  .crumbs a { text-decoration: none; opacity: 0.7; padding: 6px 0; }
+  .crumbs a:hover { opacity: 1; text-decoration: underline; }
+  .crumbs span[aria-current] { opacity: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60vw; }
+  .crumbs-light { color: #fff; }
+</style>

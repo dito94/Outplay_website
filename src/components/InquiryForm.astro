@@ -1,0 +1,14 @@
+---
+// STUB — replaced by the inquiry build step. Props are the contract.
+import type { Lang } from '../data/types';
+interface Props {
+  lang: Lang;
+  /** preselected product id (from product page or ?product= query) */
+  productId?: string;
+  /** compact variant embedded on product pages */
+  compact?: boolean;
+  id?: string;
+}
+const { id = 'inquiry' } = Astro.props;
+---
+<div id={id} class="inquiry-stub"></div>

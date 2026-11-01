@@ -1,0 +1,660 @@
+---
+import type { Lang } from '../data/types';
+import { categories } from '../data/categories';
+import { products } from '../data/products';
+import { url, categoryUrl, productUrl, switchLangUrl, routeOf, t } from '../lib/i18n';
+import Logo from './Logo.astro';
+import Icon from './Icon.astro';
+import Img from './Img.astro';
+
+interface Props {
+  lang: Lang;
+  variant?: 'solid' | 'overlay';
+}
+const { lang, variant = 'solid' } = Astro.props;
+const route = routeOf(Astro.url.pathname);
+
+const L = {
+  products: { bg: 'Продукти', en: 'Products' },
+  projects: { bg: 'Галерия', en: 'Gallery' },
+  about: { bg: 'За нас', en: 'About' },
+  faq: { bg: 'Въпроси', en: 'FAQ' },
+  contact: { bg: 'Контакти', en: 'Contact' },
+  inquiry: { bg: 'Запитване', en: 'Get a quote' },
+  all: { bg: 'Всички продукти', en: 'All products' },
+  search: { bg: 'Търсене', en: 'Search' },
+  openMenu: { bg: 'Отвори менюто', en: 'Open menu' },
+  closeMenu: { bg: 'Затвори менюто', en: 'Close menu' },
+  home: { bg: 'OUTPLAY — начало', en: 'OUTPLAY — home' },
+  lang: { bg: 'Език', en: 'Language' },
+  callUs: { bg: 'Обадете се', en: 'Call us' },
+  systems: { bg: 'системи', en: 'systems' },
+};
+
+const cats = [...categories].sort((a, b) => a.order - b.order);
+const byCat = (id: string) => products.filter((p) => p.category === id).sort((a, b) => a.order - b.order);
+const nav = [
+  { href: url(lang, '/projects/'), label: L.projects, match: '/projects/' },
+  { href: url(lang, '/about/'), label: L.about, match: '/about/' },
+  { href: url(lang, '/faq/'), label: L.faq, match: '/faq/' },
+  { href: url(lang, '/contact/'), label: L.contact, match: '/contact/' },
+];
+const isProducts = route.startsWith('/products/');
+---
+
+<header class="site-header" data-variant={variant} data-header>
+  <div class="bar wrap">
+    <a href={url(lang, '/')} class="brand" aria-label={t(L.home, lang)}>
+      <Logo tone="dark" class="logo-on-light" />
+      <Logo tone="light" class="logo-on-dark" />
+    </a>
+
+    <nav class="primary" aria-label={lang === 'bg' ? 'Основна навигация' : 'Main navigation'}>
+      <ul>
+        <li>
+          <button
+            class="nav-link mega-toggle"
+            aria-expanded="false"
+            aria-controls="mega"
+            aria-current={isProducts ? 'page' : undefined}
+            data-mega-toggle
+          >
+            {t(L.products, lang)}
+            <Icon name="chevron-down" size={16} />
+          </button>
+        </li>
+        {
+          nav.map((n) => (
+            <li>
+              <a class="nav-link" href={n.href} aria-current={route.startsWith(n.match) ? 'page' : undefined}>
+                {t(n.label, lang)}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="tools">
+      <button class="icon-btn search-btn" type="button" data-search-open aria-label={t(L.search, lang)}>
+        <Icon name="search" size={20} />
+        <kbd class="kbd" aria-hidden="true">⌘K</kbd>
+      </button>
+      <div class="lang" role="group" aria-label={t(L.lang, lang)}>
+        <a href={switchLangUrl(Astro.url.pathname, 'bg')} hreflang="bg" lang="bg" aria-current={lang === 'bg' ? 'true' : undefined}
+          >BG</a
+        >
+        <span aria-hidden="true">/</span>
+        <a href={switchLangUrl(Astro.url.pathname, 'en')} hreflang="en" lang="en" aria-current={lang === 'en' ? 'true' : undefined}
+          >EN</a
+        >
+      </div>
+      <a class="btn btn-sm cta" href={url(lang, '/contact/#inquiry')}>{t(L.inquiry, lang)}</a>
+      <button class="icon-btn burger" type="button" aria-expanded="false" aria-controls="drawer" data-drawer-open>
+        <Icon name="menu" size={24} />
+        <span class="sr-only">{t(L.openMenu, lang)}</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="mega" id="mega" hidden data-mega>
+    <div class="wrap mega-inner">
+      {
+        cats.map((c) => (
+          <div class="mega-col">
+            <a class="mega-cat" href={categoryUrl(lang, c.id)}>
+              <span class="media mega-thumb">
+                <Img src={`categories/${c.id}.jpg`} lang={lang} alt="" sizes="(min-width: 1080px) 22vw, 50vw" widths={[480, 768]} />
+              </span>
+              <span class="mega-cat-name">
+                {t(c.name, lang)}
+                <Icon name="arrow-right" size={16} />
+              </span>
+            </a>
+            <ul>
+              {byCat(c.id).map((p) => (
+                <li>
+                  <a href={productUrl(lang, p.category, p.id)}>{t(p.name, lang)}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+    <div class="wrap mega-foot">
+      <a class="link-arrow" href={url(lang, '/products/')}
+        >{t(L.all, lang)} ({products.length}) <Icon name="arrow-right" size={16} /></a
+      >
+    </div>
+  </div>
+</header>
+
+<div class="drawer night" id="drawer" hidden data-drawer>
+  <div class="drawer-head wrap">
+    <a href={url(lang, '/')} class="brand" aria-label={t(L.home, lang)}><Logo tone="light" /></a>
+    <button class="icon-btn" type="button" data-drawer-close>
+      <Icon name="close" size={26} />
+      <span class="sr-only">{t(L.closeMenu, lang)}</span>
+    </button>
+  </div>
+  <nav class="drawer-body wrap" aria-label={lang === 'bg' ? 'Мобилна навигация' : 'Mobile navigation'}>
+    <button class="drawer-search" type="button" data-search-open>
+      <Icon name="search" size={20} />
+      {lang === 'bg' ? 'Търсете продукт или въпрос' : 'Search products or questions'}
+    </button>
+    <ul class="drawer-cats">
+      {
+        cats.map((c, i) => (
+          <li>
+            <details open={i === 0}>
+              <summary>
+                {t(c.name, lang)}
+                <Icon name="plus" size={20} />
+              </summary>
+              <ul>
+                <li>
+                  <a href={categoryUrl(lang, c.id)} class="drawer-all">
+                    {lang === 'bg' ? 'Всички' : 'All'} {t(c.name, lang).toLowerCase()}
+                  </a>
+                </li>
+                {byCat(c.id).map((p) => (
+                  <li>
+                    <a href={productUrl(lang, p.category, p.id)}>{t(p.name, lang)}</a>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </li>
+        ))
+      }
+    </ul>
+    <ul class="drawer-links">
+      {
+        nav.map((n) => (
+          <li>
+            <a href={n.href}>{t(n.label, lang)}</a>
+          </li>
+        ))
+      }
+    </ul>
+    <div class="drawer-actions">
+      <a class="btn" href={url(lang, '/contact/#inquiry')}>{t(L.inquiry, lang)} <Icon name="arrow-right" class="arrow" /></a>
+      <a class="btn btn-viber" href="viber://chat?number=%2B359879811259"><Icon name="viber" /> Viber</a>
+      <a class="btn btn-ghost" href="tel:+359879811259"><Icon name="phone" /> 087 981 12 59</a>
+    </div>
+    <div class="drawer-lang">
+      <a href={switchLangUrl(Astro.url.pathname, 'bg')} aria-current={lang === 'bg' ? 'true' : undefined}>Български</a>
+      <a href={switchLangUrl(Astro.url.pathname, 'en')} aria-current={lang === 'en' ? 'true' : undefined}>English</a>
+    </div>
+  </nav>
+</div>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--paper);
+    color: var(--ink);
+    border-bottom: 1px solid var(--line);
+    transition:
+      background-color 0.3s var(--ease),
+      color 0.3s var(--ease),
+      border-color 0.3s var(--ease);
+  }
+  :global(html[data-header='overlay']) .site-header {
+    position: fixed;
+    inset: 0 0 auto;
+  }
+  .site-header[data-variant='overlay']:not(.is-solid):not(.mega-open) {
+    background: transparent;
+    color: #fff;
+    border-color: transparent;
+  }
+  .site-header[data-variant='overlay']:not(.is-solid):not(.mega-open)::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 -40px;
+    background: linear-gradient(to bottom, rgba(10, 10, 8, 0.55), rgba(10, 10, 8, 0));
+    pointer-events: none;
+    z-index: -1;
+  }
+  .bar {
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    gap: var(--s-5);
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    height: 44px;
+    flex: none;
+  }
+  .brand :global(.logo) {
+    height: 44px;
+  }
+  .logo-on-dark {
+    display: none !important;
+  }
+  .site-header[data-variant='overlay']:not(.is-solid):not(.mega-open) .logo-on-dark {
+    display: inline-flex !important;
+  }
+  .site-header[data-variant='overlay']:not(.is-solid):not(.mega-open) .logo-on-light {
+    display: none !important;
+  }
+  .primary {
+    margin-left: auto;
+  }
+  .primary ul {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.75rem, 1.6vw, 1.75rem);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: var(--step--1);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    position: relative;
+  }
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 8px;
+    height: 2px;
+    background: var(--yellow);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s var(--ease);
+  }
+  .nav-link:hover::after,
+  .nav-link[aria-current='page']::after,
+  .mega-toggle[aria-expanded='true']::after {
+    transform: scaleX(1);
+  }
+  .mega-toggle :global(svg) {
+    transition: transform 0.25s var(--ease);
+  }
+  .mega-toggle[aria-expanded='true'] :global(svg) {
+    transform: rotate(180deg);
+  }
+  .tools {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+  }
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 0.5rem;
+    border: 0;
+    background: none;
+    color: inherit;
+    border-radius: var(--radius);
+  }
+  .icon-btn:hover {
+    background: color-mix(in srgb, currentColor 8%, transparent);
+  }
+  .kbd {
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 5px;
+    border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+    border-radius: 3px;
+    opacity: 0.75;
+  }
+  .lang {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: var(--step--1);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .lang span {
+    opacity: 0.35;
+  }
+  .lang a {
+    text-decoration: none;
+    opacity: 0.55;
+    padding: 10px 2px;
+  }
+  .lang a:hover,
+  .lang a[aria-current='true'] {
+    opacity: 1;
+  }
+  .burger {
+    display: none;
+  }
+
+  /* Mega menu */
+  .mega {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 30px 60px -30px rgba(10, 10, 8, 0.25);
+  }
+  .mega:not([hidden]) {
+    animation: mega-in 0.32s var(--ease);
+  }
+  @keyframes mega-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+  }
+  .mega-inner {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--s-6);
+    padding-block: var(--s-6) var(--s-5);
+  }
+  .mega-cat {
+    display: grid;
+    gap: var(--s-3);
+    text-decoration: none;
+  }
+  .mega-thumb {
+    aspect-ratio: 16 / 9;
+    display: block;
+  }
+  .mega-thumb :global(img) {
+    transition: opacity 0.3s var(--ease);
+  }
+  .mega-cat:hover .mega-thumb :global(img) {
+    opacity: 0.85;
+  }
+  .mega-cat-name {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2);
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-weight: 400;
+    padding-bottom: var(--s-3);
+    border-bottom: 1px solid var(--ink);
+  }
+  .mega-col ul {
+    list-style: none;
+    padding: var(--s-3) 0 0;
+    margin: 0;
+    display: grid;
+    gap: 0.15rem;
+  }
+  .mega-col li a {
+    display: block;
+    padding: 0.35rem 0;
+    font-size: var(--step--1);
+    color: var(--steel);
+    text-decoration: none;
+  }
+  .mega-col li a:hover {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--yellow);
+    text-decoration-thickness: 2px;
+  }
+  .mega-foot {
+    padding-bottom: var(--s-6);
+  }
+
+  /* Drawer */
+  .drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  }
+  .drawer:not([hidden]) {
+    animation: drawer-in 0.35s var(--ease);
+  }
+  @keyframes drawer-in {
+    from {
+      opacity: 0;
+      transform: translateY(-12px);
+    }
+  }
+  .drawer-head {
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line-dark);
+    position: sticky;
+    top: 0;
+    background: var(--ink);
+    z-index: 1;
+  }
+  .drawer-head :global(.logo) {
+    height: 40px;
+  }
+  .drawer-body {
+    padding-top: var(--s-5);
+    display: grid;
+    gap: var(--s-6);
+  }
+  .drawer-search {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    width: 100%;
+    min-height: 52px;
+    padding: 0 var(--s-4);
+    border: 1px solid var(--line-dark);
+    border-radius: var(--radius);
+    background: var(--ink-2);
+    color: var(--alu);
+    text-align: left;
+  }
+  .drawer-cats,
+  .drawer-links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .drawer-cats > li {
+    border-bottom: 1px solid var(--line-dark);
+  }
+  .drawer summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 60px;
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 300;
+    cursor: pointer;
+    list-style: none;
+  }
+  .drawer summary::-webkit-details-marker {
+    display: none;
+  }
+  .drawer details[open] summary :global(svg) {
+    transform: rotate(45deg);
+  }
+  .drawer summary :global(svg) {
+    transition: transform 0.25s var(--ease);
+    color: var(--yellow);
+  }
+  .drawer details ul {
+    list-style: none;
+    padding: 0 0 var(--s-4);
+    margin: 0;
+    display: grid;
+  }
+  .drawer details a {
+    display: block;
+    padding: 0.55rem 0;
+    color: var(--alu);
+    text-decoration: none;
+  }
+  .drawer details a.drawer-all {
+    color: var(--yellow);
+    font-weight: 600;
+  }
+  .drawer-links {
+    display: grid;
+    gap: 0.2rem;
+  }
+  .drawer-links a {
+    display: block;
+    padding: 0.5rem 0;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    text-decoration: none;
+  }
+  .drawer-actions {
+    display: grid;
+    gap: var(--s-3);
+  }
+  .drawer-lang {
+    display: flex;
+    gap: var(--s-5);
+    font-weight: 600;
+  }
+  .drawer-lang a {
+    text-decoration: none;
+    color: var(--alu);
+    padding: 8px 0;
+  }
+  .drawer-lang a[aria-current='true'] {
+    color: #fff;
+    border-bottom: 2px solid var(--yellow);
+  }
+
+  @media (max-width: 1080px) {
+    .primary,
+    .lang,
+    .kbd {
+      display: none;
+    }
+    .burger {
+      display: inline-flex;
+    }
+    .tools {
+      margin-left: auto;
+      gap: var(--s-1);
+    }
+    .mega {
+      display: none !important;
+    }
+  }
+  @media (max-width: 520px) {
+    .cta {
+      display: none;
+    }
+    .brand,
+    .brand :global(.logo) {
+      height: 38px;
+    }
+  }
+  :global(body.drawer-lock) {
+    overflow: hidden;
+  }
+</style>
+
+<script>
+  const header = document.querySelector<HTMLElement>('[data-header]');
+  if (header) {
+    // Solid header after scrolling past the hero top
+    const onScroll = () => header.classList.toggle('is-solid', window.scrollY > 40);
+    if (header.dataset.variant === 'overlay') {
+      onScroll();
+      window.addEventListener('scroll', onScroll, { passive: true });
+    }
+
+    // Mega menu
+    const toggle = header.querySelector<HTMLButtonElement>('[data-mega-toggle]');
+    const mega = header.querySelector<HTMLElement>('[data-mega]');
+    let hoverTimer: number | undefined;
+    const setMega = (open: boolean) => {
+      if (!toggle || !mega) return;
+      toggle.setAttribute('aria-expanded', String(open));
+      mega.hidden = !open;
+      header.classList.toggle('mega-open', open);
+    };
+    toggle?.addEventListener('click', () => setMega(toggle.getAttribute('aria-expanded') !== 'true'));
+    const fine = window.matchMedia('(hover: hover) and (pointer: fine)');
+    if (fine.matches && toggle && mega) {
+      const open = () => {
+        clearTimeout(hoverTimer);
+        hoverTimer = window.setTimeout(() => setMega(true), 120);
+      };
+      const close = () => {
+        clearTimeout(hoverTimer);
+        hoverTimer = window.setTimeout(() => setMega(false), 220);
+      };
+      toggle.addEventListener('mouseenter', open);
+      toggle.addEventListener('mouseleave', close);
+      mega.addEventListener('mouseenter', () => clearTimeout(hoverTimer));
+      mega.addEventListener('mouseleave', close);
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && toggle?.getAttribute('aria-expanded') === 'true') {
+        setMega(false);
+        toggle.focus();
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (toggle?.getAttribute('aria-expanded') === 'true' && !header.contains(e.target as Node)) setMega(false);
+    });
+  }
+
+  // Mobile drawer
+  const drawer = document.querySelector<HTMLElement>('[data-drawer]');
+  const openBtn = document.querySelector<HTMLButtonElement>('[data-drawer-open]');
+  const closeBtn = document.querySelector<HTMLButtonElement>('[data-drawer-close]');
+  const setDrawer = (open: boolean) => {
+    if (!drawer || !openBtn) return;
+    drawer.hidden = !open;
+    openBtn.setAttribute('aria-expanded', String(open));
+    document.body.classList.toggle('drawer-lock', open);
+    if (open) closeBtn?.focus();
+    else openBtn.focus();
+  };
+  openBtn?.addEventListener('click', () => setDrawer(true));
+  closeBtn?.addEventListener('click', () => setDrawer(false));
+  drawer?.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setDrawer(false);
+    if (e.key === 'Tab') {
+      const f = Array.from(drawer.querySelectorAll<HTMLElement>('a, button, summary')).filter((el) => el.offsetParent);
+      const first = f[0];
+      const last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
+  drawer?.querySelectorAll('[data-search-open]').forEach((b) => b.addEventListener('click', () => setDrawer(false)));
+</script>

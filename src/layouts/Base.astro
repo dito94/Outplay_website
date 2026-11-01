@@ -1,0 +1,143 @@
+---
+import '@fontsource-variable/jost';
+import '@fontsource-variable/onest';
+import '../styles/global.css';
+import { getImage } from 'astro:assets';
+import type { Lang } from '../data/types';
+import { asset, switchLangUrl } from '../lib/i18n';
+import { img } from '../lib/images';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import ViberFab from '../components/ViberFab.astro';
+import SearchPalette from '../components/SearchPalette.astro';
+
+interface Props {
+  lang: Lang;
+  title: string;
+  description: string;
+  /** image path relative to src/assets/img for social previews */
+  ogImage?: string;
+  /** 'overlay' = transparent header over a dark hero */
+  header?: 'solid' | 'overlay';
+  /** hide the floating Viber button (e.g. admin) */
+  fab?: boolean;
+  bodyClass?: string;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+}
+
+const {
+  lang,
+  title,
+  description,
+  ogImage = 'home/hero.jpg',
+  header = 'solid',
+  fab = true,
+  bodyClass,
+  jsonLd,
+} = Astro.props;
+
+const site = Astro.site ?? new URL('https://dito94.github.io');
+const pathname = Astro.url.pathname;
+const canonical = new URL(pathname, site).href;
+const altBg = new URL(switchLangUrl(pathname, 'bg'), site).href;
+const altEn = new URL(switchLangUrl(pathname, 'en'), site).href;
+const fullTitle = title.includes('OUTPLAY') ? title : `${title} · OUTPLAY`;
+
+let ogUrl: string | undefined;
+const ogSrc = img(ogImage) ?? img('home/hero.jpg');
+if (ogSrc) {
+  const og = await getImage({ src: ogSrc, width: 1200, height: 630, fit: 'cover', format: 'jpg', quality: 82 });
+  ogUrl = new URL(og.src, site).href;
+}
+const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
+---
+
+<!doctype html>
+<html lang={lang} data-header={header}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang="bg" href={altBg} />
+    <link rel="alternate" hreflang="en" href={altEn} />
+    <link rel="alternate" hreflang="x-default" href={altBg} />
+    <meta name="theme-color" content="#0a0a08" />
+    <link rel="icon" href={asset('favicon.svg')} type="image/svg+xml" />
+    <link rel="apple-touch-icon" href={asset('apple-touch-icon.png')} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OUTPLAY" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={lang === 'bg' ? 'bg_BG' : 'en_GB'} />
+    {ogUrl && <meta property="og:image" content={ogUrl} />}
+    {ogUrl && <meta property="og:image:width" content="1200" />}
+    {ogUrl && <meta property="og:image:height" content="630" />}
+    <meta name="twitter:card" content="summary_large_image" />
+    {ld.map((obj) => <script type="application/ld+json" set:html={JSON.stringify(obj)} />)}
+    <script is:inline>
+      document.documentElement.classList.add('js');
+    </script>
+  </head>
+  <body class={bodyClass}>
+    <a class="skip-link" href="#main">{lang === 'bg' ? 'Към съдържанието' : 'Skip to content'}</a>
+    <Header lang={lang} variant={header} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer lang={lang} />
+    {fab && <ViberFab lang={lang} />}
+    <SearchPalette lang={lang} />
+    <script>
+      // Admin-demo edits (stored in this browser) applied to product names/taglines/summaries and visibility.
+      import { loadOverrides } from '../lib/store';
+      const ov = loadOverrides();
+      if (Object.keys(ov).length) {
+        const lang = document.documentElement.lang === 'en' ? 'en' : 'bg';
+        document.querySelectorAll<HTMLElement>('[data-pid][data-pfield]').forEach((el) => {
+          const o = ov[el.dataset.pid ?? ''];
+          const field = el.dataset.pfield as 'name' | 'tagline' | 'summary';
+          const v = o?.[field]?.[lang];
+          if (v) el.textContent = v;
+        });
+        document.querySelectorAll<HTMLElement>('[data-pcard][data-pid]').forEach((el) => {
+          if (ov[el.dataset.pid ?? '']?.hidden) el.hidden = true;
+        });
+      }
+    </script>
+    <script>
+      // Reveal-on-scroll enhancement. Content is visible without JS; elements already in view never animate.
+      const els = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (els.length && 'IntersectionObserver' in window && !reduce) {
+        const vh = window.innerHeight;
+        const below = els.filter((el) => el.getBoundingClientRect().top > vh * 0.92);
+        if (below.length) {
+          document.documentElement.classList.add('rv-ready');
+          els.forEach((el) => {
+            if (!below.includes(el)) el.classList.add('is-in');
+          });
+          const io = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((e) => {
+                if (e.isIntersecting) {
+                  e.target.classList.add('is-in');
+                  io.unobserve(e.target);
+                }
+              });
+            },
+            { rootMargin: '0px 0px -8% 0px', threshold: 0.05 },
+          );
+          below.forEach((el) => io.observe(el));
+          // Safety net: never leave content hidden (e.g. print, anchor jumps, background tabs)
+          const revealAll = () => els.forEach((el) => el.classList.add('is-in'));
+          window.addEventListener('beforeprint', revealAll);
+          window.addEventListener('hashchange', revealAll);
+        }
+      }
+    </script>
+  </body>
+</html>

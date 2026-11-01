@@ -1,0 +1,203 @@
+---
+import QRCode from 'qrcode';
+import type { Lang } from '../data/types';
+import { site } from '../data/site';
+import Icon from './Icon.astro';
+import CopyButton from './CopyButton.astro';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const number = site.viber ?? site.phones[0].e164;
+const display = site.phones.find((p) => p.e164 === number)?.display ?? site.phones[0].display;
+const viberHref = `viber://chat?number=${encodeURIComponent(number)}`;
+const qr = await QRCode.toString(viberHref, {
+  type: 'svg',
+  margin: 0,
+  errorCorrectionLevel: 'M',
+  color: { dark: '#0a0a08', light: '#ffffff' },
+});
+const T = {
+  label: { bg: 'Пишете ни във Viber', en: 'Message us on Viber' },
+  scan: { bg: 'Сканирайте с телефона, за да отворите чат', en: 'Scan with your phone to open a chat' },
+  open: { bg: 'Отвори Viber', en: 'Open Viber' },
+  close: { bg: 'Затвори', en: 'Close' },
+  orCall: { bg: 'или се обадете', en: 'or call' },
+};
+---
+
+<div class="viber" data-viber>
+  <a class="fab" href={viberHref} data-viber-fab aria-label={T.label[lang]} aria-haspopup="dialog" aria-expanded="false">
+    <Icon name="viber" size={28} />
+    <span class="fab-label">{T.label[lang]}</span>
+  </a>
+  <div class="pop" role="dialog" aria-label={T.label[lang]} hidden data-viber-pop>
+    <button class="pop-close" type="button" data-viber-close aria-label={T.close[lang]}><Icon name="close" size={18} /></button>
+    <p class="pop-title">{T.label[lang]}</p>
+    <div class="qr" set:html={qr} />
+    <p class="pop-hint">{T.scan[lang]}</p>
+    <div class="pop-num">
+      <span class="num">{display}</span>
+      <CopyButton text={display} lang={lang} />
+    </div>
+    <a class="btn btn-viber btn-sm" href={viberHref}><Icon name="viber" /> {T.open[lang]}</a>
+    <p class="pop-hint">
+      {T.orCall[lang]}
+      <a href={`tel:${site.phones[0].e164}`}>{site.phones[0].display}</a>
+      {site.phones[1] && <>· <a href={`tel:${site.phones[1].e164}`}>{site.phones[1].display}</a></>}
+    </p>
+  </div>
+</div>
+
+<style>
+  .viber {
+    position: fixed;
+    right: max(20px, env(safe-area-inset-right, 0px));
+    bottom: max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+    z-index: 60;
+    transition: transform 0.3s var(--ease);
+  }
+  :global(body.has-sticky-cta) .viber {
+    bottom: calc(max(20px, env(safe-area-inset-bottom, 0px)) + 76px);
+  }
+  .fab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    height: 58px;
+    padding: 0 15px;
+    border-radius: 29px;
+    background: var(--viber);
+    color: #fff;
+    text-decoration: none;
+    box-shadow: 0 10px 30px -8px rgba(115, 96, 242, 0.55);
+    transition:
+      background-color 0.2s var(--ease),
+      box-shadow 0.2s var(--ease);
+  }
+  .fab:hover {
+    background: #5f4be0;
+  }
+  .fab:focus-visible {
+    outline: 3px solid var(--ink);
+    outline-offset: 3px;
+  }
+  .fab-label {
+    font-weight: 600;
+    font-size: var(--step--1);
+    white-space: nowrap;
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition:
+      max-width 0.4s var(--ease),
+      opacity 0.25s var(--ease);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .fab:hover .fab-label,
+    .fab:focus-visible .fab-label {
+      max-width: 14rem;
+      opacity: 1;
+      padding-right: 6px;
+    }
+  }
+  .pop {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 12px);
+    width: min(300px, calc(100vw - 40px));
+    padding: var(--s-5);
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    box-shadow: 0 24px 60px -20px rgba(10, 10, 8, 0.35);
+    display: grid;
+    gap: var(--s-3);
+    justify-items: center;
+    text-align: center;
+  }
+  .pop:not([hidden]) {
+    animation: pop-in 0.3s var(--ease);
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  .pop-close {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    background: none;
+    display: grid;
+    place-items: center;
+    color: var(--steel);
+  }
+  .pop-title {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+  }
+  .qr {
+    width: 168px;
+    padding: 10px;
+    border: 1px solid var(--line);
+  }
+  .qr :global(svg) {
+    width: 100%;
+    height: auto;
+  }
+  .pop-hint {
+    font-size: var(--step--1);
+    color: var(--steel);
+  }
+  .pop-num {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    font-size: var(--step-1);
+    font-weight: 600;
+  }
+  @media print {
+    .viber {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  // Phones open Viber directly; desktop shows a QR + number popover (viber:// often has no handler there).
+  const root = document.querySelector<HTMLElement>('[data-viber]');
+  const fab = root?.querySelector<HTMLAnchorElement>('[data-viber-fab]');
+  const pop = root?.querySelector<HTMLElement>('[data-viber-pop]');
+  const close = root?.querySelector<HTMLButtonElement>('[data-viber-close]');
+  const desktop = window.matchMedia('(hover: hover) and (pointer: fine)');
+  const set = (open: boolean) => {
+    if (!pop || !fab) return;
+    pop.hidden = !open;
+    fab.setAttribute('aria-expanded', String(open));
+    if (open) close?.focus();
+  };
+  fab?.addEventListener('click', (e) => {
+    if (!desktop.matches) return;
+    e.preventDefault();
+    set(pop?.hidden ?? true);
+  });
+  close?.addEventListener('click', () => {
+    set(false);
+    fab?.focus();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && pop && !pop.hidden) {
+      set(false);
+      fab?.focus();
+    }
+  });
+  document.addEventListener('click', (e) => {
+    if (pop && !pop.hidden && root && !root.contains(e.target as Node)) set(false);
+  });
+</script>

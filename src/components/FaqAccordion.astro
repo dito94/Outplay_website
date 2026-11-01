@@ -1,0 +1,64 @@
+---
+import type { FaqItem, Lang } from '../data/types';
+import { t } from '../lib/i18n';
+import Icon from './Icon.astro';
+interface Props {
+  lang: Lang;
+  items: FaqItem[];
+  /** emit schema.org FAQPage */
+  schema?: boolean;
+  idPrefix?: string;
+}
+const { lang, items, schema = false, idPrefix = 'faq' } = Astro.props;
+const ld = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: items.map((i) => ({ '@type': 'Question', name: t(i.q, lang), acceptedAnswer: { '@type': 'Answer', text: t(i.a, lang) } })),
+};
+---
+<div class="faq-list">
+  {items.map((item, i) => (
+    <details class="faq-item" id={`${idPrefix}-${i + 1}`} data-faq-item>
+      <summary>
+        <span class="q">{t(item.q, lang)}</span>
+        <span class="pm" aria-hidden="true"><Icon name="plus" size={22} /></span>
+      </summary>
+      <div class="a"><p>{t(item.a, lang)}</p></div>
+    </details>
+  ))}
+</div>
+{schema && <script type="application/ld+json" set:html={JSON.stringify(ld)} />}
+<style>
+  .faq-list { border-top: 1px solid var(--hair); }
+  .faq-item { border-bottom: 1px solid var(--hair); }
+  .faq-item summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-5);
+    padding: 1.35rem 0;
+    cursor: pointer;
+    list-style: none;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-weight: 400;
+    line-height: 1.3;
+  }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item summary:hover .q { text-decoration: underline; text-decoration-color: var(--yellow); text-decoration-thickness: 2px; text-underline-offset: 0.25em; }
+  .pm {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--hair);
+    border-radius: 50%;
+    transition: transform 0.3s var(--ease), background-color 0.2s var(--ease), border-color 0.2s var(--ease);
+  }
+  .faq-item[open] .pm { transform: rotate(45deg); background: var(--yellow); border-color: var(--yellow); color: var(--ink); }
+  .a { padding: 0 3.5rem 1.6rem 0; color: var(--muted); max-width: 72ch; }
+  .faq-item[open] .a { animation: faq-open 0.35s var(--ease); }
+  @keyframes faq-open { from { opacity: 0; transform: translateY(-4px); } }
+  @media (max-width: 600px) { .a { padding-right: 0; } }
+</style>

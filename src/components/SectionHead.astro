@@ -1,0 +1,41 @@
+---
+// Asymmetric section heading: title left (with the catalogue's yellow rule), intro right.
+interface Props {
+  title: string;
+  intro?: string;
+  id?: string;
+  level?: 'h1' | 'h2';
+  size?: 'h1' | 'h2' | 'display';
+  class?: string;
+}
+const { title, intro, id, level = 'h2', size = 'h2', class: cls } = Astro.props;
+const Tag = level;
+---
+<div class:list={['section-head', cls, { 'has-intro': !!intro || Astro.slots.has('default') }]} data-reveal>
+  <Tag id={id} class:list={['rule', size]}>{title}</Tag>
+  {(intro || Astro.slots.has('default')) && (
+    <div class="sh-intro">
+      {intro && <p class="lead">{intro}</p>}
+      <slot />
+    </div>
+  )}
+</div>
+<style>
+  .section-head {
+    display: grid;
+    gap: var(--s-5) var(--s-8);
+    margin-bottom: clamp(2rem, 1.5rem + 2.5vw, 4rem);
+  }
+  .section-head.has-intro {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: end;
+  }
+  .sh-intro {
+    display: grid;
+    gap: var(--s-4);
+    justify-items: start;
+  }
+  @media (max-width: 860px) {
+    .section-head.has-intro { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>

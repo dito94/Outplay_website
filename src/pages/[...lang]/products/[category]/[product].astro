@@ -1,0 +1,7 @@
+---
+export function getStaticPaths() {
+  return [undefined, 'en'].flatMap((lang) => [{ params: { lang, category: 'c1', product: 'p1' } }]);
+}
+const { lang, category, product } = Astro.params;
+---
+<p>{lang ?? 'bg'} {category} {product}</p>

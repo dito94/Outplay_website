@@ -1,0 +1,503 @@
+---
+// Interactive cross-section of a bioclimatic lamella roof (catalogue: 0°–120° rotation; Infinity also retracts).
+import type { Lang } from '../data/types';
+
+interface Props {
+  lang: Lang;
+  /** which series to emphasise */
+  series?: 'both' | 'balance' | 'infinity';
+  id?: string;
+}
+const { lang, series = 'both', id = 'lamella' } = Astro.props;
+
+const modes = [
+  {
+    id: 'rain',
+    angle: 0,
+    icon: 'rain',
+    label: { bg: 'Дъжд и сняг', en: 'Rain & snow' },
+    text: {
+      bg: 'При 0° ламелите се затварят плътно. Водата се събира в интегрираните улуци и се отвежда скрито през колоните.',
+      en: 'At 0° the lamellas close tightly. Rainwater runs into the integrated gutters and drains invisibly through the posts.',
+    },
+  },
+  {
+    id: 'shade',
+    angle: 30,
+    icon: 'sun',
+    label: { bg: 'Сянка', en: 'Shade' },
+    text: {
+      bg: 'Леко отворени ламели спират преките лъчи и пропускат мека, разсеяна светлина.',
+      en: 'Slightly open lamellas block direct sun and let in soft, diffused light.',
+    },
+  },
+  {
+    id: 'light',
+    angle: 60,
+    icon: 'sun',
+    label: { bg: 'Светлина и сянка', en: 'Light & shade' },
+    text: {
+      bg: 'Нагласете ъгъла и се наслаждавайте на нежна игра на светлини и сенки, защитени от преките лъчи.',
+      en: 'Set the angle and enjoy a gentle play of light and shade while staying out of direct sun.',
+    },
+  },
+  {
+    id: 'air',
+    angle: 90,
+    icon: 'airflow',
+    label: { bg: 'Вентилация', en: 'Ventilation' },
+    text: {
+      bg: 'При 90° топлият въздух излиза свободно между ламелите и пространството остава прохладно.',
+      en: 'At 90° warm air escapes freely between the lamellas and the space stays cool.',
+    },
+  },
+  {
+    id: 'open',
+    angle: 120,
+    icon: 'sun',
+    label: { bg: '120°', en: '120°' },
+    text: {
+      bg: 'Максималният ъгъл на ротация. Ламелите се завъртат отвъд вертикала, за да пропуснат повече светлина.',
+      en: 'The maximum rotation. The lamellas turn past vertical to let more light through.',
+    },
+  },
+  {
+    id: 'sky',
+    angle: 90,
+    retract: true,
+    icon: 'sun',
+    label: { bg: 'Открито небе', en: 'Open sky' },
+    text: {
+      bg: 'Само при Infinity: втори мотор прибира ламелите в единия край и покривът изчезва за секунди.',
+      en: 'Infinity only: a second motor stacks the lamellas at one end and the roof disappears in seconds.',
+    },
+  },
+];
+const start = series === 'infinity' ? 'sky' : 'light';
+const startMode = modes.find((m) => m.id === start)!;
+const L = {
+  angle: { bg: 'Ъгъл на ламелите', en: 'Lamella angle' },
+  modes: { bg: 'Изберете условия', en: 'Choose the conditions' },
+  balance: { bg: 'Balance · 1 мотор · 0–120°', en: 'Balance · 1 motor · 0–120°' },
+  infinity: { bg: 'Infinity · 2 мотора · 0–120° + прибиране', en: 'Infinity · 2 motors · 0–120° + retract' },
+  figure: {
+    bg: 'Схема в разрез на покрив с алуминиеви ламели',
+    en: 'Cross-section diagram of an aluminium lamella roof',
+  },
+};
+const N = 10;
+const lamellas = Array.from({ length: N }, (_, i) => 112 + i * 64);
+const drops = Array.from({ length: 26 }, (_, i) => ({
+  x: 70 + ((i * 97) % 660),
+  d: (i % 7) * 0.17,
+  len: 12 + (i % 3) * 4,
+}));
+---
+
+<div class="lam-demo" data-lamella data-mode={start} data-series={series} id={id}>
+  <div class="lam-controls">
+    <p class="lam-k" id={`${id}-modes`}>{L.modes[lang]}</p>
+    <div class="lam-modes" role="radiogroup" aria-labelledby={`${id}-modes`}>
+      {
+        modes.map((m) => (
+          <button
+            type="button"
+            role="radio"
+            aria-checked={m.id === start ? 'true' : 'false'}
+            tabindex={m.id === start ? 0 : -1}
+            data-mode-btn={m.id}
+            data-angle={m.angle}
+            data-retract={m.retract ? '1' : undefined}
+            data-text={m.text[lang]}
+            class:list={['lam-mode', { 'lam-mode-inf': m.retract }]}
+          >
+            {m.label[lang]}
+          </button>
+        ))
+      }
+    </div>
+
+    <div class="lam-readout">
+      <span class="lam-deg num" data-deg aria-hidden="true">
+        {startMode.retract ? '—' : `${startMode.angle}°`}
+      </span>
+      <p class="lam-text" data-text aria-live="polite">{startMode.text[lang]}</p>
+    </div>
+
+    <label class="lam-range-wrap" for={`${id}-range`}>
+      <span class="lam-k">{L.angle[lang]}</span>
+      <input
+        id={`${id}-range`}
+        class="lam-range"
+        type="range"
+        min="0"
+        max="120"
+        step="1"
+        value={startMode.angle}
+        data-range
+        aria-valuetext={`${startMode.angle}°`}
+      />
+      <span class="lam-scale num" aria-hidden="true"><span>0°</span><span>30°</span><span>60°</span><span>90°</span><span>120°</span></span>
+    </label>
+
+    <ul class="lam-series small">
+      <li class:list={{ dim: series === 'infinity' }}>{L.balance[lang]}</li>
+      <li class:list={{ dim: series === 'balance' }}>{L.infinity[lang]}</li>
+    </ul>
+  </div>
+
+  <figure class="lam-figure">
+    <svg viewBox="0 0 800 440" role="img" aria-label={L.figure[lang]}>
+      <defs>
+        <linearGradient id={`${id}-sky`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#1b1d20"></stop>
+          <stop offset="1" stop-color="#0f1012"></stop>
+        </linearGradient>
+        <linearGradient id={`${id}-lam`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#c9cdd1"></stop>
+          <stop offset="0.45" stop-color="#7d8287"></stop>
+          <stop offset="1" stop-color="#3d4146"></stop>
+        </linearGradient>
+        <clipPath id={`${id}-clip`}><rect x="0" y="0" width="800" height="440"></rect></clipPath>
+      </defs>
+      <rect x="0" y="0" width="800" height="440" fill={`url(#${id}-sky)`}></rect>
+      <g clip-path={`url(#${id}-clip)`}>
+        <!-- sun + rays -->
+        <g class="fx-sun">
+          <circle cx="120" cy="58" r="26" fill="#f9c823"></circle>
+          <circle cx="120" cy="58" r="40" fill="none" stroke="#f9c823" stroke-opacity="0.25" stroke-width="2"></circle>
+        </g>
+        <g class="fx-rays">
+          {
+            lamellas.map((x) => (
+              <polygon
+                class="ray"
+                points={`${x + 26},206 ${x + 58},206 ${x + 58 + 70},404 ${x + 26 + 70},404`}
+                fill="#f9c823"
+              />
+            ))
+          }
+        </g>
+        <!-- light stripes on the floor -->
+        <g class="fx-floor">
+          {lamellas.map((x) => <rect class="spot" x={x + 70 + 20} y="404" width="36" height="6" fill="#f9c823" />)}
+        </g>
+        <!-- rain -->
+        <g class="fx-rain">
+          {
+            drops.map((d) => (
+              <line
+                x1={d.x}
+                y1="-20"
+                x2={d.x - 4}
+                y2={-20 + d.len}
+                stroke="#9fb6cc"
+                stroke-width="2"
+                stroke-linecap="round"
+                style={`animation-delay:${d.d}s`}
+              />
+            ))
+          }
+        </g>
+        <!-- warm air -->
+        <g class="fx-air" fill="none" stroke="#d9dde0" stroke-width="2" stroke-linecap="round">
+          {
+            [180, 310, 440, 570, 680].map((x, i) => (
+              <path d={`M${x} 380 C ${x - 18} 340, ${x + 18} 300, ${x} 260 S ${x - 18} 180, ${x} 120`} style={`animation-delay:${i * 0.35}s`} />
+            ))
+          }
+        </g>
+      </g>
+      <!-- structure -->
+      <rect x="64" y="186" width="672" height="14" fill="#2b2f33"></rect>
+      <rect x="64" y="200" width="18" height="204" fill="#2b2f33"></rect>
+      <rect x="718" y="200" width="18" height="204" fill="#2b2f33"></rect>
+      <rect x="64" y="186" width="672" height="2" fill="#5a5f64"></rect>
+      <!-- lamellas -->
+      <g class="lams">
+        {
+          lamellas.map((x, i) => (
+            <g transform={`translate(${x} 206)`}>
+              <g class="lam" style={`--i:${i}`}>
+                <path
+                  d="M-34 0 C-34 -5 -24 -7 -2 -6.5 C20 -6 34 -4.5 34 0 C34 4.5 20 5.5 0 5.5 C-22 5.5 -34 5 -34 0Z"
+                  fill={`url(#${id}-lam)`}
+                />
+              </g>
+            </g>
+          ))
+        }
+      </g>
+      <!-- floor -->
+      <rect x="0" y="404" width="800" height="36" fill="#17181a"></rect>
+      <rect x="0" y="404" width="800" height="1" fill="#3a3d41"></rect>
+      <!-- people for scale: lounge -->
+      <g fill="#2b2f33">
+        <rect x="300" y="372" width="200" height="22" rx="4"></rect>
+        <rect x="300" y="352" width="26" height="42" rx="4"></rect>
+        <rect x="474" y="352" width="26" height="42" rx="4"></rect>
+        <rect x="560" y="378" width="70" height="8" rx="2"></rect>
+        <rect x="592" y="386" width="6" height="18"></rect>
+      </g>
+    </svg>
+  </figure>
+</div>
+
+<style>
+  .lam-demo {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr);
+    gap: var(--s-7);
+    align-items: center;
+    --a: 60deg;
+    --open: 0.5;
+  }
+  .lam-controls {
+    display: grid;
+    gap: var(--s-5);
+    align-content: start;
+  }
+  .lam-k {
+    font-size: var(--step--1);
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .lam-modes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+  }
+  .lam-mode {
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--fg);
+    font-size: var(--step--1);
+    font-weight: 500;
+    transition:
+      background-color 0.2s var(--ease),
+      color 0.2s var(--ease),
+      border-color 0.2s var(--ease);
+  }
+  .lam-mode:hover {
+    border-color: var(--fg);
+  }
+  .lam-mode[aria-checked='true'] {
+    background: var(--yellow);
+    border-color: var(--yellow);
+    color: var(--ink);
+  }
+  .lam-mode-inf::after {
+    content: ' ∞';
+    opacity: 0.7;
+  }
+  [data-series='balance'] .lam-mode-inf {
+    display: none;
+  }
+  .lam-readout {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--s-5);
+    align-items: start;
+    min-height: 7.5rem;
+  }
+  .lam-deg {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: clamp(3.5rem, 2.6rem + 3vw, 5.5rem);
+    line-height: 0.9;
+    color: var(--yellow);
+    min-width: 3.2ch;
+  }
+  .lam-text {
+    padding-top: 0.4rem;
+    max-width: 40ch;
+  }
+  .lam-range-wrap {
+    display: grid;
+    gap: var(--s-2);
+  }
+  .lam-range {
+    width: 100%;
+    accent-color: var(--yellow);
+    height: 28px;
+  }
+  .lam-scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--step--2);
+    color: var(--muted);
+  }
+  .lam-series {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.35rem;
+    color: var(--muted);
+  }
+  .lam-series li::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 2px;
+    margin-right: 0.6rem;
+    vertical-align: middle;
+    background: var(--yellow);
+  }
+  .lam-series li.dim {
+    opacity: 0.45;
+  }
+  .lam-figure svg {
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--hair);
+  }
+
+  /* lamella motion */
+  .lam {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: translateX(var(--tx, 0px)) rotate(var(--a));
+    transition: transform 0.9s var(--ease);
+    transition-delay: calc(var(--i) * 28ms);
+  }
+  [data-mode='sky'] .lam {
+    --tx: calc((9 - var(--i)) * 54px);
+  }
+
+  /* effects keyed to the mode and openness */
+  .fx-sun,
+  .fx-rays,
+  .fx-floor,
+  .fx-rain,
+  .fx-air {
+    transition: opacity 0.6s var(--ease);
+  }
+  .fx-rays .ray {
+    opacity: calc(var(--open) * 0.16);
+    transition: opacity 0.6s var(--ease);
+  }
+  .fx-floor .spot {
+    opacity: calc(var(--open) * 0.9);
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: scaleX(calc(0.15 + var(--open)));
+    transition:
+      opacity 0.6s var(--ease),
+      transform 0.6s var(--ease);
+  }
+  .fx-rain,
+  .fx-air {
+    opacity: 0;
+  }
+  [data-mode='rain'] .fx-rain {
+    opacity: 1;
+  }
+  [data-mode='rain'] .fx-sun {
+    opacity: 0.15;
+  }
+  [data-mode='air'] .fx-air {
+    opacity: 0.75;
+  }
+  [data-mode='sky'] .fx-rays .ray {
+    opacity: 0.16;
+  }
+  [data-mode='sky'] .fx-floor .spot {
+    opacity: 0.9;
+    transform: scaleX(1.6);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .fx-rain line {
+      animation: fall 0.9s linear infinite;
+    }
+    .fx-air path {
+      stroke-dasharray: 18 14;
+      animation: rise 2.2s linear infinite;
+    }
+  }
+  @keyframes fall {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(206px);
+    }
+  }
+  @keyframes rise {
+    to {
+      stroke-dashoffset: -64;
+    }
+  }
+  @media (max-width: 900px) {
+    .lam-demo {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .lam-figure {
+      order: -1;
+    }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-lamella]').forEach((root) => {
+    const btns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-mode-btn]'));
+    const range = root.querySelector<HTMLInputElement>('[data-range]');
+    const deg = root.querySelector<HTMLElement>('[data-deg]');
+    const text = root.querySelector<HTMLElement>('[data-text]');
+    const W = 68;
+    const S = 64;
+    const openness = (a: number) => Math.max(0, Math.min(1, (S - W * Math.abs(Math.cos((a * Math.PI) / 180))) / S));
+
+    const apply = (angle: number, mode: string | null, label?: string) => {
+      root.style.setProperty('--a', `${angle}deg`);
+      root.style.setProperty('--open', openness(angle).toFixed(3));
+      root.dataset.mode = mode ?? 'manual';
+      const retract = mode === 'sky';
+      if (deg) deg.textContent = retract ? '—' : `${Math.round(angle)}°`;
+      if (range) {
+        range.value = String(angle);
+        range.setAttribute('aria-valuetext', retract ? label ?? '' : `${Math.round(angle)}°`);
+      }
+      btns.forEach((b) => {
+        const on = b.dataset.modeBtn === mode;
+        b.setAttribute('aria-checked', String(on));
+        b.tabIndex = on || (!mode && b === btns[0]) ? 0 : -1;
+      });
+    };
+
+    const select = (b: HTMLButtonElement, focus = false) => {
+      apply(Number(b.dataset.angle), b.dataset.modeBtn ?? null, b.textContent?.trim());
+      if (text && b.dataset.text) text.textContent = b.dataset.text;
+      if (focus) b.focus();
+    };
+
+    btns.forEach((b, i) => {
+      b.addEventListener('click', () => select(b));
+      b.addEventListener('keydown', (e) => {
+        const visible = btns.filter((x) => x.offsetParent !== null);
+        const idx = visible.indexOf(b);
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          select(visible[(idx + 1) % visible.length], true);
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          select(visible[(idx - 1 + visible.length) % visible.length], true);
+        }
+      });
+      void i;
+    });
+
+    range?.addEventListener('input', () => {
+      const a = Number(range.value);
+      const match = btns.find((b) => !b.dataset.retract && Number(b.dataset.angle) === a);
+      apply(a, match?.dataset.modeBtn ?? null);
+      if (match && text && match.dataset.text) text.textContent = match.dataset.text;
+    });
+
+    const initial = btns.find((b) => b.getAttribute('aria-checked') === 'true');
+    if (initial) select(initial);
+  });
+</script>

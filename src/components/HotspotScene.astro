@@ -1,0 +1,288 @@
+---
+import type { Hotspot, Lang } from '../data/types';
+import { products } from '../data/products';
+import { categories } from '../data/categories';
+import { productUrl, categoryUrl, t } from '../lib/i18n';
+import Img from './Img.astro';
+import { img } from '../lib/images';
+import Icon from './Icon.astro';
+
+interface Props {
+  lang: Lang;
+  image: string;
+  hotspots: Hotspot[];
+  /** show a numbered legend under the image */
+  legend?: boolean;
+  sizes?: string;
+  id: string;
+}
+const { lang, image, hotspots, legend = true, sizes = '100vw', id } = Astro.props;
+
+const items = hotspots.map((h, i) => {
+  const p = h.productId ? products.find((x) => x.id === h.productId) : undefined;
+  const c = h.categoryId ? categories.find((x) => x.id === h.categoryId) : undefined;
+  return {
+    ...h,
+    n: i + 1,
+    title: t(h.label, lang),
+    text: p ? t(p.summary, lang) : c ? t(c.tagline, lang) : '',
+    href: p ? productUrl(lang, p.category, p.id) : c ? categoryUrl(lang, c.id) : undefined,
+    linkLabel: p ? t(p.name, lang) : c ? t(c.name, lang) : '',
+    // flip the card to the left/top near edges
+    alignX: h.x > 62 ? 'right' : h.x < 30 ? 'left' : 'center',
+    alignY: h.y > 58 ? 'up' : 'down',
+  };
+});
+const more = lang === 'bg' ? 'Виж продукта' : 'View product';
+const meta = img(image);
+const ratio = meta ? `aspect-ratio:${meta.width}/${meta.height}` : undefined;
+---
+
+<div class="scene" data-scene>
+  <div class="scene-stage" style={ratio}>
+    <Img src={image} lang={lang} sizes={sizes} />
+    {
+      items.map((h) => (
+        <div class="hs" style={`left:${h.x}%;top:${h.y}%`} data-align-x={h.alignX} data-align-y={h.alignY}>
+          <button
+            type="button"
+            class="hs-dot"
+            aria-expanded="false"
+            aria-controls={`${id}-card-${h.n}`}
+            data-hs-btn
+          >
+            <span aria-hidden="true">{h.n}</span>
+            <span class="sr-only">{h.title}</span>
+          </button>
+          <div class="hs-card" id={`${id}-card-${h.n}`} role="group" aria-label={h.title} hidden data-hs-card>
+            <p class="hs-title">{h.title}</p>
+            {h.text && <p class="hs-text">{h.text}</p>}
+            {h.href && (
+              <a class="link-arrow" href={h.href}>
+                {more} <Icon name="arrow-right" size={16} />
+              </a>
+            )}
+          </div>
+        </div>
+      ))
+    }
+  </div>
+  {
+    legend && (
+      <ol class="scene-legend">
+        {items.map((h) => (
+          <li>
+            {h.href ? (
+              <a href={h.href}>
+                <span class="n" aria-hidden="true">{h.n}</span>
+                <span>{h.title}</span>
+                <Icon name="arrow-right" size={16} />
+              </a>
+            ) : (
+              <span>
+                <span class="n" aria-hidden="true">{h.n}</span>
+                {h.title}
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+    )
+  }
+</div>
+
+<style>
+  .scene {
+    display: grid;
+    gap: var(--s-5);
+  }
+  .scene-stage {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: var(--mist);
+  }
+  .scene-stage > :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .hs {
+    position: absolute;
+    width: 0;
+    height: 0;
+    z-index: 2;
+  }
+  .hs:has(.hs-dot[aria-expanded='true']) {
+    z-index: 4;
+  }
+  .hs-dot {
+    position: absolute;
+    left: -22px;
+    top: -22px;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: var(--yellow);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1rem;
+    box-shadow:
+      0 0 0 6px rgba(249, 200, 35, 0.28),
+      0 8px 20px -6px rgba(10, 10, 8, 0.5);
+    transition:
+      transform 0.25s var(--ease),
+      background-color 0.2s var(--ease);
+  }
+  .hs-dot:hover,
+  .hs-dot[aria-expanded='true'] {
+    transform: scale(1.08);
+    background: var(--ink);
+    color: var(--yellow);
+  }
+  .hs-dot:focus-visible {
+    outline: 3px solid var(--ink);
+    outline-offset: 4px;
+  }
+  .hs-card {
+    position: absolute;
+    width: min(300px, 70vw);
+    padding: var(--s-5);
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: 0 24px 60px -20px rgba(10, 10, 8, 0.45);
+    display: grid;
+    gap: var(--s-2);
+    top: 32px;
+    left: -150px;
+  }
+  .hs-card:not([hidden]) {
+    animation: hs-in 0.28s var(--ease);
+  }
+  @keyframes hs-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  [data-align-x='left'] .hs-card {
+    left: -22px;
+  }
+  [data-align-x='right'] .hs-card {
+    left: auto;
+    right: -22px;
+  }
+  [data-align-y='up'] .hs-card {
+    top: auto;
+    bottom: 32px;
+  }
+  .hs-title {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: 1.25;
+  }
+  .hs-text {
+    font-size: var(--step--1);
+    color: var(--steel);
+    line-height: 1.5;
+  }
+  .scene-legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    gap: 0 var(--s-6);
+    border-top: 1px solid var(--hair);
+  }
+  .scene-legend li {
+    border-bottom: 1px solid var(--hair);
+  }
+  .scene-legend a,
+  .scene-legend li > span {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: 0.9rem 0;
+    text-decoration: none;
+    font-size: var(--step--1);
+    font-weight: 500;
+  }
+  .scene-legend a :global(svg) {
+    margin-left: auto;
+    flex: none;
+    transition: transform 0.25s var(--ease);
+  }
+  .scene-legend a:hover :global(svg) {
+    transform: translateX(3px);
+  }
+  .n {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--yellow);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  @media (max-width: 720px) {
+    .hs-dot {
+      left: -17px;
+      top: -17px;
+      width: 34px;
+      height: 34px;
+      font-size: 0.85rem;
+      box-shadow: 0 0 0 4px rgba(249, 200, 35, 0.3);
+    }
+    .hs-card {
+      display: none !important;
+    }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-scene]').forEach((scene) => {
+    const btns = Array.from(scene.querySelectorAll<HTMLButtonElement>('[data-hs-btn]'));
+    const small = window.matchMedia('(max-width: 720px)');
+    const closeAll = (except?: HTMLButtonElement) =>
+      btns.forEach((b) => {
+        if (b === except) return;
+        b.setAttribute('aria-expanded', 'false');
+        const card = document.getElementById(b.getAttribute('aria-controls') ?? '');
+        if (card) card.hidden = true;
+      });
+    btns.forEach((b, i) => {
+      b.addEventListener('click', () => {
+        if (small.matches) {
+          // On phones the cards are replaced by the legend: jump to the matching row
+          const row = scene.querySelectorAll<HTMLElement>('.scene-legend li')[i];
+          row?.querySelector<HTMLElement>('a')?.focus();
+          row?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          return;
+        }
+        const open = b.getAttribute('aria-expanded') !== 'true';
+        closeAll(b);
+        b.setAttribute('aria-expanded', String(open));
+        const card = document.getElementById(b.getAttribute('aria-controls') ?? '');
+        if (card) card.hidden = !open;
+      });
+    });
+    document.addEventListener('click', (e) => {
+      if (!scene.contains(e.target as Node)) closeAll();
+    });
+    scene.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const openBtn = btns.find((b) => b.getAttribute('aria-expanded') === 'true');
+        closeAll();
+        openBtn?.focus();
+      }
+    });
+  });
+</script>

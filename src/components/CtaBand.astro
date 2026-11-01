@@ -1,0 +1,78 @@
+---
+import type { Lang } from '../data/types';
+import { site } from '../data/site';
+import { url } from '../lib/i18n';
+import Icon from './Icon.astro';
+interface Props {
+  lang: Lang;
+  title?: string;
+  text?: string;
+  /** prefill a product in the inquiry form */
+  productId?: string;
+}
+const { lang, title, text, productId } = Astro.props;
+const T = {
+  title: { bg: 'Изпратете приблизителни размери и получете ориентировъчна оферта', en: 'Send approximate dimensions and get an indicative quote' },
+  text: { bg: 'Без ангажимент. Ще се свържем с Вас, за да уточним детайлите и да насрочим оглед и замер на място.', en: 'No obligation. We will get back to you to discuss the details and arrange a site visit and measurement.' },
+  cta: { bg: 'Направете запитване', en: 'Request a quote' },
+};
+const href = url(lang, `/contact/${productId ? `?product=${productId}` : ''}#inquiry`);
+const viber = `viber://chat?number=${encodeURIComponent(site.viber ?? site.phones[0].e164)}`;
+---
+<section class="cta-band" aria-labelledby="cta-band-title">
+  <div class="wrap inner">
+    <div class="copy">
+      <h2 id="cta-band-title" class="h2">{title ?? T.title[lang]}</h2>
+      <p>{text ?? T.text[lang]}</p>
+    </div>
+    <div class="actions">
+      <a class="btn btn-dark" href={href}>{T.cta[lang]} <Icon name="arrow-right" class="arrow" /></a>
+      <a class="btn btn-viber" href={viber}><Icon name="viber" /> Viber</a>
+      <a class="phone num" href={`tel:${site.phones[0].e164}`}><Icon name="phone" size={18} /> {site.phones[0].display}</a>
+    </div>
+  </div>
+  <span class="stripes" aria-hidden="true"></span>
+</section>
+<style>
+  .cta-band {
+    position: relative;
+    overflow: hidden;
+    background: var(--yellow);
+    color: var(--ink);
+    --focus: var(--ink);
+  }
+  .inner {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: var(--s-6) var(--s-8);
+    align-items: end;
+    padding-block: clamp(3.5rem, 2.5rem + 4vw, 6rem);
+  }
+  .copy { display: grid; gap: var(--s-4); }
+  .copy h2 { max-width: 20ch; }
+  .copy p { max-width: 52ch; font-size: var(--step-1); line-height: 1.5; }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center; justify-content: flex-end; }
+  .phone {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    min-height: 52px; padding: 0 0.5rem;
+    font-weight: 600; text-decoration: none;
+  }
+  .phone:hover { text-decoration: underline; }
+  /* The logo's louvre stripes, oversized and faint */
+  .stripes {
+    position: absolute;
+    right: -4%;
+    top: -30%;
+    width: 46%;
+    height: 90%;
+    background: repeating-linear-gradient(100deg, rgba(10,10,8,0.07) 0 10px, transparent 10px 30px);
+    transform: skewX(-8deg);
+    pointer-events: none;
+  }
+  @media (max-width: 900px) {
+    .inner { grid-template-columns: minmax(0, 1fr); align-items: start; }
+    .actions { justify-content: flex-start; }
+  }
+</style>

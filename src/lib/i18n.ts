@@ -1,0 +1,60 @@
+import type { L, Lang } from '../data/types';
+
+export const LANGS: Lang[] = ['bg', 'en'];
+export const DEFAULT_LANG: Lang = 'bg';
+
+/** getStaticPaths helper for src/pages/[...lang]/… routes */
+export function langParams() {
+  return LANGS.map((lang) => ({ params: { lang: lang === DEFAULT_LANG ? undefined : lang } }));
+}
+
+export function getLang(param: string | undefined): Lang {
+  return param === 'en' ? 'en' : 'bg';
+}
+
+/** Translate a bilingual value */
+export function t(value: L | undefined, lang: Lang): string {
+  if (!value) return '';
+  return value[lang] ?? value.bg;
+}
+
+const BASE = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
+
+/**
+ * Build an internal URL with base path + language prefix + trailing slash.
+ * url('bg', '/products/') → /Outplay_website/products/
+ * url('en', 'faq') → /Outplay_website/en/faq/
+ */
+export function url(lang: Lang, path = '/'): string {
+  const [pathname, hash = ''] = path.split('#');
+  const [clean, query = ''] = pathname.split('?');
+  let p = clean.replace(/^\/+/, '');
+  if (p && !p.endsWith('/') && !/\.[a-z0-9]+$/i.test(p)) p += '/';
+  const prefix = lang === DEFAULT_LANG ? '' : `${lang}/`;
+  return `${BASE}${prefix}${p}${query ? `?${query}` : ''}${hash ? `#${hash}` : ''}`;
+}
+
+/** Path of an asset in /public (no language prefix) */
+export function asset(path: string): string {
+  return `${BASE}${path.replace(/^\/+/, '')}`;
+}
+
+/** Strip base + language prefix from a pathname → language-neutral route ("/products/x/") */
+export function routeOf(pathname: string): string {
+  let p = pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname.replace(/^\/+/, '');
+  p = p.replace(/^en(\/|$)/, '');
+  return '/' + p;
+}
+
+/** Same page in the other language */
+export function switchLangUrl(pathname: string, to: Lang): string {
+  return url(to, routeOf(pathname));
+}
+
+export const productUrl = (lang: Lang, category: string, id: string) => url(lang, `/products/${category}/${id}/`);
+export const categoryUrl = (lang: Lang, category: string) => url(lang, `/products/${category}/`);
+
+/** Simple {placeholder} interpolation */
+export function fmt(template: string, vars: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
+}

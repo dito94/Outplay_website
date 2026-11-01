@@ -1,0 +1,216 @@
+---
+import type { Lang } from '../data/types';
+import { categories } from '../data/categories';
+import { site } from '../data/site';
+import { url, categoryUrl, switchLangUrl, t } from '../lib/i18n';
+import Logo from './Logo.astro';
+import Icon from './Icon.astro';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const cats = [...categories].sort((a, b) => a.order - b.order);
+const T = {
+  products: { bg: 'Продукти', en: 'Products' },
+  company: { bg: 'Компания', en: 'Company' },
+  contact: { bg: 'Контакти', en: 'Contact' },
+  about: { bg: 'За нас', en: 'About us' },
+  gallery: { bg: 'Галерия и проекти', en: 'Gallery & projects' },
+  faq: { bg: 'Често задавани въпроси', en: 'FAQ' },
+  inquiry: { bg: 'Направете запитване', en: 'Request a quote' },
+  search: { bg: 'Търсене', en: 'Search' },
+  admin: { bg: 'Админ панел (демо)', en: 'Admin panel (demo)' },
+  rights: { bg: 'Всички права запазени.', en: 'All rights reserved.' },
+  demo: {
+    bg: 'Демо версия на сайта, изготвена за представяне.',
+    en: 'Demo version of the website, prepared for review.',
+  },
+  partners: { bg: 'Работим със системи на', en: 'We work with systems by' },
+};
+const year = 2026;
+---
+
+<footer class="site-footer night">
+  <div class="wrap top">
+    <div class="brandcol">
+      <a href={url(lang, '/')} class="f-logo" aria-label="OUTPLAY"><Logo tone="light" /></a>
+      <p class="muted tagline">{t(site.tagline, lang)}</p>
+      <p class="partners small">
+        <span class="muted">{t(T.partners, lang)}</span>
+        <span>{site.partners.join(' · ')}</span>
+      </p>
+    </div>
+    <nav class="col" aria-label={t(T.products, lang)}>
+      <h2 class="f-h">{t(T.products, lang)}</h2>
+      <ul>
+        {
+          cats.map((c) => (
+            <li>
+              <a href={categoryUrl(lang, c.id)}>{t(c.name, lang)}</a>
+            </li>
+          ))
+        }
+        <li><a href={url(lang, '/products/')}>{lang === 'bg' ? 'Всички продукти' : 'All products'}</a></li>
+      </ul>
+    </nav>
+    <nav class="col" aria-label={t(T.company, lang)}>
+      <h2 class="f-h">{t(T.company, lang)}</h2>
+      <ul>
+        <li><a href={url(lang, '/about/')}>{t(T.about, lang)}</a></li>
+        <li><a href={url(lang, '/projects/')}>{t(T.gallery, lang)}</a></li>
+        <li><a href={url(lang, '/faq/')}>{t(T.faq, lang)}</a></li>
+        <li><a href={url(lang, '/search/')}>{t(T.search, lang)}</a></li>
+        <li><a href={url(lang, '/contact/#inquiry')}>{t(T.inquiry, lang)}</a></li>
+      </ul>
+    </nav>
+    <div class="col contact">
+      <h2 class="f-h">{t(T.contact, lang)}</h2>
+      <ul>
+        <li>
+          <a href={site.mapsUrl} target="_blank" rel="noopener" class="row">
+            <Icon name="pin" size={18} />
+            <span>{t(site.address, lang)}</span>
+          </a>
+        </li>
+        {
+          site.phones.map((p) => (
+            <li>
+              <a href={`tel:${p.e164}`} class="row num">
+                <Icon name="phone" size={18} />
+                <span>{p.display}</span>
+              </a>
+            </li>
+          ))
+        }
+        <li>
+          <a href={`mailto:${site.email}`} class="row">
+            <Icon name="mail" size={18} />
+            <span>{site.email}</span>
+          </a>
+        </li>
+        <li>
+          <a href={`viber://chat?number=${encodeURIComponent(site.viber ?? site.phones[0].e164)}`} class="row">
+            <Icon name="viber" size={18} />
+            <span>Viber</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="wrap bottom">
+    <p>© {year} OUTPLAY. {t(T.rights, lang)}</p>
+    <p class="muted">{t(T.demo, lang)} <a href={url(lang, '/admin/')}>{t(T.admin, lang)}</a></p>
+    <p class="langs">
+      <a href={switchLangUrl(Astro.url.pathname, 'bg')} aria-current={lang === 'bg' ? 'true' : undefined}>BG</a>
+      <a href={switchLangUrl(Astro.url.pathname, 'en')} aria-current={lang === 'en' ? 'true' : undefined}>EN</a>
+    </p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    padding-top: clamp(3.5rem, 2.5rem + 4vw, 6rem);
+    border-top: 1px solid var(--line-dark);
+  }
+  .top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+    gap: var(--s-7) var(--s-6);
+    padding-bottom: var(--s-8);
+  }
+  .f-logo {
+    display: inline-flex;
+    height: 56px;
+  }
+  .f-logo :global(.logo) {
+    height: 56px;
+  }
+  .tagline {
+    margin-top: var(--s-4);
+    max-width: 30ch;
+  }
+  .partners {
+    margin-top: var(--s-6);
+    display: grid;
+    gap: 0.35rem;
+    max-width: 40ch;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+  }
+  .f-h {
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--yellow);
+    margin-bottom: var(--s-4);
+  }
+  .col ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.25rem;
+  }
+  .col a {
+    display: inline-block;
+    padding: 0.3rem 0;
+    color: var(--fg);
+    text-decoration: none;
+    font-size: var(--step--1);
+  }
+  .col a:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--yellow);
+  }
+  .row {
+    display: flex !important;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+  .row :global(svg) {
+    flex: none;
+    margin-top: 2px;
+    color: var(--alu);
+  }
+  .bottom {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3) var(--s-6);
+    padding-block: var(--s-5) max(var(--s-5), env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--line-dark);
+    font-size: var(--step--1);
+  }
+  .bottom a {
+    color: var(--fg);
+  }
+  .langs {
+    display: flex;
+    gap: var(--s-4);
+    font-weight: 600;
+  }
+  .langs a {
+    text-decoration: none;
+    opacity: 0.6;
+  }
+  .langs a[aria-current='true'] {
+    opacity: 1;
+    border-bottom: 2px solid var(--yellow);
+  }
+  @media (max-width: 960px) {
+    .top {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .brandcol {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 520px) {
+    .top {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
