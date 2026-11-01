@@ -99,6 +99,14 @@ server.listen(0, async () => {
     await page.locator(w).blur();
     const rangeErr = await page.locator(`${w}-err`).textContent();
     check(rangeErr.includes('между 1 и 30 м'), `out of range → "${rangeErr}"`);
+    // an invalid size never leaves a stale drawing looking current
+    check(await page.locator(`${F} [data-iq-preview]`).evaluate((el) => el.classList.contains('is-stale')), 'invalid width dims the sketch');
+    check((await page.locator(`${F} [data-iq-area]`).textContent()) === '—', 'invalid width shows "—" for the area');
+    await page.waitForTimeout(350);
+    check(
+      (await page.locator(`${F} [data-iq-svg]`).evaluate((el) => getComputedStyle(el).opacity)) === '0.35',
+      'dimmed sketch opacity .35',
+    );
     await page.click(`${F} [data-iq-next]`);
     check((await page.evaluate(() => document.activeElement?.id)) === 'inquiry-form-pergola-width', 'Next focuses the invalid width');
     check(await page.locator(`${F} section[data-step="1"]`).isVisible(), 'still on step 1 while invalid');
@@ -107,10 +115,11 @@ server.listen(0, async () => {
     await page.fill(d, '4,0');
     await page.locator(d).blur();
     check((await page.locator(`${w}-err`).textContent()) === '', 'width error clears');
+    check(!(await page.locator(`${F} [data-iq-preview]`).evaluate((el) => el.classList.contains('is-stale'))), 'valid size un-dims the sketch');
     let area = await page.locator(`${F} [data-iq-area]`).textContent();
     check(area === '20,0', `area 5 × 4 = 20,0 m² (got ${area})`);
     // slider drives the number field
-    await page.locator(`${F} [data-family-block="pergola"] [data-dim="depth"] [data-dim-range]`).fill('3.5');
+    await page.locator(`${F} [data-dims-block="pergola"] [data-dim="depth"] [data-dim-range]`).fill('3.5');
     check((await page.inputValue(d)) === '3,5', 'depth slider updates the number field (3,5)');
     area = await page.locator(`${F} [data-iq-area]`).textContent();
     check(area === '17,5', `area 5 × 3,5 = 17,5 (got ${area})`);
@@ -139,6 +148,23 @@ server.listen(0, async () => {
     check((await stored(page)).length === 0, 'nothing stored before submit');
 
     check(await page.isChecked(`${F} input[name="opt.pergola.roofType"][value="lamellas"]`), 'Balance preselects aluminium louvres');
+    const s2 = `${F} section[data-step="2"]`;
+    check((await page.locator(`${s2} h3, ${s2} h4`).count()) === 1, 'step 2 has a single heading');
+    // property type, place and timeline are folded into "More details (optional)"
+    const more = `${F} details[data-iq-project]`;
+    check(!(await page.locator(more).evaluate((el) => el.open)), '"more details" collapsed by default');
+    check(!(await page.locator(`${F} input[name="proj.placeType"][value="garden"]`).isVisible()), 'project chips hidden while collapsed');
+    const moreSum = (await page.locator(`${more} summary`).textContent()).replace(/\s+/g, ' ');
+    check(moreSum.includes('Още детайли') && moreSum.includes('Дом · Тераса · 1–3 месеца'), `summary row lists current choices ("${moreSum.trim()}")`);
+    await page.click(`${more} summary`);
+    await page.check(`${F} input[name="proj.placeType"][value="garden"]`);
+    await page.click(`${more} summary`);
+    check(
+      (await page.locator(`${F} [data-iq-more-v]`).textContent()).includes('Двор или градина'),
+      'summary row follows a changed choice',
+    );
+    check(await page.locator(`${F} .iq-drop-fine`).isVisible(), 'desktop upload box offers drag and drop');
+    check(!(await page.locator(`${F} .iq-drop-coarse`).isVisible()), 'phone wording hidden on desktop');
     await page.check(`${F} input[name="opt.pergola.extras"][value="led"]`);
     await page.check(`${F} input[name="opt.pergola.mounting"][value="freestanding"]`);
     await page.fill('#inquiry-form-pergola-colour', 'антрацит');
@@ -159,6 +185,9 @@ server.listen(0, async () => {
     const sum = await page.locator(`${F} [data-iq-summary]`).textContent();
     check(sum.includes('Balance') && sum.includes('Ширина 5 м') && sum.includes('антрацит') && sum.includes('LED'), 'summary lists product, size and options');
     check(sum.includes('terrace-1.png'), 'summary lists the photo name');
+    check(sum.includes('Двор или градина'), 'summary lists the folded project choice');
+    const consentText = await page.locator(`${F} label[for="inquiry-form-consent"]`).textContent();
+    check(consentText.includes('Съгласявам се') && !consentText.includes('/на'), `gender-neutral consent ("${consentText.trim().slice(0, 30)}…")`);
 
     await page.click(`${F} [data-iq-submit]`);
     check((await page.locator('#inquiry-form-name-err').textContent()).length > 0, 'name required');
@@ -208,7 +237,7 @@ server.listen(0, async () => {
     check(inq && inq.dims.width === 5 && inq.dims.depth === 3.5 && inq.dims.height === 2.6, `stored dims ${JSON.stringify(inq && inq.dims)}`);
     check(inq && inq.options.roofType === 'lamellas' && inq.options.mounting === 'freestanding', 'stored single options');
     check(inq && Array.isArray(inq.options.extras) && inq.options.extras.includes('led'), 'stored multi options');
-    check(inq && inq.options.colour === 'антрацит' && inq.options.placeType === 'terrace', 'stored text + project fields');
+    check(inq && inq.options.colour === 'антрацит' && inq.options.placeType === 'garden' && inq.options.timeline === '1-3m', 'stored text + project fields');
     check(inq && inq.contact.channel === 'viber' && inq.contact.city === 'София' && inq.status === 'new', 'stored contact');
     check(inq && JSON.stringify(inq.files) === '["terrace-1.png"]' && inq.message === 'Тераса на втори етаж.', 'stored file names + message');
     check((await page.evaluate(() => localStorage.getItem('outplay.inquiry.draft.v1'))) === null, 'draft cleared on submit');
@@ -267,6 +296,32 @@ server.listen(0, async () => {
     await shot(page, 'zip-2-success', true);
     await ctx.close();
 
+    // ------------------------------------------------------------------ 2b. Roof ZIP: plan view, width × projection
+    console.log('\n2b. Roof ZIP drawn in plan');
+    ctx = await newCtx();
+    page = await ctx.newPage();
+    watch(page);
+    await page.goto(`${origin}${BASE}contact/?product=roof-zip#inquiry`, { waitUntil: 'networkidle' });
+    check((await page.inputValue('#inquiry-form-product')) === 'roof-zip', '?product=roof-zip preselects Roof ZIP');
+    check(await page.locator('#inquiry-form-roof-zip-width').isVisible(), 'roof ZIP has its own dimension set');
+    check(!(await page.locator('#inquiry-form-zip-width').isVisible()), 'vertical ZIP set hidden for roof ZIP');
+    await page.fill('#inquiry-form-roof-zip-width', '4');
+    await page.fill('#inquiry-form-roof-zip-height', '3,5');
+    await page.locator('#inquiry-form-roof-zip-height').blur();
+    let rzLabel = (await page.getAttribute(`${F} [data-iq-svg]`, 'aria-label')) || '';
+    check(rzLabel.startsWith('Изглед отгоре') && /Излаз 3,5 м/.test(rzLabel), `roof ZIP sketch is a plan view (${rzLabel})`);
+    check((await page.locator(`${F} [data-iq-area]`).textContent()) === '14,0', 'roof ZIP area 4 × 3,5 = 14,0');
+    await page.click(`${F} [data-iq-next]`);
+    check(await page.isChecked(`${F} input[name="opt.zip.zipType"][value="roof"]`), 'roof ZIP preselects the roof screen type');
+    await page.click(`${F} [data-iq-next]`);
+    check((await page.locator(`${F} [data-iq-summary]`).textContent()).includes('Излаз 3,5 м'), 'summary names the projection');
+    await page.click(`${F} [data-goto="1"]`);
+    await page.selectOption('#inquiry-form-product', 'vertical-zip');
+    rzLabel = (await page.getAttribute(`${F} [data-iq-svg]`, 'aria-label')) || '';
+    check(await page.locator('#inquiry-form-zip-width').isVisible() && rzLabel.startsWith('Изглед отпред'), 'vertical ZIP switches back to the front view');
+    await shot(page, 'roofzip-1');
+    await ctx.close();
+
     // ------------------------------------------------------------------ 3. Preselect + draft restore
     console.log('\n3. ?product=balance preselect and draft restore');
     ctx = await newCtx();
@@ -317,6 +372,7 @@ server.listen(0, async () => {
     await page.goto(`${origin}${BASE}`, { waitUntil: 'networkidle' });
     await page.keyboard.press('Control+k');
     check(await page.locator('[data-sp]').isVisible(), 'Ctrl+K opens the palette');
+    check((await page.getAttribute('#sp-input', 'placeholder')).includes('гилотина'), 'full placeholder on desktop');
     check((await page.evaluate(() => document.activeElement?.id)) === 'sp-input', 'input focused');
     check(await page.locator('[data-sp-empty]').isVisible(), 'popular searches shown when empty');
     const queries = [
@@ -407,8 +463,14 @@ server.listen(0, async () => {
     await page.waitForTimeout(300);
     const box = await page.locator('.sp-panel').boundingBox();
     check(box && box.width >= 389 && box.height >= 790, `palette is full-screen on mobile (${box && Math.round(box.width)}×${box && Math.round(box.height)})`);
+    check((await page.getAttribute('#sp-input', 'placeholder')) === 'Търсете продукт', 'short placeholder on a phone');
+    const closeBtn = page.locator('[data-sp-close]');
+    check((await closeBtn.innerText()).trim() === 'Отказ', 'phone close button is the text "Отказ"');
     await page.fill('#sp-input', 'стъкло');
     await page.waitForTimeout(300);
+    check(await page.locator('[data-sp-clear]').isVisible(), 'clear × shown next to "Отказ"');
+    const inputBox = await page.locator('#sp-input').boundingBox();
+    check(inputBox && inputBox.width >= 150, `input keeps room for the query (${inputBox && Math.round(inputBox.width)}px)`);
     await shot(page, 'search-2-mobile');
     await page.click('[data-sp-close]');
     check(!(await page.locator('[data-sp]').isVisible()), 'mobile close button closes');
@@ -458,15 +520,102 @@ server.listen(0, async () => {
       check(await root.evaluate((el) => el.classList.contains('iq-compact')), 'compact variant rendered');
       check(((await root.locator('[data-iq-fixed-name]').textContent()) || '').trim().length > 0, 'fixed product chip shows the product');
       check(!(await root.locator('[data-iq-select]').isVisible()), 'product select collapsed');
-      check(await root.locator('[data-family-block="zip"][data-preview]').isVisible(), 'ZIP dimensions shown for roof-zip');
+      check(await root.locator('[data-dims-block="roof-zip"]').isVisible(), 'roof ZIP dimensions shown for roof-zip');
+      check(((await root.locator('[data-iq-svg]').getAttribute('aria-label')) || '').startsWith('Изглед отгоре'), 'roof ZIP drawn in plan on its product page');
       await root.locator('[data-iq-change]').click();
       check(await root.locator('[data-iq-select]').isVisible(), '"change product" reveals the select');
       await root.locator('[data-iq-select]').selectOption('shell-awning');
-      check(await root.locator('[data-family-block="awning"][data-preview]').isVisible(), 'switching product switches the family');
+      check(await root.locator('[data-dims-block="awning"]').isVisible(), 'switching product switches the family');
       check(((await root.locator('[data-iq-fixed-name]').textContent()) || '').includes('Shell'), 'chip follows the new product');
       await root.scrollIntoViewIfNeeded();
       await shot(page, 'compact-1');
     } else console.log('  (product page not in this build — skipped)');
+    await ctx.close();
+
+    // ------------------------------------------------------------------ 8. Narrow screens
+    console.log('\n8. Narrow screens: progress, contact layout, touch wording');
+    for (const lang of ['bg', 'en']) {
+      ctx = await newCtx({ viewport: { width: 390, height: 844 } });
+      page = await ctx.newPage();
+      watch(page);
+      const pre = lang === 'en' ? 'en/' : '';
+      await page.goto(`${origin}${BASE}${pre}contact/?product=balance`, { waitUntil: 'networkidle' });
+      const bad = [];
+      for (const width of [320, 360, 390, 430, 480, 520, 560, 600, 768, 1024, 1440]) {
+        await page.setViewportSize({ width, height: 844 });
+        for (const n of [1, 2, 3]) {
+          await page.locator(`${F} [data-goto="${n}"]`).click();
+          const r = await page.evaluate(() => {
+            const lis = [...document.querySelectorAll('#inquiry-form .iq-pi')];
+            const out = [];
+            lis.forEach((li, i) => {
+              const box = li.getBoundingClientRect();
+              li.querySelectorAll('.iq-pi-n, .iq-pi-l').forEach((el) => {
+                if (getComputedStyle(el).display === 'none') return;
+                const b = el.getBoundingClientRect();
+                if (b.right > box.right + 0.5 || b.left < box.left - 0.5) out.push(`step ${i + 1} ${el.className} overflows by ${Math.round(b.right - box.right)}px`);
+              });
+            });
+            const now = document.querySelector('#inquiry-form [data-iq-progress-now]');
+            const labels = [...document.querySelectorAll('#inquiry-form .iq-pi-l')].filter((el) => getComputedStyle(el).display !== 'none').length;
+            return { out, nowShown: !!now && getComputedStyle(now).display !== 'none', now: now ? now.textContent.replace(/\s+/g, ' ').trim() : '', labels };
+          });
+          r.out.forEach((o) => bad.push(`${width}px step ${n}: ${o}`));
+          // either every label or none plus the one-line "Step n of 3 · label"
+          if (!(r.labels === 3 || (r.labels === 0 && r.nowShown && r.now.includes(`${n} `)))) bad.push(`${width}px step ${n}: labels=${r.labels} now="${r.now}"`);
+        }
+        await page.locator(`${F} [data-goto="1"]`).click();
+      }
+      check(bad.length === 0, `${lang.toUpperCase()}: progress labels never overlap at 320–1440px${bad.length ? ' — ' + bad.slice(0, 4).join('; ') : ''}`);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.locator(`${F} [data-goto="2"]`).click();
+      const nowText = (await page.locator(`${F} [data-iq-progress-now]`).innerText()).replace(/\s+/g, ' ');
+      check(nowText === (lang === 'bg' ? 'Стъпка 2 от 3 · Конфигурация' : 'Step 2 of 3 · Configuration'), `${lang.toUpperCase()}: one-line step label "${nowText}"`);
+      if (lang === 'bg') await shot(page, 'narrow-step2');
+
+      // contact page first screen offers the form; on phones the form comes before the map
+      await page.goto(`${origin}${BASE}${pre}contact/`, { waitUntil: 'networkidle' });
+      const cta = page.locator('.c-hero-cta');
+      const ctaBox = await cta.boundingBox();
+      check(ctaBox && ctaBox.y + ctaBox.height <= 844 && (await cta.getAttribute('href')) === '#inquiry', `${lang.toUpperCase()}: hero CTA to the form on the first screen (bottom ${ctaBox && Math.round(ctaBox.y + ctaBox.height)}px)`);
+      const yForm = (await page.locator('#inquiry').boundingBox()).y;
+      const yMap = (await page.locator('.c-map').boundingBox()).y;
+      check(yForm < yMap, `${lang.toUpperCase()}: phones show the form before the map`);
+      await cta.click();
+      await page.waitForTimeout(800);
+      const formTop = (await page.locator('#inquiry').boundingBox()).y;
+      check(formTop > -10 && formTop < 200, `${lang.toUpperCase()}: CTA scrolls to the form (top ${Math.round(formTop)}px)`);
+      await ctx.close();
+    }
+
+    // Desktop contact layout: details | map, one "open in Google Maps", plain map surface
+    ctx = await newCtx();
+    page = await ctx.newPage();
+    watch(page);
+    await page.goto(`${origin}${BASE}contact/`, { waitUntil: 'networkidle' });
+    const dBox = await page.locator('.c-details').boundingBox();
+    const mBox = await page.locator('.c-map').boundingBox();
+    check(Math.abs(dBox.y - mBox.y) < 2 && mBox.x > dBox.x, 'desktop: details and map side by side');
+    check((await page.locator('#inquiry').boundingBox()).y > mBox.y, 'desktop: form below details and map');
+    check((await page.locator('a', { hasText: /Отвори в Google Maps/ }).count()) === 1, '"Отвори в Google Maps" appears once');
+    check((await page.locator('.c-map-fallback').evaluate((el) => getComputedStyle(el).backgroundImage)) === 'none', 'map placeholder has a plain surface');
+    check(await page.locator('.c-hero.page-hero').count() === 1, 'contact hero uses .page-hero');
+    await page.goto(`${origin}${BASE}search/`, { waitUntil: 'networkidle' });
+    check(await page.locator('.s-hero.page-hero').count() === 1, 'search hero uses .page-hero');
+    await ctx.close();
+
+    // Touch devices: no drag-and-drop wording
+    ctx = await newCtx({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    page = await ctx.newPage();
+    watch(page);
+    await page.goto(`${origin}${BASE}contact/?product=balance`, { waitUntil: 'networkidle' });
+    await page.locator(`${F} [data-iq-next]`).click();
+    check(await page.locator(`${F} .iq-drop-coarse`).isVisible(), 'touch: "Добавете снимки от телефона" shown');
+    check(!(await page.locator(`${F} .iq-drop-fine`).isVisible()), 'touch: drag-and-drop wording hidden');
+    const s2h = await page.locator(`${F} section[data-step="2"]`).evaluate((el) => Math.round(el.getBoundingClientRect().height));
+    check(s2h < 2000, `touch: step 2 is shorter with details folded (${s2h}px)`);
+    await page.goto(`${origin}${BASE}search/`, { waitUntil: 'networkidle' });
+    check((await page.getAttribute('#s-q', 'placeholder')) === 'Търсете продукт', 'search page: short placeholder on a phone');
     await ctx.close();
   } catch (e) {
     failures.push(`exception: ${e.stack || e}`);

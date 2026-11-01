@@ -660,12 +660,14 @@ export const imageMeta: Record<string, ImageMeta> = {
       bg: 'Открит антрацитен навес за два автомобила с черен джип и червена кола',
       en: 'Open anthracite double carport with a black SUV and a red car',
     },
+    focal: '62% 50%',
   },
   'before-after/carport-after.jpg': {
     alt: {
       bg: 'Същият навес, затворен с плътни странични панели и врата, с LED линии в тавана',
       en: 'The same carport closed in with solid side panels and a door, with LED lines in the ceiling',
     },
+    focal: '62% 50%',
   },
   'before-after/glassroom-before.jpg': {
     alt: {

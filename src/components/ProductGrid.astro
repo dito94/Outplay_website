@@ -154,6 +154,13 @@ const leadSizes = lead3 === 'span2' ? SIZES.span2 : lead3 === 'full' ? SIZES.ful
       font-size: var(--step-0);
       max-width: 44ch;
     }
+    /* Alone in its row: the text block is centred beside the photo, the link follows the summary */
+    .pgrid[data-lead3='full'] > .pg-item:first-child :global(.pcard-body) {
+      height: auto;
+    }
+    .pgrid[data-lead3='full'] > .pg-item:first-child :global(.pcard-more) {
+      margin-top: var(--s-3);
+    }
   }
   @media (min-width: 700px) and (max-width: 1099px) {
     .pgrid[data-lead2='full'] > .pg-item:first-child :global(.pcard) {
@@ -164,6 +171,12 @@ const leadSizes = lead3 === 'span2' ? SIZES.span2 : lead3 === 'full' ? SIZES.ful
     }
     .pgrid[data-lead2='full'] > .pg-item:first-child :global(.pcard .pcard-media) {
       aspect-ratio: 4 / 3;
+    }
+    .pgrid[data-lead2='full'] > .pg-item:first-child :global(.pcard-body) {
+      height: auto;
+    }
+    .pgrid[data-lead2='full'] > .pg-item:first-child :global(.pcard-more) {
+      margin-top: var(--s-3);
     }
   }
 </style>

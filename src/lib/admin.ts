@@ -66,6 +66,8 @@ export interface AdminData {
   lang: Lang;
   home: string;
   homes: Pair;
+  /** public page for custom products: <itemUrl>?id=c-… */
+  itemUrl: string;
   faqUrl: string;
   s: Record<string, string>;
   statuses: Record<InquiryStatus, string>;
@@ -464,6 +466,8 @@ const ICONS: Record<string, string> = {
   arrowRight: '<path d="M4 12h15"/><path d="m13 6 6 6-6 6"/>',
   arrowLeft: '<path d="M20 12H5"/><path d="m11 6-6 6 6 6"/>',
   chevronRight: '<path d="m9 6 6 6-6 6"/>',
+  chevronLeft: '<path d="m15 6-6 6 6 6"/>',
+  plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
   close: '<path d="M6 6l12 12"/><path d="M18 6 6 18"/>',
   phone:

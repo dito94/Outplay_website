@@ -358,7 +358,7 @@ export const pages = {
   },
 
   gallery: {
-    title: { bg: 'Проекти и галерия', en: 'Projects and gallery' },
+    title: { bg: 'Галерия и проекти', en: 'Gallery & projects' },
     intro: {
       bg: 'Реализирани обекти и визуализации на нашите системи.',
       en: 'Completed projects and visualisations of our systems.',

@@ -41,6 +41,7 @@ export const KEYS = {
   settings: 'outplay.settings.v1',
   session: 'outplay.admin.session.v1',
   draft: 'outplay.inquiry.draft.v1',
+  customProducts: 'outplay.customProducts.v1',
 } as const;
 
 function read<T>(key: string, fallback: T): T {
@@ -120,3 +121,118 @@ export function storageAvailable(): boolean {
     return false;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Custom products (added in the admin demo; shown on public pages in this browser only)
+// ---------------------------------------------------------------------------
+
+type LPair = { bg: string; en: string };
+
+export interface CustomProduct {
+  /** 'c-' + slug of the name, unique among custom products */
+  id: string;
+  category: 'bioclimatic-pergolas' | 'glass-systems' | 'sun-protection' | 'windbreaks';
+  family: 'pergola' | 'glass' | 'door' | 'zip' | 'awning' | 'windbreak';
+  name: LPair;
+  tagline: LPair;
+  summary: LPair;
+  sections: { heading: LPair; paragraphs: LPair[] }[];
+  features: LPair[];
+  specs: { label: LPair; value: LPair }[];
+  /** JPEG data URLs, first = main photo */
+  images: string[];
+  hidden?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const CUSTOM_MAX_IMAGES = 6;
+
+export type SaveResult = { ok: true } | { ok: false; reason: 'quota' | 'unavailable' };
+
+const isQuotaError = (e: unknown) =>
+  e instanceof DOMException &&
+  (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22 || e.code === 1014);
+
+export function loadCustomProducts(): CustomProduct[] {
+  const list = read<CustomProduct[]>(KEYS.customProducts, []);
+  return Array.isArray(list) ? list.filter((p) => p && typeof p === 'object' && typeof p.id === 'string') : [];
+}
+
+export const getCustomProduct = (id: string): CustomProduct | undefined => loadCustomProducts().find((p) => p.id === id);
+
+function writeCustom(list: CustomProduct[]): SaveResult {
+  try {
+    window.localStorage.setItem(KEYS.customProducts, JSON.stringify(list));
+  } catch (e) {
+    return { ok: false, reason: isQuotaError(e) ? 'quota' : 'unavailable' };
+  }
+  window.dispatchEvent(new CustomEvent('outplay:store', { detail: { key: KEYS.customProducts } }));
+  return { ok: true };
+}
+
+/** Insert or replace by id. Reports a full storage quota instead of throwing. */
+export function saveCustomProduct(product: CustomProduct): SaveResult {
+  const list = loadCustomProducts();
+  const i = list.findIndex((p) => p.id === product.id);
+  const next = { ...product, updatedAt: new Date().toISOString() };
+  if (i >= 0) list[i] = next;
+  else list.push(next);
+  return writeCustom(list);
+}
+
+export function updateCustomProduct(id: string, patch: Partial<CustomProduct>): SaveResult {
+  const list = loadCustomProducts();
+  const i = list.findIndex((p) => p.id === id);
+  if (i < 0) return { ok: true };
+  list[i] = { ...list[i], ...patch, id, updatedAt: new Date().toISOString() };
+  return writeCustom(list);
+}
+
+export function deleteCustomProduct(id: string): void {
+  writeCustom(loadCustomProducts().filter((p) => p.id !== id));
+}
+
+const TRANSLIT: Record<string, string> = {
+  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n',
+  о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'h', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'sht', ъ: 'a',
+  ь: 'y', ю: 'yu', я: 'ya',
+};
+
+/** URL-safe slug; Bulgarian Cyrillic is transliterated (Streamlined System) */
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[а-я]/g, (c) => TRANSLIT[c] ?? '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48)
+    .replace(/-+$/g, '');
+}
+
+/** New unique id for a custom product: 'c-' + slug of the name, with -2, -3 … on collisions */
+export function customProductId(name: string, taken: Iterable<string> = loadCustomProducts().map((p) => p.id)): string {
+  const used = new Set(taken);
+  const base = `c-${slugify(name) || 'produkt'}`;
+  let id = base;
+  for (let n = 2; used.has(id); n++) id = `${base}-${n}`;
+  return id;
+}
+
+/** Characters stored in localStorage by this origin (data URLs are ASCII, so ≈ bytes) */
+export function storageUsed(): number {
+  try {
+    let n = 0;
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i) ?? '';
+      n += k.length + (window.localStorage.getItem(k)?.length ?? 0);
+    }
+    return n;
+  } catch {
+    return 0;
+  }
+}
+/** Typical per-origin localStorage limit in current browsers (about 5 million characters) */
+export const STORAGE_BUDGET = 5_000_000;

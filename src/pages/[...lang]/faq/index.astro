@@ -254,7 +254,6 @@ const jsonLd = {
   .fs {
     display: none;
     gap: var(--s-2);
-    scroll-margin-top: calc(var(--header-h) + var(--s-4));
   }
   :global(html.js) .fs {
     display: grid;
@@ -747,9 +746,11 @@ const jsonLd = {
       // wait for the on-screen keyboard to open, otherwise the browser's own scroll-into-view wins
       lift = window.setTimeout(() => {
         if (document.activeElement !== input) return;
-        const top = form.getBoundingClientRect().top;
-        const margin = parseFloat(getComputedStyle(form).scrollMarginTop) || 0;
-        if (Math.abs(top - margin) > 4) form.scrollIntoView({ block: 'start', behavior: reduced.matches ? 'auto' : 'smooth' });
+        // html's scroll-padding-top already clears the sticky header
+        const offset = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+        if (Math.abs(form.getBoundingClientRect().top - offset) > 4) {
+          form.scrollIntoView({ block: 'start', behavior: reduced.matches ? 'auto' : 'smooth' });
+        }
       }, 250);
     });
     form?.addEventListener('submit', (e) => {

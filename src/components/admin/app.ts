@@ -1,8 +1,17 @@
 // Client controller for the admin demo (src/components/admin/AdminApp.astro).
 // State lives in localStorage through src/lib/store.ts; the generated example inquiries live in memory only.
 import {
+  CUSTOM_MAX_IMAGES,
   KEYS,
+  STORAGE_BUDGET,
   clearOverride,
+  customProductId,
+  deleteCustomProduct,
+  getCustomProduct,
+  loadCustomProducts,
+  saveCustomProduct,
+  storageUsed,
+  updateCustomProduct,
   deleteInquiry,
   loadInquiries,
   loadOverrides,
@@ -11,6 +20,7 @@ import {
   saveOverride,
   updateInquiry,
   writeJSON,
+  type CustomProduct,
   type InquiryStatus,
   type ProductOverride,
   type StoredInquiry,
@@ -40,8 +50,33 @@ import {
   type Pair,
   type Row,
 } from '../../lib/admin';
+import { formatBytes, resizeImage } from './image-resize';
 
-type View = 'dashboard' | 'inquiries' | 'products' | 'editor' | 'faq' | 'settings';
+type View = 'dashboard' | 'inquiries' | 'products' | 'editor' | 'custom' | 'faq' | 'settings';
+type CategoryId = CustomProduct['category'];
+type FamilyId = CustomProduct['family'];
+/** Working copy of a custom product while it is edited (texts as the admin types them) */
+interface Draft {
+  id: string | null;
+  category: CategoryId;
+  family: FamilyId;
+  familyTouched: boolean;
+  name: Pair;
+  tagline: Pair;
+  summary: Pair;
+  description: Pair;
+  features: Pair;
+  specs: { label: Pair; value: Pair }[];
+  images: string[];
+}
+const FAMILIES: FamilyId[] = ['pergola', 'glass', 'door', 'zip', 'awning', 'windbreak'];
+const DEFAULT_FAMILY: Record<CategoryId, FamilyId> = {
+  'bioclimatic-pergolas': 'pergola',
+  'glass-systems': 'glass',
+  'sun-protection': 'zip',
+  windbreaks: 'windbreak',
+};
+const OVERVIEW: Pair = { bg: 'Описание', en: 'Overview' };
 type TextField = 'name' | 'tagline' | 'summary';
 type Filter = 'all' | InquiryStatus;
 
@@ -83,6 +118,10 @@ export function boot(): void {
     faqEditing: null as string | null,
     faqTab: lang as Lang,
     editorTab: lang as Lang,
+    customTab: 'bg' as Lang,
+    draft: null as Draft | null,
+    draftBase: '',
+    busy: false,
     exampleStatus: {} as Record<string, InquiryStatus>,
   };
 
@@ -97,7 +136,10 @@ export function boot(): void {
   const normalize = (i: StoredInquiry): StoredInquiry => ({
     ...i,
     status: STATUSES.includes(i.status) ? i.status : 'new',
-    family: i.family || (i.productId ? productById.get(i.productId)?.family : '') || '',
+    family:
+      i.family ||
+      (i.productId ? (productById.get(i.productId)?.family ?? getCustomProduct(i.productId)?.family) : '') ||
+      '',
     dims: i.dims ?? {},
     options: i.options ?? {},
     contact: { ...{ name: '', phone: '', email: '' }, ...(i.contact ?? {}) },
@@ -116,10 +158,17 @@ export function boot(): void {
   };
   const hasText = (o?: ProductOverride) => !!o && TEXT_FIELDS.some((f) => !!(o[f]?.bg || o[f]?.en));
   const effText = (p: AdminProduct, f: TextField, l: Lang = lang, ov = overrides()) => ov[p.id]?.[f]?.[l] || p[f][l];
+  const customs = () => loadCustomProducts();
+  /** A custom product's text in the admin language, falling back to the other language */
+  const cText = (v: Pair | undefined, l: Lang = lang) => (v?.[l] || v?.bg || v?.en || '').trim();
   const productLabel = (inq: StoredInquiry, ov = overrides()) => {
-    const p = inq.productId ? productById.get(inq.productId) : undefined;
-    return p ? effText(p, 'name', lang, ov) : S.noProduct;
+    if (!inq.productId) return S.noProduct;
+    const p = productById.get(inq.productId);
+    if (p) return effText(p, 'name', lang, ov);
+    const c = getCustomProduct(inq.productId);
+    return c ? cText(c.name) : inq.productId;
   };
+  const customUrl = (id: string) => `${D.itemUrl}?id=${encodeURIComponent(id)}`;
   const loadFaq = (): FaqEdits => {
     const v = readJSON<FaqEdits>(KEYS.faq, {});
     return v && typeof v === 'object' ? v : {};
@@ -254,7 +303,10 @@ export function boot(): void {
     if (!raw) return { view: 'dashboard', arg: '' };
     const [v, arg = ''] = raw.split('/');
     if (!ROUTES.includes(v)) return null; // e.g. #main from the skip link: keep the current view
-    if (v === 'products' && arg) return productById.has(arg) ? { view: 'editor', arg } : { view: 'products', arg: '' };
+    if (v === 'products' && arg) {
+      if (arg === 'new' || (arg.startsWith('c-') && getCustomProduct(arg))) return { view: 'custom', arg };
+      return productById.has(arg) ? { view: 'editor', arg } : { view: 'products', arg: '' };
+    }
     return { view: v as View, arg: '' };
   }
 
@@ -262,6 +314,10 @@ export function boot(): void {
     if (state.view === 'editor') {
       const p = productById.get(state.arg);
       return p ? `${effText(p, 'name')} · ${S.navProducts}` : S.navProducts;
+    }
+    if (state.view === 'custom') {
+      const c = state.arg === 'new' ? undefined : getCustomProduct(state.arg);
+      return `${c ? cText(c.name) : S.cpNewTitle} · ${S.navProducts}`;
     }
     const map: Record<string, string> = {
       dashboard: S.navDashboard,
@@ -284,11 +340,15 @@ export function boot(): void {
     if (confirmEl.open) confirmEl.close('cancel');
     if (r.view !== 'faq') state.faqEditing = null;
     if (r.view === 'editor' && (state.view !== 'editor' || state.arg !== r.arg)) state.editorTab = lang;
+    if (r.view === 'custom' && (state.view !== 'custom' || state.arg !== r.arg)) {
+      state.draft = null;
+      state.customTab = 'bg';
+    }
     state.view = r.view;
     state.arg = r.arg;
     state.rendered = true;
     qa('[data-view]').forEach((el) => (el.hidden = el.dataset.view !== r.view));
-    const navId = r.view === 'editor' ? 'products' : r.view;
+    const navId = r.view === 'editor' || r.view === 'custom' ? 'products' : r.view;
     qa<HTMLAnchorElement>('[data-nav]').forEach((a) => {
       if (a.dataset.nav === navId) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');
@@ -324,6 +384,8 @@ export function boot(): void {
         return renderProducts();
       case 'editor':
         return entering ? renderEditor() : syncEditorChrome();
+      case 'custom':
+        return entering ? renderCustomEditor() : syncCustomChrome();
       case 'faq':
         return entering || !state.faqEditing ? renderFaq() : undefined;
       case 'settings':
@@ -357,7 +419,8 @@ export function boot(): void {
     const fe = loadFaq();
     const nNew = inqs.filter((i) => i.status === 'new').length;
     const nEx = inqs.filter((i) => i.example).length;
-    const nHidden = D.products.filter((p) => ov[p.id]?.hidden).length;
+    const cps = customs();
+    const nHidden = D.products.filter((p) => ov[p.id]?.hidden).length + cps.filter((c) => c.hidden).length;
     const nFaqEdited = editedFaqCount(fe);
     const stat = (href: string, label: string, value: number, sub: string, filter?: Filter) =>
       `<a class="adm-stat" href="${href}"${filter ? ` data-goto-filter="${filter}"` : ''}><span class="adm-stat-label">${esc(label)}</span><span class="adm-stat-value num">${value}</span><span class="adm-stat-sub">${esc(sub)}</span></a>`;
@@ -392,6 +455,12 @@ export function boot(): void {
           what: describe(o),
           href: `#products/${id}`,
         })),
+      ...cps.map((c) => ({
+        at: c.updatedAt || c.createdAt || '',
+        title: cText(c.name),
+        what: c.hidden ? `${S.chCustom}, ${S.chHidden}` : S.chCustom,
+        href: `#products/${c.id}`,
+      })),
       ...Object.entries(fe)
         .filter(([id]) => faqById.has(id))
         .map(([id, e]) => ({
@@ -409,7 +478,12 @@ export function boot(): void {
       <div class="adm-stats">
         ${stat('#inquiries', S.statNew, nNew, S.statNewSub, 'new')}
         ${stat('#inquiries', S.statTotal, inqs.length, fmt(S.statTotalSub, { n: nEx }), 'all')}
-        ${stat('#products', S.statProducts, D.products.length, fmt(S.statProductsSub, { n: D.categories.length }))}
+        ${stat(
+          '#products',
+          S.statProducts,
+          D.products.length + cps.length,
+          fmt(cps.length ? S.statProductsAdded : S.statProductsSub, { n: D.categories.length, k: cps.length }),
+        )}
         ${stat('#products', S.statHidden, nHidden, nHidden ? S.statHiddenSub : S.statHiddenSub0)}
         ${stat('#faq', S.statFaq, faqById.size, fmt(S.statFaqSub, { n: nFaqEdited }))}
       </div>
@@ -425,6 +499,7 @@ export function boot(): void {
             <ul class="adm-quick">
               <li><a href="#inquiries" data-goto-filter="new">${icon('inbox')}<span>${esc(S.qaNew)}</span>${nNew ? `<span class="adm-quick-n num">${nNew}</span>` : ''}${chev}</a></li>
               <li><a href="#products">${icon('box')}<span>${esc(S.qaProducts)}</span>${chev}</a></li>
+              <li><a href="#products/new">${icon('plus')}<span>${esc(S.addProduct)}</span>${chev}</a></li>
               <li><a href="#faq">${icon('help')}<span>${esc(S.qaFaq)}</span>${chev}</a></li>
               <li><a href="${esc(D.home)}" target="_blank" rel="noopener">${icon('external')}<span>${esc(S.qaSite)}</span>${newTab}${chev}</a></li>
             </ul>
@@ -454,8 +529,9 @@ export function boot(): void {
   const norm = (s: string) => s.toLocaleLowerCase(lang).normalize('NFKD').replace(/\p{M}/gu, '').trim();
   const haystack = (i: StoredInquiry, ov: Record<string, ProductOverride>) => {
     const p = i.productId ? productById.get(i.productId) : undefined;
+    const c = !p && i.productId ? getCustomProduct(i.productId) : undefined;
     return norm(
-      [i.contact.name, i.contact.city, i.contact.email, i.contact.phone, productLabel(i, ov), p?.name.bg, p?.name.en, p?.fullName]
+      [i.contact.name, i.contact.city, i.contact.email, i.contact.phone, productLabel(i, ov), p?.name.bg, p?.name.en, p?.fullName, c?.name.bg, c?.name.en]
         .filter(Boolean)
         .join(' '),
     );
@@ -676,17 +752,52 @@ export function boot(): void {
 
   function renderProducts() {
     const ov = overrides();
-    slot('products').innerHTML = D.categories
-      .map((c) => {
-        const items = D.products.filter((p) => p.category === c.id);
-        if (!items.length) return '';
-        const count = items.length === 1 ? S.productOne : fmt(S.productsCount, { n: items.length });
-        return `<section class="adm-group" aria-labelledby="adm-pg-${c.id}">
+    const cps = customs();
+    const lead = q('[data-prod-lead]');
+    if (lead) lead.textContent = fmt(S.prodLead, { n: D.products.length + cps.length, c: D.categories.length });
+    slot('products').innerHTML =
+      (cps.length ? `<p class="adm-note adm-note-box">${icon('info', 18)}<span>${esc(S.cpLocalNote)}</span></p>` : '') +
+      D.categories
+        .map((c) => {
+          const items = D.products.filter((p) => p.category === c.id);
+          const added = cps.filter((p) => p.category === c.id);
+          const n = items.length + added.length;
+          if (!n) return '';
+          const count = n === 1 ? S.productOne : fmt(S.productsCount, { n });
+          return `<section class="adm-group" aria-labelledby="adm-pg-${c.id}">
           <div class="adm-group-h"><h3 id="adm-pg-${c.id}">${esc(c.name)}</h3><span class="adm-group-n">${esc(count)}</span></div>
-          <ul class="adm-plist">${items.map((p) => productRow(p, ov)).join('')}</ul>
+          <ul class="adm-plist">${items.map((p) => productRow(p, ov)).join('')}${added.map(customRow).join('')}</ul>
         </section>`;
-      })
-      .join('');
+        })
+        .join('');
+  }
+
+  const customSwitch = (c: CustomProduct) =>
+    `<button type="button" class="adm-switch" role="switch" aria-checked="${!c.hidden}" data-toggle-vis="${esc(c.id)}" data-fkey="vis-${esc(
+      c.id,
+    )}" aria-label="${esc(`${S.visible}: ${cText(c.name)}`)}"><span class="adm-switch-track" aria-hidden="true"></span><span class="adm-switch-label" aria-hidden="true">${esc(
+      S.visible,
+    )}</span></button>`;
+
+  function customRow(c: CustomProduct): string {
+    const name = cText(c.name);
+    const id = esc(c.id);
+    return `<li class="adm-prow${c.hidden ? ' is-hidden' : ''}" data-product="${id}">
+      <a class="adm-prow-thumb" href="#products/${id}" tabindex="-1" aria-hidden="true">${
+        c.images[0] ? `<img src="${esc(c.images[0])}" alt="" width="96" height="64" loading="lazy" decoding="async" />` : ''
+      }</a>
+      <div class="adm-prow-info">
+        <p class="adm-prow-name"><a href="#products/${id}" data-fkey="name-${id}">${esc(name)}</a>${badge(S.newBadge, 'new')}${
+          c.hidden ? badge(S.hiddenBadge, 'hidden', 'eyeOff') : ''
+        }</p>
+        <p class="adm-prow-meta">${esc(cText(c.tagline) || S.cpAddedState)}</p>
+      </div>
+      <div class="adm-prow-actions">
+        ${customSwitch(c)}
+        <a class="adm-btn" href="#products/${id}" data-fkey="edit-${id}">${icon('edit', 16)}<span>${esc(S.edit)}</span><span class="sr-only">: ${esc(name)}</span></a>
+        <a class="adm-icon-btn" href="${esc(customUrl(c.id))}" target="_blank" rel="noopener" title="${esc(S.view)}">${icon('external', 18)}<span class="sr-only">${esc(S.view)}: ${esc(name)} ${esc(S.newWindow)}</span></a>
+      </div>
+    </li>`;
   }
 
   function productRow(p: AdminProduct, ov: Record<string, ProductOverride>): string {
@@ -712,6 +823,15 @@ export function boot(): void {
   }
 
   function toggleVisibility(id: string) {
+    const c = id.startsWith('c-') ? getCustomProduct(id) : undefined;
+    if (c) {
+      const hide = !c.hidden;
+      let res: ReturnType<typeof updateCustomProduct> = { ok: true };
+      mutate(() => (res = updateCustomProduct(id, { hidden: hide || undefined })));
+      if (!res.ok) return toast(S.cpUnavailable);
+      refresh();
+      return toast(fmt(hide ? S.hiddenToast : S.shownToast, { name: cText(c.name) }));
+    }
     const p = productById.get(id);
     if (!p) return;
     const o = overrides()[id];
@@ -981,6 +1101,464 @@ export function boot(): void {
   }
 
   // ---------------------------------------------------------------------------
+  // Custom products: editor (#products/new, #products/c-…)
+  // ---------------------------------------------------------------------------
+
+  type DraftText = 'name' | 'tagline' | 'summary' | 'description' | 'features';
+  const emptyPair = (): Pair => ({ bg: '', en: '' });
+  const famLabel: Record<FamilyId, string> = {
+    pergola: S.famPergola,
+    glass: S.famGlass,
+    door: S.famDoor,
+    zip: S.famZip,
+    awning: S.famAwning,
+    windbreak: S.famWindbreak,
+  };
+  const draftLabel: Record<DraftText, string> = {
+    name: S.fName,
+    tagline: S.fTagline,
+    summary: S.fSummary,
+    description: S.cpDescription,
+    features: S.cpFeatures,
+  };
+
+  function emptyDraft(): Draft {
+    const category = (D.categories[0]?.id ?? 'bioclimatic-pergolas') as CategoryId;
+    return {
+      id: null,
+      category,
+      family: DEFAULT_FAMILY[category],
+      familyTouched: false,
+      name: emptyPair(),
+      tagline: emptyPair(),
+      summary: emptyPair(),
+      description: emptyPair(),
+      features: emptyPair(),
+      specs: [],
+      images: [],
+    };
+  }
+
+  function draftFromProduct(c: CustomProduct): Draft {
+    const pair = (v?: Partial<Pair>): Pair => ({ bg: v?.bg ?? '', en: v?.en ?? '' });
+    const joined = (items: Partial<Pair>[], sep: string): Pair => ({
+      bg: items.map((i) => (i.bg ?? '').trim()).filter(Boolean).join(sep),
+      en: items.map((i) => (i.en ?? '').trim()).filter(Boolean).join(sep),
+    });
+    return {
+      id: c.id,
+      category: c.category,
+      family: c.family,
+      familyTouched: true,
+      name: pair(c.name),
+      tagline: pair(c.tagline),
+      summary: pair(c.summary),
+      description: joined((c.sections ?? []).flatMap((x) => x.paragraphs ?? []), '\n\n'),
+      features: joined(c.features ?? [], '\n'),
+      specs: (c.specs ?? []).map((r) => ({ label: pair(r.label), value: pair(r.value) })),
+      images: [...(c.images ?? [])],
+    };
+  }
+
+  function productFromDraft(d: Draft, existing?: CustomProduct): CustomProduct {
+    const trim = (p: Pair): Pair => ({ bg: p.bg.trim(), en: p.en.trim() });
+    // BG and EN are split separately and paired by position (either side may be empty)
+    const pairList = (p: Pair, split: RegExp): Pair[] => {
+      const bg = p.bg.split(split).map((x) => x.trim()).filter(Boolean);
+      const en = p.en.split(split).map((x) => x.trim()).filter(Boolean);
+      return Array.from({ length: Math.max(bg.length, en.length) }, (_, i) => ({ bg: bg[i] ?? '', en: en[i] ?? '' }));
+    };
+    const paragraphs = pairList(d.description, /\n\s*\n/);
+    const now = new Date().toISOString();
+    return {
+      id:
+        d.id ??
+        customProductId(d.name.bg || d.name.en, [...customs().map((c) => c.id), ...D.products.map((p) => p.id)]),
+      category: d.category,
+      family: d.family,
+      name: trim(d.name),
+      tagline: trim(d.tagline),
+      summary: trim(d.summary),
+      sections: paragraphs.length ? [{ heading: OVERVIEW, paragraphs }] : [],
+      features: pairList(d.features, /\n/),
+      specs: d.specs
+        .map((r) => ({ label: trim(r.label), value: trim(r.value) }))
+        .filter((r) => r.label.bg || r.label.en || r.value.bg || r.value.en),
+      images: [...d.images],
+      ...(existing?.hidden ? { hidden: true } : {}),
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    };
+  }
+
+  const customStateText = (c?: CustomProduct) =>
+    c ? fmt(S.lastSaved, { t: relTime(c.updatedAt || c.createdAt, lang, S.justNow) }) : S.unsaved;
+  const storageLine = () =>
+    fmt(S.cpStorage, { used: formatBytes(storageUsed(), lang), total: formatBytes(STORAGE_BUDGET, lang) });
+
+  function renderCustomEditor() {
+    const existing = state.arg === 'new' ? undefined : getCustomProduct(state.arg);
+    if (state.arg !== 'new' && !existing) {
+      location.hash = '#products';
+      return;
+    }
+    if (!state.draft) {
+      state.draft = existing ? draftFromProduct(existing) : emptyDraft();
+      state.draftBase = JSON.stringify(state.draft);
+    }
+    const d = state.draft;
+    const tab = state.customTab;
+    const title = existing ? cText(existing.name) : S.cpNewTitle;
+    const MAX = CUSTOM_MAX_IMAGES;
+
+    const textField = (f: DraftText, l: Lang) => {
+      const id = `adm-cp-${f}-${l}`;
+      const v = d[f][l];
+      const multi = f === 'summary' || f === 'description' || f === 'features';
+      const rows = f === 'summary' ? 3 : f === 'description' ? 7 : 5;
+      const fallback = l === 'en' ? truncate(d[f].bg.split('\n')[0] ?? '', 90) : '';
+      const ph = fallback ? ` placeholder="${esc(fallback)}"` : '';
+      const hint = f === 'description' ? S.cpDescriptionHint : f === 'features' ? S.cpFeaturesHint : '';
+      const required = f === 'name' && l === 'bg';
+      const attrs = `id="${id}" data-cp-field="${f}" data-l="${l}" data-fkey="cp-${f}-${l}" aria-describedby="${id}-err${hint ? ` ${id}-hint` : ''}"${
+        required ? ' aria-required="true"' : ''
+      }${ph}`;
+      return `<div class="field">
+        <div class="adm-field-top"><label for="${id}">${esc(draftLabel[f])}</label>${
+          required ? `<span class="adm-req">${esc(S.required)}</span>` : ''
+        }</div>
+        ${multi ? `<textarea class="textarea" rows="${rows}" ${attrs}>${esc(v)}</textarea>` : `<input class="input" type="text" value="${esc(v)}" ${attrs} />`}
+        ${hint ? `<p class="hint" id="${id}-hint">${esc(hint)}</p>` : ''}
+        <p class="error" id="${id}-err" data-cp-err="${f}-${l}"></p>
+      </div>`;
+    };
+
+    const specRows = (l: Lang) =>
+      d.specs.length
+        ? `<ol class="adm-specs">${d.specs
+            .map((r, i) => {
+              const n = i + 1;
+              const phLabel = l === 'en' && r.label.bg ? r.label.bg : S.cpSpecLabel;
+              const phValue = l === 'en' && r.value.bg ? r.value.bg : S.cpSpecValue;
+              return `<li class="adm-spec-row">
+                <input class="input" type="text" value="${esc(r.label[l])}" placeholder="${esc(phLabel)}" aria-label="${esc(`${S.cpSpecLabel} ${n}`)}" data-cp-spec="${i}" data-part="label" data-l="${l}" data-fkey="cp-spec-${i}-label-${l}" />
+                <input class="input" type="text" value="${esc(r.value[l])}" placeholder="${esc(phValue)}" aria-label="${esc(`${S.cpSpecValue} ${n}`)}" data-cp-spec="${i}" data-part="value" data-l="${l}" data-fkey="cp-spec-${i}-value-${l}" />
+                <button type="button" class="adm-icon-btn" data-cp-spec-remove="${i}" data-fkey="cp-spec-x-${i}-${l}">${icon('trash', 16)}<span class="sr-only">${esc(
+                  fmt(S.cpSpecRemove, { n }),
+                )}</span></button>
+              </li>`;
+            })
+            .join('')}</ol>`
+        : `<p class="adm-muted adm-cp-empty">${esc(S.cpSpecsEmpty)}</p>`;
+
+    const panel = (l: Lang) => `<div class="adm-tp" role="tabpanel" id="adm-cptp-${l}" aria-labelledby="adm-cptab-${l}" lang="${l}"${tab === l ? '' : ' hidden'}>
+        ${l === 'en' ? `<p class="adm-note">${icon('info', 16)}<span>${esc(S.cpEnFallback)}</span></p>` : ''}
+        ${(['name', 'tagline', 'summary', 'description', 'features'] as DraftText[]).map((f) => textField(f, l)).join('')}
+        <div class="adm-cp-specs" role="group" aria-labelledby="adm-cp-specs-${l}">
+          <p class="adm-cp-label" id="adm-cp-specs-${l}">${esc(S.cpSpecs)}</p>
+          ${specRows(l)}
+          <button type="button" class="adm-btn" data-cp-spec-add data-fkey="cp-spec-add-${l}">${icon('plus', 16)}<span>${esc(S.cpSpecAdd)}</span></button>
+        </div>
+      </div>`;
+
+    const thumbs = d.images
+      .map((src, i) => {
+        const photo = fmt(S.cpPhotoN, { n: i + 1 });
+        const last = i === d.images.length - 1;
+        return `<li class="adm-thumb">
+          <div class="adm-thumb-media"><img src="${esc(src)}" alt="${esc(photo)}" />${i === 0 ? `<span class="adm-thumb-main">${esc(S.cpMain)}</span>` : ''}</div>
+          <div class="adm-thumb-tools">
+            <button type="button" class="adm-icon-btn" data-cp-img-move="${i}" data-dir="-1" data-fkey="cp-img-l-${i}"${i === 0 ? ' disabled' : ''}>${icon(
+              'chevronLeft',
+              16,
+            )}<span class="sr-only">${esc(`${S.cpMoveLeft}: ${photo}`)}</span></button>
+            <button type="button" class="adm-icon-btn" data-cp-img-move="${i}" data-dir="1" data-fkey="cp-img-r-${i}"${last ? ' disabled' : ''}>${icon(
+              'chevronRight',
+              16,
+            )}<span class="sr-only">${esc(`${S.cpMoveRight}: ${photo}`)}</span></button>
+            ${i > 0 ? `<button type="button" class="adm-btn-text" data-cp-img-main="${i}" data-fkey="cp-img-m-${i}">${esc(S.cpMakeMain)}</button>` : ''}
+            <button type="button" class="adm-icon-btn adm-thumb-x" data-cp-img-remove="${i}" data-fkey="cp-img-x-${i}">${icon(
+              'trash',
+              16,
+            )}<span class="sr-only">${esc(`${S.cpRemoveImg}: ${photo}`)}</span></button>
+          </div>
+        </li>`;
+      })
+      .join('');
+
+    const pvName = cText(d.name, tab);
+    slot('custom').innerHTML = `
+      <a class="adm-back" href="#products">${icon('arrowLeft', 16)}<span>${esc(S.back)}</span></a>
+      <header class="adm-vh">
+        <div>
+          <h2 id="adm-h-custom" tabindex="-1">${esc(title)}</h2>
+          <p class="adm-ed-state">${badge(S.newBadge, 'new')}<span data-cp-state>${esc(existing ? customStateText(existing) : S.cpAddedState)}</span></p>
+        </div>
+        ${
+          existing
+            ? `<div class="adm-ed-tools"><span data-cp-vis>${customSwitch(existing)}</span><a class="adm-btn" href="${esc(
+                customUrl(existing.id),
+              )}" target="_blank" rel="noopener">${icon('external', 16)}<span>${esc(S.viewPage)}</span>${newTab}</a></div>`
+            : ''
+        }
+      </header>
+      <div class="adm-editor">
+        <form class="adm-cp-form" data-cp-form novalidate>
+          <section class="adm-panel" aria-labelledby="adm-cp-basics">
+            <div class="adm-panel-h"><h3 id="adm-cp-basics">${esc(S.cpBasics)}</h3></div>
+            <div class="adm-cp-grid">
+              <div class="field"><label for="adm-cp-cat">${esc(S.cpCategory)}</label>
+                <select id="adm-cp-cat" class="select" data-cp-select="category" data-fkey="cp-cat">${D.categories
+                  .map((c) => `<option value="${c.id}"${c.id === d.category ? ' selected' : ''}>${esc(c.name)}</option>`)
+                  .join('')}</select></div>
+              <div class="field"><label for="adm-cp-fam">${esc(S.cpFamily)}</label>
+                <select id="adm-cp-fam" class="select" data-cp-select="family" data-fkey="cp-fam" aria-describedby="adm-cp-fam-hint">${FAMILIES.map(
+                  (f) => `<option value="${f}"${f === d.family ? ' selected' : ''}>${esc(famLabel[f])}</option>`,
+                ).join('')}</select>
+                <p class="hint" id="adm-cp-fam-hint">${esc(S.cpFamilyHint)}</p></div>
+            </div>
+          </section>
+          <section class="adm-panel" aria-labelledby="adm-cp-texts">
+            <div class="adm-panel-h"><h3 id="adm-cp-texts">${esc(S.cpTexts)}</h3></div>
+            <div class="adm-cp-body">
+              <div class="adm-tabs" role="tablist" aria-label="${esc(S.langTabs)}" data-tabs="cp">
+                ${LANGS.map(
+                  (l) =>
+                    `<button type="button" role="tab" id="adm-cptab-${l}" aria-controls="adm-cptp-${l}" aria-selected="${tab === l}" tabindex="${
+                      tab === l ? 0 : -1
+                    }" data-tab="${l}">${esc(l === 'bg' ? S.tabBg : S.tabEn)}<span class="adm-tab-code" aria-hidden="true">${l.toUpperCase()}</span></button>`,
+                ).join('')}
+              </div>
+              ${LANGS.map(panel).join('')}
+            </div>
+          </section>
+          <section class="adm-panel" aria-labelledby="adm-cp-img">
+            <div class="adm-panel-h"><div><h3 id="adm-cp-img">${esc(S.cpImages)} <span class="adm-group-n num">${d.images.length} / ${MAX}</span></h3>
+              <p class="adm-panel-sub">${esc(fmt(S.cpImagesHint, { n: MAX }))}</p></div></div>
+            ${d.images.length ? `<ul class="adm-thumbs">${thumbs}</ul>` : `<p class="adm-muted adm-cp-noimg">${esc(S.cpNoImages)}</p>`}
+            ${
+              d.images.length < MAX
+                ? `<div class="adm-drop" data-cp-drop>
+                    <input type="file" id="adm-cp-file" class="sr-only" accept="image/jpeg,image/png,image/webp" multiple data-cp-file data-fkey="cp-file" />
+                    <label for="adm-cp-file" class="adm-btn" data-cp-upload>${icon('upload', 16)}<span>${esc(state.busy ? S.cpProcessing : S.cpUpload)}</span></label>
+                    <span class="adm-muted">${esc(S.cpDrop)}</span>
+                  </div>`
+                : `<p class="adm-note adm-cp-full">${icon('info', 16)}<span>${esc(fmt(S.cpTooMany, { n: MAX }))}</span></p>`
+            }
+            <p class="adm-note adm-cp-storage" data-cp-storage>${icon('info', 16)}<span>${esc(storageLine())}</span></p>
+          </section>
+          <p class="adm-cp-error" role="alert" data-cp-error></p>
+          <div class="adm-ed-actions adm-cp-actions">
+            <button type="submit" class="btn btn-sm" data-cp-save>${icon('check', 18)}<span>${esc(S.save)}</span></button>
+            ${
+              existing
+                ? `<button type="button" class="btn btn-ghost btn-sm" data-cp-discard disabled>${esc(S.discard)}</button>`
+                : `<a class="btn btn-ghost btn-sm" href="#products">${esc(S.cancel)}</a>`
+            }
+            <span class="adm-ed-dirty" data-cp-dirty hidden>${esc(S.unsaved)}</span>
+            ${existing ? `<button type="button" class="adm-btn adm-btn-danger adm-cp-del" data-cp-delete>${icon('trash', 16)}<span>${esc(S.cpDelete)}</span></button>` : ''}
+          </div>
+        </form>
+        <aside class="adm-pv-wrap" aria-labelledby="adm-cpv-h">
+          <div class="adm-pv-head"><h3 id="adm-cpv-h">${esc(S.preview)}</h3><span class="adm-pv-lang" data-cpv-lang>${tab.toUpperCase()}</span></div>
+          <article class="adm-pv" lang="${tab}" data-cpv>
+            <div class="adm-pv-media">${d.images[0] ? `<img src="${esc(d.images[0])}" alt="" />` : ''}</div>
+            <div class="adm-pv-body">
+              <p class="adm-pv-title${pvName ? '' : ' is-empty'}" data-cpv-f="name">${esc(pvName || S.cpNewTitle)}</p>
+              <p class="adm-pv-tag" data-cpv-f="tagline">${esc(cText(d.tagline, tab))}</p>
+              <p class="adm-pv-sum" data-cpv-f="summary">${esc(cText(d.summary, tab))}</p>
+              <span class="adm-pv-more" aria-hidden="true"><span data-cpv-more>${esc(VIEW_PRODUCT[tab])}</span>${icon('arrowRight', 16)}</span>
+            </div>
+          </article>
+          <p class="adm-note">${esc(S.previewNote)}</p>
+        </aside>
+      </div>`;
+    updateCustomUi();
+  }
+
+  /** Re-render the custom editor from the draft, keeping focus and scroll */
+  const paintCustom = () => keepFocus(viewEl('custom'), renderCustomEditor);
+
+  function updateCustomUi() {
+    const d = state.draft;
+    if (!d) return;
+    const dirty = JSON.stringify(d) !== state.draftBase;
+    const isNew = !d.id;
+    const save = q<HTMLButtonElement>('[data-cp-save]');
+    if (save) save.disabled = !isNew && !dirty;
+    const discard = q<HTMLButtonElement>('[data-cp-discard]');
+    if (discard) discard.disabled = !dirty;
+    const flag = q('[data-cp-dirty]');
+    if (flag) flag.hidden = !dirty || isNew;
+    // preview in the active language (empty English falls back to Bulgarian, as on the site)
+    const pv = q('[data-cpv]');
+    if (!pv) return;
+    const l = state.customTab;
+    const name = cText(d.name, l);
+    const nameEl = q('[data-cpv-f="name"]', pv)!;
+    nameEl.textContent = name || S.cpNewTitle;
+    nameEl.classList.toggle('is-empty', !name);
+    q('[data-cpv-f="tagline"]', pv)!.textContent = cText(d.tagline, l);
+    q('[data-cpv-f="summary"]', pv)!.textContent = cText(d.summary, l);
+    q('[data-cpv-more]', pv)!.textContent = VIEW_PRODUCT[l];
+    q('[data-cpv-lang]')!.textContent = l.toUpperCase();
+    pv.lang = l;
+  }
+
+  function onCustomInput(t: HTMLElement) {
+    const d = state.draft;
+    if (!d) return;
+    const el = t as HTMLInputElement;
+    const l = el.dataset.l as Lang | undefined;
+    if (!l) return;
+    if (el.dataset.cpField) {
+      const f = el.dataset.cpField as DraftText;
+      d[f][l] = el.value;
+      if (el.value.trim()) {
+        const err = q(`[data-cp-err="${f}-${l}"]`);
+        if (err) err.textContent = '';
+        el.removeAttribute('aria-invalid');
+      }
+    } else if (el.dataset.cpSpec !== undefined) {
+      const row = d.specs[Number(el.dataset.cpSpec)];
+      if (row) row[el.dataset.part === 'value' ? 'value' : 'label'][l] = el.value;
+    }
+    updateCustomUi();
+  }
+
+  function onCustomSelect(el: HTMLSelectElement) {
+    const d = state.draft;
+    if (!d) return;
+    if (el.dataset.cpSelect === 'category') {
+      d.category = el.value as CategoryId;
+      if (!d.familyTouched) {
+        d.family = DEFAULT_FAMILY[d.category];
+        const fam = q<HTMLSelectElement>('#adm-cp-fam');
+        if (fam) fam.value = d.family;
+      }
+    } else {
+      d.family = el.value as FamilyId;
+      d.familyTouched = true;
+    }
+    updateCustomUi();
+  }
+
+  async function addImages(files: File[]) {
+    const d = state.draft;
+    if (!d || state.busy || !files.length) return;
+    const room = CUSTOM_MAX_IMAGES - d.images.length;
+    const problems: string[] = [];
+    if (files.length > room) problems.push(fmt(S.cpTooMany, { n: CUSTOM_MAX_IMAGES }));
+    state.busy = true;
+    const label = q('[data-cp-upload] span');
+    if (label) label.textContent = S.cpProcessing;
+    for (const f of files.slice(0, Math.max(0, room))) {
+      try {
+        d.images.push(await resizeImage(f, 1600, 0.8));
+      } catch {
+        problems.push(fmt(S.cpBadFile, { name: f.name }));
+      }
+    }
+    state.busy = false;
+    if (state.view === 'custom' && state.draft === d) {
+      paintCustom();
+      q<HTMLElement>('[data-cp-upload]')?.closest('.adm-drop')?.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true });
+    }
+    problems.forEach((m) => toast(m));
+  }
+
+  function moveImage(from: number, to: number, focusKey: string) {
+    const d = state.draft;
+    if (!d || to < 0 || to >= d.images.length) return;
+    const [img] = d.images.splice(from, 1);
+    d.images.splice(to, 0, img);
+    renderCustomEditor();
+    q<HTMLElement>(`[data-fkey="${focusKey}"]:not(:disabled)`)?.focus({ preventScroll: true });
+  }
+
+  function removeImage(i: number) {
+    const d = state.draft;
+    if (!d) return;
+    d.images.splice(i, 1);
+    renderCustomEditor();
+    const next =
+      q<HTMLElement>(`[data-fkey="cp-img-x-${Math.min(i, d.images.length - 1)}"]`) ?? q<HTMLElement>('[data-cp-file]');
+    next?.focus({ preventScroll: true });
+  }
+
+  function saveCustom() {
+    const d = state.draft;
+    if (!d) return;
+    const errBox = q('[data-cp-error]');
+    if (errBox) errBox.textContent = '';
+    if (!d.name.bg.trim()) {
+      const tabEl = q('[data-tabs="cp"] [data-tab="bg"]');
+      if (tabEl) selectTab(tabEl);
+      const input = q<HTMLInputElement>('#adm-cp-name-bg')!;
+      q('[data-cp-err="name-bg"]')!.textContent = S.cpNameRequired;
+      input.setAttribute('aria-invalid', 'true');
+      input.focus();
+      return;
+    }
+    const existing = d.id ? getCustomProduct(d.id) : undefined;
+    const product = productFromDraft(d, existing);
+    let res: ReturnType<typeof saveCustomProduct> = { ok: true };
+    mutate(() => (res = saveCustomProduct(product)));
+    if (!res.ok) {
+      const msg = res.reason === 'quota' ? S.cpQuota : S.cpUnavailable;
+      if (errBox) errBox.textContent = msg;
+      const storage = q('[data-cp-storage] span');
+      if (storage) storage.textContent = storageLine();
+      toast(msg);
+      return;
+    }
+    state.draft = null;
+    updateNavCount();
+    const link = { href: customUrl(product.id), label: S.viewPage };
+    if (!existing) {
+      location.hash = `#products/${product.id}`;
+      toast(S.cpCreated, link);
+      return;
+    }
+    renderCustomEditor();
+    document.title = `${viewTitle()} · ${S.title} · OUTPLAY`;
+    q<HTMLElement>('#adm-h-custom')?.focus();
+    toast(S.savedToast, link);
+  }
+
+  async function deleteCustom() {
+    const id = state.draft?.id;
+    const c = id ? getCustomProduct(id) : undefined;
+    if (!c) return;
+    const res = await confirmDialog({
+      title: S.cpDeleteTitle,
+      text: fmt(S.cpDeleteText, { name: cText(c.name) }),
+      ok: S.delete,
+      danger: true,
+    });
+    if (!res.ok) return;
+    mutate(() => deleteCustomProduct(c.id));
+    state.draft = null;
+    location.hash = '#products';
+    toast(S.cpDeleted);
+  }
+
+  /** Background refresh while the custom editor is open: never wipe the draft */
+  function syncCustomChrome() {
+    if (state.arg === 'new') return;
+    const c = getCustomProduct(state.arg);
+    if (!c) {
+      state.draft = null;
+      location.hash = '#products';
+      return;
+    }
+    const vis = q('[data-cp-vis]');
+    if (vis) keepFocus(vis, () => (vis.innerHTML = customSwitch(c)));
+    const st = q('[data-cp-state]');
+    if (st) st.textContent = customStateText(c);
+  }
+
+  // ---------------------------------------------------------------------------
   // Tabs (product editor and FAQ editor)
   // ---------------------------------------------------------------------------
 
@@ -1001,6 +1579,9 @@ export function boot(): void {
       updatePreview();
     } else if (list.dataset.tabs === 'faq') {
       state.faqTab = l;
+    } else if (list.dataset.tabs === 'cp') {
+      state.customTab = l;
+      updateCustomUi();
     }
   }
 
@@ -1214,6 +1795,8 @@ export function boot(): void {
           <div><dt>${esc(S.storageInq)}</dt><dd class="num">${nInq}</dd></div>
           <div><dt>${esc(S.storageProd)}</dt><dd class="num">${editedProductCount()}</dd></div>
           <div><dt>${esc(S.storageFaq)}</dt><dd class="num">${editedFaqCount()}</dd></div>
+          <div><dt>${esc(S.storageCustom)}</dt><dd class="num">${customs().length}</dd></div>
+          <div><dt>${esc(S.storageUsed)}</dt><dd class="num">${esc(formatBytes(storageUsed(), lang))} / ~${esc(formatBytes(STORAGE_BUDGET, lang))}</dd></div>
         </dl></div>
         <div class="adm-storage-actions">
           <button type="button" class="adm-btn" data-export data-fkey="export">${icon('download', 16)}<span>${esc(S.export)}</span></button>
@@ -1229,6 +1812,7 @@ export function boot(): void {
       inquiries: storedInquiries(),
       productOverrides: overrides(),
       faqEdits: loadFaq(),
+      customProducts: customs(),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -1259,6 +1843,7 @@ export function boot(): void {
       remove(KEYS.overrides);
       remove(KEYS.faq);
       remove(KEYS.settings);
+      remove(KEYS.customProducts);
       if (res.checked) remove(KEYS.inquiries);
       else {
         const list = storedInquiries();
@@ -1273,6 +1858,11 @@ export function boot(): void {
       drawer.close();
     }
     if (state.view === 'editor') renderEditor();
+    if (state.view === 'custom') {
+      state.draft = null;
+      if (state.arg === 'new') renderCustomEditor();
+      else location.hash = '#products';
+    }
     refresh();
     toast(S.resetDone);
   }
@@ -1398,6 +1988,53 @@ export function boot(): void {
       return;
     }
     if ((m = hit('[data-export]'))) return void exportData();
+    if ((m = hit('[data-cp-spec-add]')) && state.draft) {
+      state.draft.specs.push({ label: emptyPair(), value: emptyPair() });
+      renderCustomEditor();
+      q<HTMLElement>(`[data-fkey="cp-spec-${state.draft.specs.length - 1}-label-${state.customTab}"]`)?.focus();
+      return;
+    }
+    if ((m = hit('[data-cp-spec-remove]')) && state.draft) {
+      const i = Number(m.dataset.cpSpecRemove);
+      state.draft.specs.splice(i, 1);
+      renderCustomEditor();
+      const l = state.customTab;
+      (q<HTMLElement>(`[data-fkey="cp-spec-x-${Math.min(i, state.draft.specs.length - 1)}-${l}"]`) ??
+        q<HTMLElement>(`[data-fkey="cp-spec-add-${l}"]`))?.focus();
+      return;
+    }
+    if ((m = hit('[data-cp-img-move]'))) {
+      const i = Number(m.dataset.cpImgMove);
+      const to = i + Number(m.dataset.dir);
+      return void moveImage(i, to, `cp-img-${Number(m.dataset.dir) < 0 ? 'l' : 'r'}-${to}`);
+    }
+    if ((m = hit('[data-cp-img-main]'))) return void moveImage(Number(m.dataset.cpImgMain), 0, 'cp-img-r-0');
+    if ((m = hit('[data-cp-img-remove]'))) return void removeImage(Number(m.dataset.cpImgRemove));
+    if ((m = hit('[data-cp-discard]'))) {
+      state.draft = null;
+      renderCustomEditor();
+      q<HTMLElement>('#adm-h-custom')?.focus();
+      return;
+    }
+    if ((m = hit('[data-cp-delete]'))) return void deleteCustom();
+  });
+
+  // Photo drop zone of the custom product editor
+  root.addEventListener('dragover', (e) => {
+    const zone = (e.target as HTMLElement).closest<HTMLElement>('[data-cp-drop]');
+    if (!zone) return;
+    e.preventDefault();
+    zone.classList.add('is-over');
+  });
+  root.addEventListener('dragleave', (e) => {
+    (e.target as HTMLElement).closest<HTMLElement>('[data-cp-drop]')?.classList.remove('is-over');
+  });
+  root.addEventListener('drop', (e) => {
+    const zone = (e.target as HTMLElement).closest<HTMLElement>('[data-cp-drop]');
+    if (!zone) return;
+    e.preventDefault();
+    zone.classList.remove('is-over');
+    void addImages(Array.from(e.dataTransfer?.files ?? []));
   });
 
   root.addEventListener('input', (e) => {
@@ -1407,11 +2044,18 @@ export function boot(): void {
       renderInquiries();
     } else if (t.closest('[data-ed-form]')) onEditorInput();
     else if (t.closest('[data-faq-form]')) onFaqInput(t);
+    else if (t.closest('[data-cp-form]') && !t.matches('select, [type="file"]')) onCustomInput(t);
   });
 
   root.addEventListener('change', (e) => {
     const t = e.target as HTMLInputElement;
     if (t.matches('[data-status-radio]') && state.drawerId && t.checked) setStatus(state.drawerId, t.value as InquiryStatus);
+    else if (t.matches('[data-cp-select]')) onCustomSelect(t as unknown as HTMLSelectElement);
+    else if (t.matches('[data-cp-file]')) {
+      const files = Array.from(t.files ?? []);
+      t.value = '';
+      void addImages(files);
+    }
   });
 
   root.addEventListener('submit', (e) => {
@@ -1422,6 +2066,9 @@ export function boot(): void {
     } else if (f.matches('[data-faq-form]')) {
       e.preventDefault();
       saveFaq(f.dataset.faqForm!);
+    } else if (f.matches('[data-cp-form]')) {
+      e.preventDefault();
+      saveCustom();
     }
   });
 

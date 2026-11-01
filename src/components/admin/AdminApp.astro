@@ -92,6 +92,7 @@ const data: AdminData = {
   lang,
   home: url(lang, '/'),
   homes: { bg: url('bg', '/'), en: url('en', '/') },
+  itemUrl: url(lang, '/products/item/'),
   faqUrl: url(lang, '/faq/'),
   s: S,
   statuses: { new: t(st.new, lang), 'in-progress': t(st.inProgress, lang), quoted: t(st.offerSent, lang), closed: t(st.closed, lang) },
@@ -269,14 +270,22 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
         <header class="adm-vh">
           <div>
             <h2 id="adm-h-products" tabindex="-1">{S.navProducts}</h2>
-            <p>{fmt(S.prodLead, { n: products.length, c: categories.length })}</p>
+            <p data-prod-lead>{fmt(S.prodLead, { n: products.length, c: categories.length })}</p>
           </div>
+          <a class="btn btn-sm" href="#products/new" data-fkey="add-product">
+            <Fragment set:html={icon('plus', 18)} />
+            <span>{S.addProduct}</span>
+          </a>
         </header>
         <div data-slot="products"></div>
       </section>
 
       <section class="adm-view" data-view="editor" aria-labelledby="adm-h-editor" hidden>
         <div data-slot="editor"></div>
+      </section>
+
+      <section class="adm-view" data-view="custom" aria-labelledby="adm-h-custom" hidden>
+        <div data-slot="custom"></div>
       </section>
 
       <section class="adm-view" data-view="faq" aria-labelledby="adm-h-faq" hidden>
