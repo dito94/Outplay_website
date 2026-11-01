@@ -51,6 +51,8 @@ export interface Product {
   order: number;
   /** Short display name: "Balance", "Гилотина" / "Guillotine" */
   name: L;
+  /** Name as written mid-sentence ("запитване за стационарен стъклен покрив"); falls back to name */
+  nameInline?: L;
   /** Full catalogue name */
   fullName: L;
   /** Catalogue headline, e.g. "Геометрия на светлината." */

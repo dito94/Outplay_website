@@ -42,7 +42,7 @@ const canonical = new URL(pathname, site).href;
 const altBg = new URL(switchLangUrl(pathname, 'bg'), site).href;
 const altEn = new URL(switchLangUrl(pathname, 'en'), site).href;
 const fullTitle = title.includes('OUTPLAY') ? title : `${title} · OUTPLAY`;
-const is404 = /\/404(\.html|\/)?$/.test(pathname);
+const is404 = /\/(404|not-found)(\.html|\/)?$/.test(pathname);
 
 let ogUrl: string | undefined;
 const ogSrc = img(ogImage) ?? img('home/hero.jpg');
@@ -88,6 +88,7 @@ const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <script is:inline>
       document.documentElement.classList.add('js');
     </script>
+    <slot name="head" />
   </head>
   <body class={bodyClass}>
     <a class="skip-link" href="#main">{lang === 'bg' ? 'Към съдържанието' : 'Skip to content'}</a>

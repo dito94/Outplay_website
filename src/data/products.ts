@@ -59,7 +59,7 @@ const pvcWallConfigurations: Configuration[] = [
   {
     title: { bg: 'Към фасадата с две колони', en: 'Façade-mounted with two posts' },
     text: {
-      bg: 'Конструкцията се монтира за фасадата, а опората се осъществява чрез две носещи колони в предната част. Подходяща за търговски обекти и за частни имоти с дворове или тераси.',
+      bg: 'Конструкцията се монтира към фасадата, а опората се осъществява чрез две носещи колони в предната част. Подходяща за търговски обекти и за частни имоти с дворове или тераси.',
       en: 'The structure is fixed to the façade and supported by two posts at the front. Suits commercial premises as well as homes with gardens or terraces.',
     },
   },
@@ -68,7 +68,7 @@ const pvcWallConfigurations: Configuration[] = [
 const pvcCentralBeam: Configuration = {
   title: { bg: 'С централна носеща греда', en: 'Central supporting beam' },
   text: {
-    bg: 'Самостоятелна конструкция с носеща греда и два мотора за двете независими подвижни перголи, които се прибират в центъра. Без допълнителни колони – за жилищни и обществени пространства с ограничена възможност за опори.',
+    bg: 'Самостоятелна конструкция с носеща греда и два мотора за двата независими подвижни покрива, които се прибират в центъра. Без допълнителни колони – за жилищни и обществени пространства с ограничена възможност за опори.',
     en: 'A freestanding structure with a supporting beam and two motors for two independent retractable roofs that gather in the centre. No extra posts, for residential and public spaces with limited room for supports.',
   },
 };
@@ -305,7 +305,7 @@ export const products: Product[] = [
     name: { bg: 'Flat', en: 'Flat' },
     fullName: {
       bg: 'Биоклиматична пергола с подвижно поливинилно покритие, серия Flat',
-      en: 'Flat series pergola with retractable PVC roof',
+      en: 'Flat series bioclimatic pergola with retractable PVC roof',
     },
     tagline: { bg: 'Изчистен дизайн, безкомпромисна устойчивост.', en: 'Clean lines, uncompromising strength.' },
     summary: {
@@ -418,16 +418,16 @@ export const products: Product[] = [
     name: { bg: 'Curved', en: 'Curved' },
     fullName: {
       bg: 'Биоклиматична пергола с подвижно поливинилно покритие, серия Curved',
-      en: 'Curved series pergola with retractable PVC roof',
+      en: 'Curved series bioclimatic pergola with retractable PVC roof',
     },
-    tagline: { bg: 'Скулптурна мекота и динамичен стил.', en: 'Sculpted softness, dynamic style.' },
+    tagline: { bg: 'Извит покрив с мек силует.', en: 'An arched roof with a soft silhouette.' },
     summary: {
       bg: 'Пергола с извит покрив тип „арка“ от трислойно Blackout платно. Устоява на вятър до 117 км/ч, неутрализира до 89% от UV лъчението и е 100% водоустойчива.',
       en: 'A pergola with an arched retractable roof in three-layer Blackout PVC. Withstands winds up to 117 km/h, filters up to 89% of UV and is 100% waterproof.',
     },
     sections: [
       {
-        heading: { bg: 'Скулптурна мекота и динамичен стил', en: 'Sculpted softness, dynamic style' },
+        heading: { bg: 'Арка, която отвежда водата', en: 'An arch that sheds the rain' },
         paragraphs: [
           {
             bg: 'Моделът Curved внася артистичност и визуален обем във всяко външно пространство със своята извита конструкция тип „арка“. Динамичният силует придава уникален архитектурен характер и оптимизира отвеждането на водата по плавните линии на свода.',
@@ -529,6 +529,7 @@ export const products: Product[] = [
     family: 'pergola',
     order: 5,
     name: { bg: 'Автоматичен стъклен покрив', en: 'Retractable glass roof' },
+    nameInline: { bg: 'автоматичен стъклен покрив', en: 'a retractable glass roof' },
     fullName: {
       bg: 'Биоклиматична алуминиева пергола с автоматичен стъклен покрив',
       en: 'Bioclimatic aluminium pergola with motorised retractable glass roof',
@@ -648,9 +649,10 @@ export const products: Product[] = [
     family: 'pergola',
     order: 6,
     name: { bg: 'Стационарен стъклен покрив', en: 'Fixed glass roof' },
+    nameInline: { bg: 'стационарен стъклен покрив', en: 'a fixed glass roof' },
     fullName: {
       bg: 'Биоклиматична алуминиева пергола със стационарен стъклен покрив',
-      en: 'Aluminium pergola with fixed glass roof',
+      en: 'Bioclimatic aluminium pergola with fixed glass roof',
     },
     tagline: { bg: 'Инженерна гъвкавост и структурен финес.', en: 'Flexible engineering, refined structure.' },
     summary: {
@@ -758,18 +760,19 @@ export const products: Product[] = [
     family: 'pergola',
     order: 7,
     name: { bg: 'Покрив от термопанели', en: 'Insulated panel roof' },
+    nameInline: { bg: 'покрив от термопанели', en: 'an insulated panel roof' },
     fullName: {
       bg: 'Биоклиматична алуминиева пергола със стационарен плътен покрив от термопанели',
-      en: 'Aluminium pergola with fixed insulated-panel roof',
+      en: 'Bioclimatic aluminium pergola with fixed insulated-panel roof',
     },
-    tagline: { bg: 'Универсална концепция. Безкрайни възможности.', en: 'One structure, many uses.' },
+    tagline: { bg: 'Една конструкция – тераса или навес за кола.', en: 'One structure for a terrace or a carport.' },
     summary: {
       bg: 'Алуминиева пергола с плътен покрив от многослойни термопанели, която пази от прегряване през лятото и задържа топлината през зимата. За тераси, навеси за коли и зимни градини.',
       en: 'An aluminium pergola with a solid multi-layer insulated roof that keeps heat out in summer and in during winter. For terraces, carports and winter gardens.',
     },
     sections: [
       {
-        heading: { bg: 'Универсална концепция, безкрайни възможности', en: 'One structure, many uses' },
+        heading: { bg: 'Една конструкция, много приложения', en: 'One structure, many uses' },
         paragraphs: [
           {
             bg: 'Перголите със стационарен покрив от термопанели съчетават визията на алуминиевите конструкции с изолационните предимства на масивното строителство. Многослойните панели блокират преноса на топлина – предотвратяват прегряването през лятото и задържат уютна температура през студените месеци.',
@@ -879,6 +882,7 @@ export const products: Product[] = [
     family: 'glass',
     order: 8,
     name: { bg: 'Гилотина', en: 'Guillotine' },
+    nameInline: { bg: 'гилотина', en: 'a guillotine system' },
     fullName: {
       bg: 'Автоматична вертикално плъзгаща се стъклена система тип „гилотина“',
       en: 'Motorised vertical-sliding guillotine glass system',
@@ -1107,6 +1111,7 @@ export const products: Product[] = [
     family: 'glass',
     order: 10,
     name: { bg: 'Плъзгащи стъклени системи', en: 'Sliding glass walls' },
+    nameInline: { bg: 'плъзгащи стъклени системи', en: 'sliding glass walls' },
     fullName: {
       bg: 'Ръчни хоризонтално плъзгащи се стъклени системи',
       en: 'Manual horizontal sliding glass systems',
@@ -1325,14 +1330,14 @@ export const products: Product[] = [
     order: 12,
     name: { bg: 'Accord', en: 'Accord' },
     fullName: { bg: 'Сгъваема стъклена система, серия Accord', en: 'Accord series folding glass system' },
-    tagline: { bg: 'Минималистичен дизайн за мащабни преживявания.', en: 'Minimal design, generous openings.' },
+    tagline: { bg: 'Сгъваема стъклена стена, която се отваря за секунди.', en: 'A folding glass wall that opens in seconds.' },
     summary: {
       bg: 'Сгъваема стъклена стена тип „хармоника“: панелите са свързани с панти и се събират компактно в края на релсата, а първото крило работи като врата.',
       en: 'A concertina-style folding glass wall: hinged panels gather neatly at the end of the track, and the first leaf works as a door.',
     },
     sections: [
       {
-        heading: { bg: 'Минималистичен дизайн за мащабни преживявания', en: 'Minimal design, generous openings' },
+        heading: { bg: 'Панели, свързани с панти', en: 'Panels linked by hinges' },
         paragraphs: [
           {
             bg: 'Серията Accord е създадена за пространства, които изискват бърза адаптивност и максимално лесна употреба. Панелите са свързани помежду си чрез специални панти в горните и долните профили, така че стъклената стена се разгръща и прибира линейно по носещата релса.',
@@ -1500,15 +1505,16 @@ export const products: Product[] = [
     family: 'zip',
     order: 14,
     name: { bg: 'Вертикални ZIP завеси', en: 'Vertical ZIP screens' },
+    nameInline: { bg: 'вертикални ZIP завеси', en: 'vertical ZIP screens' },
     fullName: { bg: 'Вертикални слънцезащитни ZIP завеси', en: 'Vertical ZIP sun screens' },
-    tagline: { bg: 'Дишаща защита в перфектен силует.', en: 'Breathable protection, perfectly tensioned.' },
+    tagline: { bg: 'Сянка, която пропуска въздух и гледка.', en: 'Shade that lets the air and the view through.' },
     summary: {
       bg: 'Моторизирани ZIP завеси с микроперфорирана материя, която разсейва слънцето и пропуска въздух, или с Blackout плат за пълна тъмнина. Вграден или външен монтаж.',
       en: 'Motorised ZIP screens in micro-perforated fabric that diffuses sunlight and lets air through, or blackout fabric for total darkness. Recessed or surface-mounted.',
     },
     sections: [
       {
-        heading: { bg: 'Дишаща защита в перфектен силует', en: 'Breathable protection, perfectly tensioned' },
+        heading: { bg: 'Микроперфорирано платно', en: 'Micro-perforated fabric' },
         paragraphs: [
           {
             bg: 'Вертикалните ZIP завеси са дългосрочен партньор за дома, офиса или заведението. Специалната микроперфорирана материя омекотява и разсейва пряката слънчева светлина, създава визуален комфорт и значително понижава температурата в помещенията, като пропуска свеж въздух.',
@@ -1555,7 +1561,7 @@ export const products: Product[] = [
       { bg: 'Микроперфорирана материя, която разсейва светлината и пропуска въздух', en: 'Micro-perforated fabric that diffuses light and lets air through' },
       { bg: 'Видимост отвътре навън, защита от погледи отвън', en: 'See out, without being seen' },
       { bg: 'Бариера срещу вятър, насекоми и дъждовни пръски', en: 'Barrier against wind, insects and splashing rain' },
-      { bg: 'Материи с различна прозрачност до пълен Blackout', en: 'Fabrics from open weaves to full blackout' },
+      { bg: 'Материи с различна прозрачност до пълен Blackout', en: 'Fabrics from open weaves to full Blackout' },
       { bg: 'Вграден или външен корпус, напълно скрит механизъм', en: 'Recessed or surface cassette, fully concealed mechanism' },
       { bg: 'Платното е фиксирано по цялата дължина', en: 'Fabric held along its full length' },
       { bg: 'Управление с бутон, дистанционно или SMART', en: 'Switch, remote or SMART control' },
@@ -1605,6 +1611,7 @@ export const products: Product[] = [
     family: 'zip',
     order: 15,
     name: { bg: 'ZIP завеси за стъклени покриви', en: 'Roof ZIP screens' },
+    nameInline: { bg: 'ZIP завеси за стъклени покриви', en: 'roof ZIP screens' },
     fullName: {
       bg: 'ZIP завеси за външен монтаж върху или под стъклени покриви',
       en: 'ZIP screens for mounting above or below glass roofs',
@@ -1702,6 +1709,7 @@ export const products: Product[] = [
     family: 'awning',
     order: 16,
     name: { bg: 'Тента Shell', en: 'Shell awning' },
+    nameInline: { bg: 'тента Shell', en: 'the Shell awning' },
     fullName: { bg: 'Автоматизирани касетъчни тенти Shell', en: 'Shell motorised cassette awnings' },
     tagline: { bg: 'Надеждна сянка за всяка фасада.', en: 'Reliable shade for any façade.' },
     summary: {
@@ -1804,6 +1812,7 @@ export const products: Product[] = [
     family: 'windbreak',
     order: 17,
     name: { bg: 'Телескопична ветрозащита', en: 'Telescopic windbreak' },
+    nameInline: { bg: 'телескопична ветрозащита', en: 'a telescopic windbreak' },
     fullName: { bg: 'Телескопични хидравлични ветрозащитни системи', en: 'Telescopic hydraulic glass windbreaks' },
     tagline: { bg: 'Елегантна защита в точния момент.', en: 'Shelter, exactly when you need it.' },
     summary: {

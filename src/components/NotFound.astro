@@ -1,0 +1,153 @@
+---
+// 404 content, used by the shared 404.html (Bulgarian) and the English /en/not-found/ page.
+// All links are absolute (url() includes the base), so it works at any depth.
+import Icon from './Icon.astro';
+import type { Lang } from '../data/types';
+import { pages } from '../data/pages';
+import { ui } from '../data/ui';
+import { url, t } from '../lib/i18n';
+
+const nf = pages.notFound;
+const T = {
+  search: { bg: 'Търсене в сайта', en: 'Search the site' },
+  products: { bg: 'Продукти', en: 'Products' },
+  contact: { bg: 'Контакти', en: 'Contact' },
+  gallery: { bg: 'Галерия и проекти', en: 'Gallery & projects' },
+};
+interface Props {
+  /** languages rendered (both on the shared 404, one on a language-specific page) */
+  langs: Lang[];
+}
+const { langs } = Astro.props;
+const first = langs[0];
+const linksFor = (l: Lang) => [
+  { href: url(l, '/'), label: t(ui.actions.goHome, l) },
+  { href: url(l, '/products/'), label: t(T.products, l) },
+  { href: url(l, '/projects/'), label: t(T.gallery, l) },
+  { href: url(l, '/contact/'), label: t(T.contact, l) },
+];
+const titleOf = (l: Lang) => `${t(nf.title, l)} · OUTPLAY`;
+---
+
+<section class="nf night" aria-labelledby="nf-title">
+  <div class="wrap nf-inner">
+    <p class="nf-code num" aria-hidden="true">404</p>
+    <div class="nf-body">
+      <h1 id="nf-title" class="nf-title rule">
+        {langs.map((l) => (
+          <span lang={l} data-nf={l} hidden={l !== first}>
+            {t(nf.title, l)}
+          </span>
+        ))}
+      </h1>
+      {
+        langs.map((l) => (
+          <div class="nf-copy" lang={l} data-nf={l} hidden={l !== first}>
+            <p class="nf-text">{t(nf.intro, l)}</p>
+            <ul class="nf-links">
+              {linksFor(l).map((link) => (
+                <li>
+                  <a href={link.href} hreflang={l}>
+                    <span>{link.label}</span>
+                    <Icon name="arrow-right" size={18} />
+                  </a>
+                </li>
+              ))}
+            </ul>
+            {/* The search palette on this page is Bulgarian, so English links to the English search page */}
+            <a class="btn nf-search" href={url(l, '/search/')} data-search-open={l === first ? '' : undefined}>
+              <Icon name="search" size={18} />
+              <span>{t(T.search, l)}</span>
+            </a>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .nf {
+    min-height: calc(100svh - var(--header-h));
+    display: grid;
+    align-items: center;
+  }
+  .nf-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: var(--s-7) clamp(3rem, 1rem + 6vw, 8rem);
+    align-items: start;
+    padding-block: clamp(3rem, 2rem + 4vw, 6rem);
+  }
+  .nf-code {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: clamp(6rem, 3rem + 12vw, 14rem);
+    line-height: 0.8;
+    letter-spacing: -0.04em;
+    color: var(--yellow);
+  }
+  .nf-body,
+  .nf-copy {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: var(--s-5);
+  }
+  .nf-copy[hidden] {
+    display: none;
+  }
+  .nf-title {
+    font-size: var(--step-3);
+    font-weight: 300;
+    line-height: 1.1;
+    color: #fff;
+  }
+  .nf-text {
+    color: var(--muted);
+    max-width: 46ch;
+  }
+  .nf-links {
+    list-style: none;
+    margin: var(--s-2) 0 0;
+    padding: 0;
+    width: 100%;
+    max-width: 30rem;
+    border-top: 1px solid var(--hair);
+  }
+  .nf-links li {
+    border-bottom: 1px solid var(--hair);
+  }
+  .nf-links a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+    min-height: 52px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .nf-links a:hover span {
+    text-decoration: underline;
+    text-decoration-color: var(--yellow);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.3em;
+  }
+  .nf-links a :global(svg) {
+    flex: none;
+    color: var(--yellow);
+    transition: transform 0.25s var(--ease);
+  }
+  .nf-links a:hover :global(svg) {
+    transform: translateX(3px);
+  }
+  .nf-search {
+    margin-top: var(--s-3);
+  }
+  @media (max-width: 860px) {
+    .nf-inner {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--s-6);
+    }
+  }
+</style>

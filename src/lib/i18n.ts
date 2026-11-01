@@ -64,3 +64,14 @@ export function productCount(lang: Lang, n: number): string {
   if (lang === 'bg') return `${n} ${n === 1 ? 'продукт' : 'продукта'}`;
   return `${n} ${n === 1 ? 'product' : 'products'}`;
 }
+
+/** Product name for use inside a sentence (lower-case generic names, keeps series/brand names) */
+export function inlineName(p: { name: L; nameInline?: L }, lang: Lang): string {
+  return t(p.nameInline ?? p.name, lang);
+}
+
+/** Bulgarian "с" becomes "със" before words starting with с/з */
+export function withPrep(lang: Lang, word: string): string {
+  if (lang !== 'bg') return `with ${word}`;
+  return `${/^[сзСЗ]/.test(word) ? 'със' : 'с'} ${word}`;
+}

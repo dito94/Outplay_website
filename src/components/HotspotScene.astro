@@ -25,17 +25,19 @@ const items = hotspots.map((h, i) => {
     ...h,
     n: i + 1,
     title: t(h.label, lang),
-    text: p ? t(p.summary, lang) : c ? t(c.tagline, lang) : '',
+    text: p ? t(p.summary, lang) : c ? (t(c.intro[0], lang).split(/(?<=\.)\s/)[0] ?? t(c.tagline, lang)) : '',
     // systems without their own product page (balustrades, joinery) lead to the company's activities
     href: p ? productUrl(lang, p.category, p.id) : c ? categoryUrl(lang, c.id) : url(lang, '/about/'),
     linkLabel: p ? t(p.name, lang) : c ? t(c.name, lang) : lang === 'bg' ? 'За нас' : 'About us',
     fallback: !p && !c,
+    isCategory: !p && !!c,
     // flip the card to the left/top near edges
     alignX: h.x > 62 ? 'right' : h.x < 30 ? 'left' : 'center',
     alignY: h.y > 58 ? 'up' : 'down',
   };
 });
 const more = lang === 'bg' ? 'Виж продукта' : 'View product';
+const moreCat = lang === 'bg' ? 'Виж системите' : 'View the systems';
 const meta = img(image);
 const ratio = meta ? `aspect-ratio:${meta.width}/${meta.height}` : undefined;
 ---
@@ -61,7 +63,7 @@ const ratio = meta ? `aspect-ratio:${meta.width}/${meta.height}` : undefined;
             {h.text && <p class="hs-text">{h.text}</p>}
             {h.href && (
               <a class="link-arrow" href={h.href}>
-                {h.fallback ? h.linkLabel : more} <Icon name="arrow-right" size={16} />
+                {h.fallback ? h.linkLabel : h.isCategory ? moreCat : more} <Icon name="arrow-right" size={16} />
               </a>
             )}
           </div>

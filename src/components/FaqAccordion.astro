@@ -16,7 +16,7 @@ const ld = {
   mainEntity: items.map((i) => ({ '@type': 'Question', name: t(i.q, lang), acceptedAnswer: { '@type': 'Answer', text: t(i.a, lang) } })),
 };
 ---
-<div class="faq-list">
+<div class="faq-list" data-fab-avoid>
   {items.map((item, i) => (
     <details class="faq-item" id={`${idPrefix}-${i + 1}`} data-faq-item>
       <summary>

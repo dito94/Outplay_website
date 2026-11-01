@@ -14,7 +14,7 @@ interface Step {
 const processSteps: Step[] = [
   {
     id: 'inquiry',
-    title: { bg: 'Запитване с приблизителни размери', en: 'Request with approximate sizes' },
+    title: { bg: 'Запитване с приблизителни размери', en: 'Send approximate dimensions' },
     text: {
       bg: 'Изберете продукт и ни изпратете приблизителните размери и желаните опции – през формата, по телефона или във Viber.',
       en: 'Choose a product and send us rough dimensions and the options you want, through the form, by phone or on Viber.',

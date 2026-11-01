@@ -20,7 +20,7 @@ const L = {
   about: { bg: 'За нас', en: 'About' },
   faq: { bg: 'Въпроси', en: 'FAQ' },
   contact: { bg: 'Контакти', en: 'Contact' },
-  inquiry: { bg: 'Запитване', en: 'Get a quote' },
+  inquiry: { bg: 'Запитване', en: 'Request a quote' },
   all: { bg: 'Всички продукти', en: 'All products' },
   search: { bg: 'Търсене', en: 'Search' },
   openMenu: { bg: 'Отвори менюто', en: 'Open menu' },
@@ -126,7 +126,7 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     </div>
     <div class="wrap mega-foot">
       <a class="link-arrow" href={url(lang, '/products/')}
-        >{t(L.all, lang)} (<span data-pcount="all" data-pcount-n={products.length} data-pcount-mode="num">{products.length}</span>) <Icon name="arrow-right" size={16} /></a
+        ><span>{t(L.all, lang)} <span class="num">(<span data-pcount="all" data-pcount-n={products.length} data-pcount-mode="num">{products.length}</span>)</span></span> <Icon name="arrow-right" size={16} /></a
       >
     </div>
   </div>
@@ -157,7 +157,7 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
               <ul>
                 <li>
                   <a href={categoryUrl(lang, c.id)} class="drawer-all">
-                    {lang === 'bg' ? 'Всички' : 'All'} {t(c.name, lang).toLowerCase()}
+                    {lang === 'bg' ? 'Виж всички' : 'View all'}
                   </a>
                 </li>
                 {byCat(c.id).map((p) => (
@@ -224,6 +224,7 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     background: transparent;
     color: #fff;
     border-color: transparent;
+    --focus: var(--yellow);
   }
   .site-header[data-variant='overlay']:not(.is-solid):not(.mega-open)::before {
     content: '';
