@@ -60,13 +60,13 @@ const itemList = {
         <div class="seg" role="group" aria-labelledby="pi-filter-label">
           <button type="button" class="seg-btn" aria-pressed="true" data-filter-btn="all" data-count={total}>
             <span>{t(T.all, lang)}</span>
-            <span class="seg-n num" aria-hidden="true">{total}</span>
+            <span class="seg-n num" aria-hidden="true" data-pcount="all" data-pcount-n={total} data-pcount-mode="num">{total}</span>
           </button>
           {
             groups.map((g) => (
               <button type="button" class="seg-btn" aria-pressed="false" data-filter-btn={g.cat.id} data-count={g.items.length}>
                 <span>{t(g.cat.name, lang)}</span>
-                <span class="seg-n num" aria-hidden="true">
+                <span class="seg-n num" aria-hidden="true" data-pcount={g.cat.id} data-pcount-n={g.items.length} data-pcount-mode="num">
                   {g.items.length}
                 </span>
               </button>
@@ -87,7 +87,7 @@ const itemList = {
               <a class="link-arrow" href={categoryUrl(lang, g.cat.id)}>
                 {t(T.view, lang)} <Icon name="arrow-right" size={16} />
               </a>
-              <span class="muted small">{countText(g.items.length)}</span>
+              <span class="muted small" data-pcount={g.cat.id} data-pcount-n={g.items.length}>{countText(g.items.length)}</span>
             </p>
           </SectionHead>
           <ProductGrid lang={lang} products={g.items} headingLevel="h3" compact />

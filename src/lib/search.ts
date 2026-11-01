@@ -1,12 +1,16 @@
 // Client-side site search shared by the search palette and the /search/ page.
 // Matching is diacritics-insensitive, folds Cyrillic to Latin (so "pergola" finds "пергола" and the other
 // way round), squashes common spelling variants (c/k, w/v, doubled letters…) and tolerates small typos.
+// The static index is adjusted to this browser's admin-demo data before use (see localizeIndex).
+import { loadCustomProducts, loadOverrides } from './store';
 
 export type DocType = 'product' | 'category' | 'faq' | 'page';
 
 /** One entry of /search-index.json (built by src/pages/[...lang]/search-index.json.ts) */
 export interface SearchDoc {
   type: DocType;
+  /** Product or category id (products and categories only) */
+  id?: string;
   /** Display title */
   title: string;
   /** Display subtitle (category, group, tagline) */
@@ -25,6 +29,8 @@ export interface SearchDoc {
 export interface SearchIndex {
   lang: 'bg' | 'en';
   docs: SearchDoc[];
+  /** Public page of products added in the admin demo: <itemUrl>?id=c-… */
+  itemUrl?: string;
 }
 
 export interface SearchHit {
@@ -294,9 +300,65 @@ export function snippet(text: string | undefined, q: string, max = 150): string 
 // Loading
 // ---------------------------------------------------------------------------
 
+/**
+ * The index as this browser should see it (admin demo data in localStorage): catalogue products hidden in the
+ * admin are left out, edited names / taglines / summaries replace the catalogue text, and visible products added
+ * in the admin join the products (empty English text falls back to Bulgarian).
+ */
+export function localizeIndex(index: SearchIndex): SearchIndex {
+  if (typeof window === 'undefined') return index;
+  const L = index.lang;
+  const ov = loadOverrides() ?? {};
+  const added = loadCustomProducts().filter((p) => !p.hidden);
+  const pick = (p?: { bg?: string; en?: string }) => (p?.[L] || p?.bg || p?.en || '').trim();
+  const join = (...parts: (string | undefined)[]) => parts.filter(Boolean).join(' · ');
+  const catName: Record<string, string> = {};
+  index.docs.forEach((d) => {
+    if (d.type === 'category' && d.id) catName[d.id] = d.title;
+  });
+  const docs: SearchDoc[] = [];
+  for (const d of index.docs) {
+    const o = d.type === 'product' && d.id ? ov[d.id] : undefined;
+    if (o?.hidden) continue;
+    if (!o) {
+      docs.push(d);
+      continue;
+    }
+    const name = o.name?.[L];
+    const tagline = o.tagline?.[L];
+    docs.push({
+      ...d,
+      title: name || d.title,
+      alias: name ? join(d.title, d.alias) : d.alias,
+      sub: tagline ? join(d.sub?.split(' · ')[0], tagline) : d.sub,
+      text: o.summary?.[L] || d.text,
+    });
+  }
+  if (added.length && index.itemUrl) {
+    const other = L === 'bg' ? 'en' : 'bg';
+    const custom: SearchDoc[] = added.map((p) => ({
+      type: 'product',
+      id: p.id,
+      title: pick(p.name) || p.id,
+      sub: join(catName[p.category], pick(p.tagline)),
+      text: pick(p.summary),
+      alias: join(p.name?.[other], p.tagline?.[other]),
+      kw: join(
+        ...(p.features ?? []).flatMap((f) => [f.bg, f.en]),
+        ...(p.specs ?? []).flatMap((s) => [s.value?.bg, s.value?.en]),
+      ),
+      url: `${index.itemUrl}?id=${encodeURIComponent(p.id)}`,
+      img: (p.images ?? [])[0],
+    }));
+    const lastProduct = docs.map((d) => d.type).lastIndexOf('product');
+    docs.splice(lastProduct + 1, 0, ...custom);
+  }
+  return { ...index, docs };
+}
+
 const cache = new Map<string, Promise<Prepared[]>>();
 
-/** Fetch + prepare the index once per URL */
+/** Fetch + prepare the index once per URL (adjusted to this browser's admin-demo data) */
 export function loadIndex(url: string): Promise<Prepared[]> {
   let p = cache.get(url);
   if (!p) {
@@ -305,7 +367,7 @@ export function loadIndex(url: string): Promise<Prepared[]> {
         if (!r.ok) throw new Error(`search index ${r.status}`);
         return r.json() as Promise<SearchIndex>;
       })
-      .then(prepare);
+      .then((index) => prepare(localizeIndex(index)));
     p.catch(() => cache.delete(url));
     cache.set(url, p);
   }

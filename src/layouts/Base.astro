@@ -9,6 +9,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import ViberFab from '../components/ViberFab.astro';
 import SearchPalette from '../components/SearchPalette.astro';
+import CustomProducts from '../components/CustomProducts.astro';
 
 interface Props {
   lang: Lang;
@@ -97,23 +98,7 @@ const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <Footer lang={lang} />
     {fab && <ViberFab lang={lang} />}
     <SearchPalette lang={lang} />
-    <script>
-      // Admin-demo edits (stored in this browser) applied to product names/taglines/summaries and visibility.
-      import { loadOverrides } from '../lib/store';
-      const ov = loadOverrides();
-      if (Object.keys(ov).length) {
-        const lang = document.documentElement.lang === 'en' ? 'en' : 'bg';
-        document.querySelectorAll<HTMLElement>('[data-pid][data-pfield]').forEach((el) => {
-          const o = ov[el.dataset.pid ?? ''];
-          const field = el.dataset.pfield as 'name' | 'tagline' | 'summary';
-          const v = o?.[field]?.[lang];
-          if (v) el.textContent = v;
-        });
-        document.querySelectorAll<HTMLElement>('[data-pcard][data-pid]').forEach((el) => {
-          if (ov[el.dataset.pid ?? '']?.hidden) el.hidden = true;
-        });
-      }
-    </script>
+    <CustomProducts />
     <script>
       // Reveal-on-scroll enhancement. Content is visible without JS; elements already in view never animate.
       const els = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));

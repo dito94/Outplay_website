@@ -152,8 +152,8 @@ const othersBand = nextBand();
           {introRest.map((p) => <p>{t(p, lang)}</p>)}
         </div>
         <p class="c-count">
-          <span class="num">{inCat.length}</span>
-          <span>{countLabel}</span>
+          <span class="num" data-pcount={category.id} data-pcount-n={inCat.length} data-pcount-mode="num">{inCat.length}</span>
+          <span data-pcount={category.id} data-pcount-n={inCat.length} data-pcount-mode="label" data-one={t(T.inCatOne, lang)} data-many={t(T.inCat, lang)}>{countLabel}</span>
         </p>
       </div>
     </div>

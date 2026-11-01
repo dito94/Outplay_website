@@ -126,7 +126,7 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     </div>
     <div class="wrap mega-foot">
       <a class="link-arrow" href={url(lang, '/products/')}
-        >{t(L.all, lang)} ({products.length}) <Icon name="arrow-right" size={16} /></a
+        >{t(L.all, lang)} (<span data-pcount="all" data-pcount-n={products.length} data-pcount-mode="num">{products.length}</span>) <Icon name="arrow-right" size={16} /></a
       >
     </div>
   </div>

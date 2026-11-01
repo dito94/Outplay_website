@@ -19,9 +19,14 @@ interface Props {
   productId?: string;
   /** compact variant embedded on product pages */
   compact?: boolean;
+  /**
+   * Name of a URL query parameter that holds the product id at runtime (products added in the admin demo live
+   * in this browser only, e.g. /products/item/?id=c-…). With `compact` the form shows that product as selected.
+   */
+  runtimeProduct?: string;
   id?: string;
 }
-const { lang, productId, compact = false, id = 'inquiry' } = Astro.props;
+const { lang, productId, compact = false, runtimeProduct, id = 'inquiry' } = Astro.props;
 
 /** Demo build: nothing is sent anywhere. Set to false once a real endpoint exists. */
 const DEMO = true;
@@ -107,7 +112,7 @@ const nf = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
 const fmtN = (v: number) => nf.format(v);
 
 const preselected = productId ? products.find((p) => p.id === productId) : undefined;
-const isCompact = compact && !!preselected;
+const isCompact = compact && (!!preselected || !!runtimeProduct);
 const initialFamily = preselected?.family ?? 'pergola';
 const preset = (preselected && productOptionDefaults[preselected.id]) || {};
 
@@ -140,6 +145,8 @@ const config = {
   maxMb: MAX_MB,
   defaults: productOptionDefaults,
   dimSets: Object.keys(productInquiry),
+  /** category names, for products added in the admin demo (merged in at runtime) */
+  cats: Object.fromEntries(categories.map((c) => [c.id, t(c.name, lang)])),
   products: Object.fromEntries(
     products.map((p) => [
       p.id,
@@ -203,6 +210,7 @@ const optional = tx(ui.form.hints.optional);
   id={id}
   data-inquiry
   data-product={preselected?.id ?? ''}
+  data-runtime-product={runtimeProduct}
   data-family={initialFamily}
 >
   <script type="application/json" data-iq-config set:html={JSON.stringify(config)} />
@@ -257,12 +265,12 @@ const optional = tx(ui.form.hints.optional);
       <div class="iq-s1">
         <div class="iq-s1-product">
           {
-            isCompact && preselected && (
+            isCompact && (
               <div class="iq-fixed" data-iq-fixed>
                 <span class="iq-fixed-k">{tx(ui.inquiry.selectedProduct)}</span>
                 <div class="iq-fixed-row">
                   <span class="iq-fixed-name" data-iq-fixed-name>
-                    {t(preselected.name, lang)}
+                    {preselected ? t(preselected.name, lang) : ''}
                   </span>
                   <button
                     type="button"
@@ -297,7 +305,7 @@ const optional = tx(ui.form.hints.optional);
               </option>
               {
                 cats.map((c) => (
-                  <optgroup label={t(c.name, lang)}>
+                  <optgroup label={t(c.name, lang)} data-cat={c.id}>
                     {byCat(c.id).map((p) => (
                       <option value={p.id} data-family={p.family} selected={p.id === preselected?.id}>
                         {t(p.name, lang)}
@@ -1892,7 +1900,7 @@ const optional = tx(ui.form.hints.optional);
 </style>
 
 <script>
-  import { saveInquiry, readJSON, writeJSON, remove, KEYS } from '../lib/store';
+  import { saveInquiry, readJSON, writeJSON, remove, loadCustomProducts, KEYS } from '../lib/store';
 
   interface ProductCfg {
     family: string;
@@ -1908,6 +1916,7 @@ const optional = tx(ui.form.hints.optional);
     defaults: Record<string, Record<string, string | string[]>>;
     /** product ids with their own dimension set (otherwise the family's) */
     dimSets: string[];
+    cats: Record<string, string>;
     products: Record<string, ProductCfg>;
     s: Record<string, string>;
   }
@@ -1991,6 +2000,23 @@ const optional = tx(ui.form.hints.optional);
     const productWrap = $('[data-iq-product-wrap]')!;
     const changeBtn = $<HTMLButtonElement>('[data-iq-change]');
     const fixedName = $('[data-iq-fixed-name]');
+
+    // Products added in the admin demo (this browser only): offered under their category with their inquiry type.
+    // A hidden one is only added when it is the product this page asks for.
+    const runtimeParam = root.dataset.runtimeProduct;
+    const params = new URLSearchParams(window.location.search);
+    const requested = (runtimeParam && params.get(runtimeParam)) || params.get('product');
+    for (const p of loadCustomProducts()) {
+      if (!p.family || (p.hidden && p.id !== requested)) continue;
+      const name = (p.name?.[cfg.lang] || p.name?.bg || p.name?.en || p.id).trim();
+      cfg.products[p.id] = { family: p.family, name, full: name, cat: cfg.cats?.[p.category] ?? '' };
+      if (select.querySelector(`option[value="${CSS.escape(p.id)}"]`)) continue;
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.dataset.family = p.family;
+      opt.textContent = name;
+      (select.querySelector(`optgroup[data-cat="${CSS.escape(p.category)}"]`) ?? select).appendChild(opt);
+    }
     const board = $('[data-iq-board]')!;
     const previewEl = $('[data-iq-preview]')!;
     const progressN = $('[data-iq-progress-n]');
@@ -2868,8 +2894,15 @@ const optional = tx(ui.form.hints.optional);
     function initialProduct(): string | null {
       const fromProp = root.dataset.product;
       if (fromProp && cfg.products[fromProp]) return fromProp;
-      const q = new URLSearchParams(window.location.search).get('product');
+      const fromPage = runtimeParam ? params.get(runtimeParam) : null;
+      if (fromPage && cfg.products[fromPage]) return fromPage;
+      const q = params.get('product');
       return q && cfg.products[q] ? q : null;
+    }
+    // compact form waiting for a runtime product that is not in this browser: offer the full product list
+    if (runtimeParam && !root.dataset.product && !initialProduct()) {
+      $('[data-iq-fixed]')?.setAttribute('hidden', '');
+      productWrap.classList.remove('is-collapsed');
     }
     root.dataset.initialFamily = family;
     const pre = initialProduct();

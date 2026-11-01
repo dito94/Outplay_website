@@ -6,6 +6,8 @@ import Base from '../../../../layouts/Base.astro';
 import Lightbox from '../../../../components/Lightbox.astro';
 import StickyCta from '../../../../components/StickyCta.astro';
 import SubNav from '../../../../components/SubNav.astro';
+import InquiryForm from '../../../../components/InquiryForm.astro';
+import Icon from '../../../../components/Icon.astro';
 import { categories } from '../../../../data/categories';
 import { site } from '../../../../data/site';
 import { ui } from '../../../../data/ui';
@@ -44,7 +46,6 @@ const T = {
   photo: { bg: 'снимка', en: 'photo' },
   quoteTitle: ui.product.quoteTitle,
   quoteLead: ui.product.quoteLead,
-  toForm: { bg: 'Към формата за запитване', en: 'Go to the quote form' },
   talk: { bg: 'Предпочитате да говорим?', en: 'Prefer to talk?' },
   viber: { bg: 'Пишете ни във Viber', en: 'Message us on Viber' },
   demoNote: {
@@ -75,7 +76,6 @@ const cfg = {
   home: url(lang, '/'),
   products: url(lang, '/products/'),
   admin: url(lang, '/admin/'),
-  contact: url(lang, '/contact/'),
   categories: Object.fromEntries(categories.map((c) => [c.id, { name: t(c.name, lang), href: categoryUrl(lang, c.id) }])),
   phones: site.phones.map((p) => ({ display: p.display, e164: p.e164 })),
   viber: site.viberUrl,
@@ -101,7 +101,6 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
       home: string;
       products: string;
       admin: string;
-      contact: string;
       categories: Record<string, { name: string; href: string }>;
       phones: { display: string; e164: string }[];
       viber: string;
@@ -198,7 +197,6 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
       const rowImage = paragraphs.length ? images[1] : undefined;
       const galleryImages = images.slice(rowImage ? 2 : 1);
       const phone = cfg.phones[0];
-      const contactHref = `${cfg.contact}?product=${encodeURIComponent(p.id)}#inquiry`;
 
       heroEl.innerHTML = `<section class="ci-hero" aria-labelledby="ci-title">
         <div class="wrap">
@@ -291,25 +289,16 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
         </section>`);
       }
 
-      out.push(`<section id="inquiry" data-sn-section="inquiry" data-sticky-cta-hide class="section ${band.inquiry}" aria-labelledby="ci-inquiry">
-        <div class="wrap ci-inq">
-          <div class="ci-inq-copy">
-            <h2 id="ci-inquiry" class="h2 rule">${esc(fmt(S.quoteTitle, { product: name }))}</h2>
-            <p class="lead">${esc(S.quoteLead)}</p>
-            <div class="btn-row"><a class="btn" href="${esc(contactHref)}">${esc(S.toForm)} ${icon(I.arrow, 18)}</a></div>
-            <p class="small muted">${esc(S.noPrices)}</p>
-          </div>
-          <div class="ci-inq-contacts">
-            <p class="ci-inq-k">${esc(S.talk)}</p>
-            <ul>
-              ${cfg.phones.map((ph) => `<li><a class="num" href="tel:${esc(ph.e164)}">${icon(I.phone, 18)} ${esc(ph.display)}</a></li>`).join('')}
-              <li><a href="${esc(cfg.viber)}">${icon(I.viber, 18)} ${esc(S.viber)}</a></li>
-            </ul>
-            <p class="ci-demo small muted">${esc(S.demoNote)}</p>
-          </div>
-        </div>
-      </section>`);
       bodyEl.innerHTML = out.join('');
+
+      // Inquiry: the static section with the compact form (it preselects this product from ?id=)
+      const inquiry = document.querySelector<HTMLElement>('[data-ci-inquiry]');
+      if (inquiry) {
+        const title = inquiry.querySelector('[data-ci-inq-title]');
+        if (title) title.textContent = fmt(S.quoteTitle, { product: name });
+        if (band.inquiry) inquiry.classList.add(band.inquiry);
+        inquiry.hidden = false;
+      }
 
       // In-page navigation: keep only the sections this product has, and show its name
       if (subnav) {
@@ -340,6 +329,36 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
     cta={{ label: S.quoteShort, href: '#inquiry' }}
   />
   <div class="ci" data-ci-body></div>
+  <section id="inquiry" data-sn-section="inquiry" data-sticky-cta-hide class="section ci-inquiry" aria-labelledby="ci-inquiry" hidden data-ci-inquiry>
+    <div class="wrap ci-inq">
+      <div class="ci-inq-copy">
+        <h2 id="ci-inquiry" class="h2 rule" data-ci-inq-title>{S.quote}</h2>
+        <p class="lead">{S.quoteLead}</p>
+        <p class="small muted">{S.noPrices}</p>
+      </div>
+      <div class="ci-inq-form">
+        <InquiryForm lang={lang} compact runtimeProduct="id" id="inquiry-form" />
+      </div>
+      <div class="ci-inq-contacts">
+        <p class="ci-inq-k">{S.talk}</p>
+        <ul>
+          {
+            cfg.phones.map((p) => (
+              <li>
+                <a class="num" href={`tel:${p.e164}`}>
+                  <Icon name="phone" size={18} /> {p.display}
+                </a>
+              </li>
+            ))
+          }
+          <li>
+            <a href={cfg.viber}><Icon name="viber" size={18} /> {S.viber}</a>
+          </li>
+        </ul>
+        <p class="ci-demo small muted">{S.demoNote}</p>
+      </div>
+    </div>
+  </section>
   <Lightbox lang={lang} />
   <StickyCta lang={lang} href="#inquiry" />
 </Base>
@@ -523,7 +542,8 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
     flex: none;
     margin-top: 2px;
   }
-  [data-ci-body] [data-sn-section] {
+  [data-ci-body] [data-sn-section],
+  .ci-inquiry {
     scroll-margin-top: 46px;
   }
 
@@ -660,21 +680,26 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
 
   .ci-inq {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.5fr);
+    grid-template-areas:
+      'copy form'
+      'contacts form';
+    grid-template-rows: auto 1fr;
     gap: var(--s-6) clamp(2rem, 1rem + 4vw, 6rem);
     align-items: start;
   }
   .ci-inq-copy {
+    grid-area: copy;
     display: grid;
     gap: var(--s-5);
     align-content: start;
-    justify-items: start;
   }
-  .ci-inq-copy .btn svg {
-    width: 18px;
-    height: 18px;
+  .ci-inq-form {
+    grid-area: form;
+    min-width: 0;
   }
   .ci-inq-contacts {
+    grid-area: contacts;
     display: grid;
     gap: var(--s-3);
     padding-top: var(--s-5);
@@ -737,9 +762,13 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
     }
     .ci-row,
     .ci-solo,
-    .ci-spec-grid,
+    .ci-spec-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
     .ci-inq {
       grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: 'copy' 'form' 'contacts';
+      grid-template-rows: auto;
     }
     .ci-row-text,
     .ci-row-media,
@@ -750,7 +779,8 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
     .ci-row-media {
       order: -1;
     }
-    [data-ci-body] [data-sn-section] {
+    [data-ci-body] [data-sn-section],
+    .ci-inquiry {
       scroll-margin-top: 40px;
     }
   }

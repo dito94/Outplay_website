@@ -76,7 +76,7 @@ const jsonLd = {
           <li>
             <a href={categoryUrl(lang, c.id)}>
               <span class="cs-name">{t(c.name, lang)}</span>
-              <span class="cs-count">{productCount(lang, countOf(c.id))}</span>
+              <span class="cs-count" data-pcount={c.id} data-pcount-n={countOf(c.id)}>{productCount(lang, countOf(c.id))}</span>
             </a>
           </li>
         ))

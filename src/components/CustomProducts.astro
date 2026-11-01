@@ -1,8 +1,7 @@
 ---
-// Shows products added in the admin demo (localStorage, see src/lib/store.ts) on public pages, in this
-// browser only: a card in the product grid of their category (wherever that category is listed in full),
-// and a link in the header mega-menu and the mobile drawer. Include once per page (in Base.astro): <CustomProducts />
-// It reads the existing markup and clones it, so it keeps working when other components change their styles.
+// Applies the admin demo's browser-local catalogue changes on public pages (see src/lib/custom-products.ts):
+// edited and hidden catalogue products, products added in the admin (cards, menu links), balanced product grids
+// and updated product counts. Included once per page by src/layouts/Base.astro.
 import { products } from '../data/products';
 import { categories } from '../data/categories';
 import { url } from '../lib/i18n';
@@ -19,10 +18,10 @@ const data = {
 
 <script type="application/json" id="cp-data" is:inline set:html={JSON.stringify(data)}></script>
 <script>
-  import { injectCustomProducts, type CustomProductsConfig } from '../lib/custom-products';
+  import { applyCatalogue, type CustomProductsConfig } from '../lib/custom-products';
   try {
     const el = document.getElementById('cp-data');
-    if (el) injectCustomProducts(JSON.parse(el.textContent || '{}') as CustomProductsConfig);
+    if (el) applyCatalogue(JSON.parse(el.textContent || '{}') as CustomProductsConfig);
   } catch {
     /* never break a page for a demo feature */
   }

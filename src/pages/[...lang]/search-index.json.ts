@@ -54,6 +54,7 @@ export const GET: APIRoute = async ({ params }) => {
     const sub = cat?.subgroups?.find((s) => s.id === p.subgroup);
     docs.push({
       type: 'product',
+      id: p.id,
       title: t(p.name, lang),
       sub: join(t(cat?.name, lang), t(p.tagline, lang)),
       text: t(p.summary, lang),
@@ -74,6 +75,7 @@ export const GET: APIRoute = async ({ params }) => {
     const list = products.filter((p) => p.category === c.id).map((p) => t(p.name, lang));
     docs.push({
       type: 'category',
+      id: c.id,
       title: t(c.name, lang),
       sub: t(c.tagline, lang),
       text: list.join(' · '),
@@ -123,7 +125,7 @@ export const GET: APIRoute = async ({ params }) => {
     });
   }
 
-  const body: SearchIndex = { lang, docs };
+  const body: SearchIndex = { lang, docs, itemUrl: url(lang, '/products/item/') };
   return new Response(JSON.stringify(body), {
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
   });
