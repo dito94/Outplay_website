@@ -5,7 +5,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const BASE = '/Outplay_website/';
-const DIST = path.resolve(process.env.DIST || path.join(__dirname, '..', 'dist'));
+const DIST = path.resolve(process.env.DIST || path.join('/nonexistent'));
 const [, , route = BASE, out = 'shot.png', w = '1440', h = '900', full = '1'] = process.argv;
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.json': 'application/json' };
 const server = http.createServer((req, res) => {
@@ -24,8 +24,8 @@ const server = http.createServer((req, res) => {
   pg.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
   pg.on('pageerror', (e) => errs.push(e.message));
   await pg.goto(`http://localhost:${port}${route}`, { waitUntil: 'networkidle' });
-  if (full === '1') await pg.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 450) { scrollTo(0, y); await new Promise((r) => setTimeout(r, 120)); } scrollTo(0, 0); });
-  await pg.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 15000 }).catch(() => {});
+  if (full === '1') await pg.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 400) { scrollTo(0, y); await new Promise((r) => setTimeout(r, 220)); } scrollTo(0, 0); });
+  await pg.waitForFunction(() => [...document.images].every((i) => i.complete && i.naturalWidth > 0), null, { timeout: 15000 }).catch(() => {});
   await pg.waitForTimeout(1500);
   await pg.screenshot({ path: out, fullPage: full === '1' });
   console.log('saved', out, '| console errors:', errs.length ? errs.join(' | ') : 'none');

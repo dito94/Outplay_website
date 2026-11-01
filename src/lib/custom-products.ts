@@ -75,6 +75,8 @@ export function injectCustomProducts(cfg: CustomProductsConfig): void {
       img.removeAttribute('srcset');
       img.removeAttribute('sizes');
       img.removeAttribute('fetchpriority');
+      // the photo is a local data URL: nothing to save by lazy-loading it
+      img.loading = 'eager';
       img.src = main;
       img.alt = name;
       img.style.objectPosition = '';
