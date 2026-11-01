@@ -15,7 +15,7 @@
   --paper: #ffffff;
   --yellow: #f9c823; /* brand yellow (logo) */
   --yellow-deep: #e6b40c;
-  --viber: #7360f2;
+  --viber: #6a55e8; /* Viber purple, deepened slightly for 4.5:1 with white text */
   --danger: #b42318;
   --success: #1f7a4a;
 
@@ -430,8 +430,8 @@ textarea {
   --btn-bd: var(--viber);
 }
 .btn-viber:hover {
-  --btn-bg: #5f4be0;
-  --btn-bd: #5f4be0;
+  --btn-bg: #5843d6;
+  --btn-bd: #5843d6;
 }
 .btn-sm {
   min-height: 42px;

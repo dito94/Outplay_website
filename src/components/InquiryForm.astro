@@ -184,7 +184,13 @@ const optional = tx(ui.form.hints.optional);
     {
       [T.step1, T.step2, T.step3].map((s, i) => (
         <li class:list={['iq-pi', { 'is-current': i === 0 }]} data-pi={i + 1}>
-          <button type="button" class="iq-pi-btn" data-goto={i + 1} aria-current={i === 0 ? 'step' : undefined}>
+          <button
+            type="button"
+            class="iq-pi-btn"
+            data-goto={i + 1}
+            aria-current={i === 0 ? 'step' : undefined}
+            aria-label={`${t(ui.inquiry.stepOf, lang).replace('{n}', String(i + 1)).replace('{total}', '3')}: ${tx(s)}`}
+          >
             <span class="iq-pi-n num" aria-hidden="true">
               {i + 1}
             </span>

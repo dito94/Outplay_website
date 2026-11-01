@@ -27,7 +27,7 @@ const T = {
 };
 ---
 
-<div class="viber" data-viber>
+<aside class="viber" data-viber aria-label={T.label[lang]}>
   <a class="fab" href={viberHref} data-viber-fab aria-label={T.label[lang]} aria-haspopup="dialog" aria-expanded="false">
     <Icon name="viber" size={28} />
     <span class="fab-label">{T.label[lang]}</span>
@@ -48,7 +48,7 @@ const T = {
       {site.phones[1] && <>· <a href={`tel:${site.phones[1].e164}`}>{site.phones[1].display}</a></>}
     </p>
   </div>
-</div>
+</aside>
 
 <style>
   .viber {
@@ -71,13 +71,13 @@ const T = {
     background: var(--viber);
     color: #fff;
     text-decoration: none;
-    box-shadow: 0 10px 30px -8px rgba(115, 96, 242, 0.55);
+    box-shadow: 0 10px 30px -8px rgba(106, 85, 232, 0.55);
     transition:
       background-color 0.2s var(--ease),
       box-shadow 0.2s var(--ease);
   }
   .fab:hover {
-    background: #5f4be0;
+    background: #5843d6;
   }
   .fab:focus-visible {
     outline: 3px solid var(--ink);
