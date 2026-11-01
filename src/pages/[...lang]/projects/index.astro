@@ -163,7 +163,7 @@ const jump = [
                   <Img
                     src={r.image}
                     lang={lang}
-                    sizes="(min-width: 1440px) 430px, (min-width: 901px) 30vw, (min-width: 521px) 46vw, 94vw"
+                    sizes="(min-width: 1440px) 430px, (min-width: 901px) 30vw, 47vw"
                     widths={[480, 768]}
                   />
                 </div>
@@ -180,14 +180,14 @@ const jump = [
   <section class:list={['section-tight', 'partners-sec', { night: refs.length > 0 }]} aria-labelledby="partners-title">
     <div class="wrap">
       <div class="partners">
-      <div class="partners-copy">
-        <h2 id="partners-title" class="h3">{t(home.partners.title, lang)}</h2>
-        <p class="muted small">{t(home.partners.intro, lang)}</p>
-      </div>
-      <ul class="partner-list">
-        {site.partners.map((p) => <li>{p}</li>)}
-        <li class="partner-more">{t(site.partnersMore, lang)}</li>
-      </ul>
+        <div class="partners-copy">
+          <h2 id="partners-title" class="h3">{t(home.partners.title, lang)}</h2>
+          <p class="muted small">{t(home.partners.intro, lang)}</p>
+        </div>
+        <ul class="partner-list">
+          {site.partners.map((p) => <li>{p}</li>)}
+          <li class="partner-more">{t(site.partnersMore, lang)}</li>
+        </ul>
       </div>
     </div>
   </section>
@@ -354,8 +354,10 @@ const jump = [
   }
   @media (max-width: 520px) {
     .refs {
-      grid-template-columns: minmax(0, 1fr);
-      gap: var(--s-6);
+      gap: var(--s-6) var(--s-3);
+    }
+    .ref-name {
+      font-size: var(--step-0);
     }
   }
 

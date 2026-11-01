@@ -2218,8 +2218,8 @@ const optional = tx(ui.form.hints.optional);
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(draw);
     };
-    if ('ResizeObserver' in window) new ResizeObserver(redraw).observe(board);
-    else window.addEventListener('resize', redraw);
+    if (typeof ResizeObserver === 'function') new ResizeObserver(redraw).observe(board);
+    else addEventListener('resize', redraw);
 
     // ---------------------------------------------------------------- photos
     const fmtSize = (b: number) => (b > 1e6 ? `${nf1.format(b / 1e6)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);

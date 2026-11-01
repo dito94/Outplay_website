@@ -128,15 +128,14 @@ const jsonLd = {
 
       <figure class="c-map" aria-labelledby="c-map-title">
         <div class="c-map-frame">
-          <div class="c-map-fallback" aria-hidden="true">
+          <div class="c-map-fallback" data-map-facade>
             <Icon name="pin" size={34} />
+            <p class="c-map-addr">{address}</p>
+            <button type="button" class="btn btn-dark btn-sm" data-map-load data-src={mapSrc} data-title={`${t(P.mapTitle, lang)}: ${address}`}>
+              {lang === 'bg' ? 'Покажи картата' : 'Show the map'}
+            </button>
+            <p class="c-map-note small">{lang === 'bg' ? 'Картата се зарежда от Google Maps при натискане.' : 'The map loads from Google Maps when you click.'}</p>
           </div>
-          <iframe
-            src={mapSrc}
-            title={`${t(P.mapTitle, lang)}: ${address}`}
-            loading="lazy"
-            referrerpolicy="no-referrer-when-downgrade"
-            allowfullscreen></iframe>
         </div>
         <figcaption class="c-map-cap">
           <span id="c-map-title" class="c-map-title">{t(P.mapTitle, lang)}</span>
@@ -287,6 +286,7 @@ const jsonLd = {
   }
   .c-viber {
     grid-template-columns: auto auto;
+    justify-content: start;
     align-items: center;
     column-gap: var(--s-4);
   }
@@ -330,12 +330,25 @@ const jsonLd = {
     position: absolute;
     inset: 0;
     display: grid;
-    place-items: center;
+    place-content: center;
+    justify-items: center;
+    gap: var(--s-3);
+    padding: var(--s-5);
+    text-align: center;
     color: var(--steel);
     background-image:
       linear-gradient(color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 1px),
       linear-gradient(90deg, color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 1px);
     background-size: 32px 32px;
+  }
+  .c-map-addr {
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    max-width: 28ch;
+  }
+  .c-map-note {
+    max-width: 34ch;
   }
   .c-map iframe {
     position: absolute;
@@ -492,3 +505,22 @@ const jsonLd = {
     }
   }
 </style>
+
+<script>
+  // Click-to-load map: no request to Google until the visitor asks for it.
+  document.querySelectorAll<HTMLButtonElement>('[data-map-load]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const frame = btn.closest('.c-map-frame');
+      if (!frame) return;
+      const iframe = document.createElement('iframe');
+      iframe.src = btn.dataset.src ?? '';
+      iframe.title = btn.dataset.title ?? '';
+      iframe.loading = 'lazy';
+      iframe.referrerPolicy = 'no-referrer-when-downgrade';
+      iframe.allowFullscreen = true;
+      frame.appendChild(iframe);
+      frame.querySelector<HTMLElement>('[data-map-facade]')?.setAttribute('hidden', '');
+      iframe.focus();
+    });
+  });
+</script>

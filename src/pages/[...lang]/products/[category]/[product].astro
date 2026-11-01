@@ -202,17 +202,21 @@ const jsonLd = {
           </div>
         </div>
       </div>
-      <div class="p-hero-media bracket">
-        <div class="media p-hero-img">
-          <Img
-            src={hero}
-            lang={lang}
-            alt={altOf(hero, lang) || t(product.fullName, lang)}
-            priority
-            sizes="(min-width: 1440px) 1330px, calc(100vw - 2 * clamp(16px, 4vw, 56px))"
-          />
-        </div>
-      </div>
+      {
+        heroMeta && (
+          <div class="p-hero-media bracket">
+            <div class="media p-hero-img">
+              <Img
+                src={hero}
+                lang={lang}
+                alt={altOf(hero, lang) || t(product.fullName, lang)}
+                priority
+                sizes="(min-width: 1440px) 1330px, calc(100vw - 2 * clamp(16px, 4vw, 56px))"
+              />
+            </div>
+          </div>
+        )
+      }
       <SpecPlate lang={lang} highlights={product.highlights} name={name} title={t(ui.product.highlights, lang)} id="p-plate" />
     </div>
   </section>

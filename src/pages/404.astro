@@ -69,6 +69,15 @@ const linksFor = (l: Lang) => [
   </section>
 </Base>
 
+<script is:inline define:vars={{ homes: { bg: url('bg', '/'), en: url('en', '/') } }}>
+  // The shared header/footer build their language switch from the current path, which here is /404/.
+  // Send those links to the home page in each language instead.
+  document.querySelectorAll('a[href$="/404/"]').forEach((a) => {
+    const href = a.getAttribute('href') || '';
+    a.setAttribute('href', href === homes.en + '404/' ? homes.en : homes.bg);
+  });
+</script>
+
 <style>
   .nf {
     position: relative;

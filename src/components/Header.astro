@@ -582,6 +582,10 @@ const isProducts = route.startsWith('/products/');
 
 <script>
   const header = document.querySelector<HTMLElement>('[data-header]');
+  // Show the right shortcut for the platform
+  if (!/Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent)) {
+    document.querySelectorAll<HTMLElement>('.kbd').forEach((k) => (k.textContent = 'Ctrl K'));
+  }
   if (header) {
     // Solid header after scrolling past the hero top
     const onScroll = () => header.classList.toggle('is-solid', window.scrollY > 40);
