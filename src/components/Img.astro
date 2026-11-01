@@ -1,5 +1,5 @@
 ---
-import { Picture } from 'astro:assets';
+import { Image } from 'astro:assets';
 import type { Lang } from '../data/types';
 import { img, altOf, focalOf } from '../lib/images';
 
@@ -38,9 +38,10 @@ const altText = alt ?? altOf(src, lang);
 
 {
   image ? (
-    <Picture
+    <Image
       src={image}
-      formats={['webp']}
+      format="webp"
+      quality={80}
       widths={usable}
       sizes={sizes}
       alt={altText}
@@ -49,7 +50,6 @@ const altText = alt ?? altOf(src, lang);
       fetchpriority={priority ? 'high' : 'auto'}
       class={cls}
       style={focal ? `object-position:${focal}` : undefined}
-      pictureAttributes={{ class: pictureClass }}
     />
   ) : (
     <div class:list={['img-missing', cls]} role="img" aria-label={altText} />
@@ -64,8 +64,5 @@ const altText = alt ?? altOf(src, lang);
     background:
       linear-gradient(135deg, transparent 49.5%, rgba(255, 255, 255, 0.08) 50%, transparent 50.5%),
       var(--graphite);
-  }
-  picture {
-    display: contents;
   }
 </style>
