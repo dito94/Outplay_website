@@ -22,6 +22,7 @@ import {
   writeJSON,
   type CustomProduct,
   type InquiryStatus,
+  type SaveResult,
   type ProductOverride,
   type StoredInquiry,
 } from '../../lib/store';
@@ -826,7 +827,7 @@ export function boot(): void {
     const c = id.startsWith('c-') ? getCustomProduct(id) : undefined;
     if (c) {
       const hide = !c.hidden;
-      let res: ReturnType<typeof updateCustomProduct> = { ok: true };
+      let res = { ok: true } as SaveResult;
       mutate(() => (res = updateCustomProduct(id, { hidden: hide || undefined })));
       if (!res.ok) return toast(S.cpUnavailable);
       refresh();
@@ -1502,7 +1503,7 @@ export function boot(): void {
     }
     const existing = d.id ? getCustomProduct(d.id) : undefined;
     const product = productFromDraft(d, existing);
-    let res: ReturnType<typeof saveCustomProduct> = { ok: true };
+    let res = { ok: true } as SaveResult;
     mutate(() => (res = saveCustomProduct(product)));
     if (!res.ok) {
       const msg = res.reason === 'quota' ? S.cpQuota : S.cpUnavailable;
