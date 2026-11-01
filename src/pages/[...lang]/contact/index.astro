@@ -1,0 +1,494 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Breadcrumbs from '../../../components/Breadcrumbs.astro';
+import SectionHead from '../../../components/SectionHead.astro';
+import InquiryForm from '../../../components/InquiryForm.astro';
+import CopyButton from '../../../components/CopyButton.astro';
+import Icon from '../../../components/Icon.astro';
+import { site } from '../../../data/site';
+import { pages } from '../../../data/pages';
+import { ui } from '../../../data/ui';
+import { langParams, getLang, url, t } from '../../../lib/i18n';
+
+export function getStaticPaths() {
+  return langParams();
+}
+const lang = getLang(Astro.params.lang);
+const P = pages.contact;
+
+const T = {
+  metaTitle: { bg: 'Контакти и запитване за оферта', en: 'Contact and quote request' },
+  direct: { bg: 'Директна връзка', en: 'Get in touch' },
+  viberNote: { bg: 'Пишете ни по всяко време – изпратете и снимки на мястото.', en: 'Message us any time, and send photos of the space too.' },
+  mapFallback: { bg: 'Картата не се зарежда?', en: 'Map not loading?' },
+  nextIntro: {
+    bg: 'След запитването работим в три стъпки, без ангажимент от Ваша страна до окончателната оферта.',
+    en: 'After your request we work in three steps, with no commitment from you until the final quote.',
+  },
+  preferCall: { bg: 'Предпочитате разговор?', en: 'Prefer to talk?' },
+};
+
+// What happens after the inquiry: indicative quote → site visit and measuring → final quote
+const stepText = (id: string) => pages.process.steps.find((s) => s.id === id)?.text;
+const nextSteps = [
+  { title: pages.inquiry.success.next[0], text: stepText('indicative-offer') },
+  { title: pages.inquiry.success.next[1], text: stepText('site-visit') },
+  { title: pages.inquiry.success.next[2], text: stepText('design') },
+];
+
+const address = t(site.address, lang);
+const mapSrc = `https://www.google.com/maps?q=${encodeURIComponent(site.address.en)}&hl=${lang}&z=15&output=embed`;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'HomeAndConstructionBusiness',
+  name: 'OUTPLAY',
+  url: new URL(url(lang, '/'), Astro.site).href,
+  telephone: site.phones.map((p) => p.e164),
+  email: site.email,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: t(site.postalAddress.street, lang),
+    addressLocality: t(site.postalAddress.locality, lang),
+    postalCode: site.postalAddress.postalCode,
+    addressCountry: site.postalAddress.country,
+  },
+};
+---
+
+<Base lang={lang} title={t(T.metaTitle, lang)} description={t(P.intro, lang)} jsonLd={jsonLd}>
+  <section class="c-hero">
+    <div class="wrap">
+      <Breadcrumbs lang={lang} items={[{ label: t(P.title, lang) }]} />
+      <div class="c-hero-grid">
+        <h1 class="h1 rule">{t(P.title, lang)}</h1>
+        <p class="lead">{t(P.intro, lang)}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="c-info" aria-labelledby="c-direct-title">
+    <div class="wrap c-info-grid">
+      <div class="c-details">
+        <h2 id="c-direct-title" class="h3">{t(T.direct, lang)}</h2>
+        <dl class="c-list">
+          <div class="c-row">
+            <dt>{t(ui.contact.phones, lang)}</dt>
+            <dd>
+              <ul class="c-phones">
+                {
+                  site.phones.map((p) => (
+                    <li>
+                      <a class="c-big num" href={`tel:${p.e164}`} aria-label={t(ui.a11y.callLink, lang).replace('{phone}', p.display)}>
+                        {p.display}
+                      </a>
+                      <CopyButton text={p.display} lang={lang} />
+                    </li>
+                  ))
+                }
+              </ul>
+            </dd>
+          </div>
+          <div class="c-row">
+            <dt>{t(ui.contact.email, lang)}</dt>
+            <dd>
+              <p class="c-inline">
+              <a class="c-mid" href={`mailto:${site.email}`}>{site.email}</a>
+              <CopyButton text={site.email} lang={lang} />
+              </p>
+            </dd>
+          </div>
+          <div class="c-row">
+            <dt>{t(ui.contact.viber, lang)}</dt>
+            <dd class="c-viber">
+              <a class="btn btn-viber" href={site.viberUrl}>
+                <Icon name="viber" />
+                {t(ui.actions.viber, lang)}
+              </a>
+              <span class="num c-viber-num">{site.phones[0].display}</span>
+              <p class="muted small">{t(T.viberNote, lang)}</p>
+            </dd>
+          </div>
+          <div class="c-row">
+            <dt>{t(ui.contact.address, lang)}</dt>
+            <dd>
+              <p class="c-inline c-address">
+                <span>{address}</span>
+                <CopyButton text={address} lang={lang} />
+              </p>
+              <a class="link-arrow" href={site.mapsUrl} target="_blank" rel="noopener">
+                {t(ui.actions.openMap, lang)}
+                <Icon name="external" size={16} />
+                <span class="sr-only">({t(ui.a11y.newWindow, lang)})</span>
+              </a>
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <figure class="c-map" aria-labelledby="c-map-title">
+        <div class="c-map-frame">
+          <div class="c-map-fallback" aria-hidden="true">
+            <Icon name="pin" size={34} />
+          </div>
+          <iframe
+            src={mapSrc}
+            title={`${t(P.mapTitle, lang)}: ${address}`}
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            allowfullscreen></iframe>
+        </div>
+        <figcaption class="c-map-cap">
+          <span id="c-map-title" class="c-map-title">{t(P.mapTitle, lang)}</span>
+          <span class="muted small">
+            {t(T.mapFallback, lang)}
+            <a href={site.mapsUrl} target="_blank" rel="noopener">
+              {t(ui.actions.openMap, lang)}<span class="sr-only"> ({t(ui.a11y.newWindow, lang)})</span>
+            </a>
+          </span>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section mist c-inquiry" id="inquiry" aria-labelledby="inquiry-title">
+    <div class="wrap">
+      <SectionHead id="inquiry-title" title={t(P.formTitle, lang)} intro={t(pages.inquiry.intro, lang)} />
+      <div class="c-form-grid">
+        <InquiryForm lang={lang} id="inquiry-form" />
+        <aside class="c-aside" aria-labelledby="c-next-title">
+          <h3 id="c-next-title" class="c-aside-title">{t(pages.inquiry.success.nextTitle, lang)}</h3>
+          <p class="muted small">{t(T.nextIntro, lang)}</p>
+          <ol class="c-steps">
+            {
+              nextSteps.map((s, i) => (
+                <li>
+                  <span class="c-step-n num">{String(i + 1).padStart(2, '0')}</span>
+                  <div>
+                    <p class="c-step-title">{t(s.title, lang)}</p>
+                    {s.text && <p class="muted small">{t(s.text, lang)}</p>}
+                  </div>
+                </li>
+              ))
+            }
+          </ol>
+          <p class="c-note small">{t(pages.process.note, lang)}</p>
+          <div class="c-call">
+            <p class="c-call-title">{t(T.preferCall, lang)}</p>
+            <a class="c-call-phone num" href={`tel:${site.phones[0].e164}`}>
+              <Icon name="phone" size={18} />
+              {site.phones[0].display}
+            </a>
+            <a class="btn btn-viber btn-sm" href={site.viberUrl}>
+              <Icon name="viber" size={18} />
+              Viber
+            </a>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .c-hero {
+    padding-block: clamp(2rem, 1.5rem + 2vw, 3.5rem) clamp(2.5rem, 2rem + 3vw, 4.5rem);
+  }
+  .c-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s-5) var(--s-8);
+    align-items: end;
+    margin-top: clamp(1.5rem, 1rem + 2vw, 3rem);
+  }
+  @media (max-width: 860px) {
+    .c-hero-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* Details + map */
+  .c-info {
+    padding-bottom: var(--section);
+  }
+  .c-info-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: var(--s-7) var(--s-8);
+    align-items: stretch;
+  }
+  .c-details {
+    display: grid;
+    align-content: start;
+    gap: var(--s-5);
+  }
+  .c-list {
+    margin: 0;
+    border-top: 1px solid var(--ink);
+  }
+  .c-row {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    gap: var(--s-2) var(--s-5);
+    padding: var(--s-5) 0;
+    border-bottom: 1px solid var(--hair);
+  }
+  .c-row dt {
+    padding-top: 0.35rem;
+    font-size: var(--step--1);
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .c-row dd {
+    margin: 0;
+    display: grid;
+    gap: var(--s-3);
+    justify-items: start;
+  }
+  .c-phones {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--s-2);
+  }
+  .c-phones li,
+  .c-inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-3);
+  }
+  .c-big {
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .c-big:hover,
+  .c-mid:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--yellow-deep);
+    text-decoration-thickness: 2px;
+  }
+  .c-mid {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    text-decoration: none;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    overflow-wrap: anywhere;
+  }
+  .c-viber {
+    grid-template-columns: auto auto;
+    align-items: center;
+    column-gap: var(--s-4);
+  }
+  .c-viber p {
+    grid-column: 1 / -1;
+  }
+  .c-viber-num {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .c-address {
+    font-size: var(--step-0);
+    line-height: 1.45;
+  }
+  @media (max-width: 520px) {
+    .c-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .c-row dt {
+      padding-top: 0;
+    }
+    .c-viber {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .c-map {
+    margin: 0;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    min-height: 420px;
+  }
+  .c-map-frame {
+    position: relative;
+    min-height: 360px;
+    background: var(--mist);
+    border: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .c-map-fallback {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--steel);
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .c-map iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    filter: grayscale(0.92) contrast(1.04);
+    transition: filter 0.3s var(--ease);
+  }
+  .c-map-frame:hover iframe,
+  .c-map-frame:focus-within iframe {
+    filter: grayscale(0.2);
+  }
+  .c-map-cap {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-2) var(--s-5);
+    padding-top: var(--s-3);
+  }
+  .c-map-title {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+  }
+  .c-map-cap a {
+    font-weight: 600;
+  }
+  @media (max-width: 1000px) {
+    .c-info-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .c-map {
+      min-height: 0;
+    }
+    .c-map-frame {
+      min-height: 0;
+      aspect-ratio: 4 / 3;
+    }
+  }
+
+  /* Inquiry */
+  .c-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 19rem);
+    gap: var(--s-6) var(--s-7);
+    align-items: start;
+  }
+  /* the success panel repeats next steps and contacts, so the aside steps back */
+  .c-form-grid:has(.iq[data-state='sent']) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .c-form-grid:has(.iq[data-state='sent']) .c-aside {
+    display: none;
+  }
+  .c-aside {
+    position: sticky;
+    top: calc(var(--header-h) + 24px);
+    display: grid;
+    gap: var(--s-4);
+    padding-top: calc(52px + var(--s-4));
+  }
+  .c-aside-title {
+    font-size: var(--step-1);
+    font-weight: 400;
+  }
+  .c-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+  }
+  .c-steps li {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    gap: var(--s-3);
+    padding: var(--s-4) 0;
+    border-top: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+    position: relative;
+  }
+  .c-steps li:first-child {
+    border-top-color: var(--ink);
+  }
+  .c-steps li:first-child::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 40px;
+    height: 3px;
+    background: var(--yellow);
+  }
+  .c-step-n {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-weight: 300;
+    color: var(--steel);
+    line-height: 1.3;
+  }
+  .c-step-title {
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+  }
+  .c-note {
+    padding: var(--s-3) var(--s-4);
+    border-left: 3px solid var(--yellow);
+    background: var(--paper);
+  }
+  .c-call {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-2) var(--s-4);
+    padding-top: var(--s-4);
+    border-top: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  }
+  .c-call-title {
+    flex-basis: 100%;
+    font-weight: 600;
+  }
+  .c-call-phone {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .c-call-phone:hover {
+    text-decoration: underline;
+  }
+  @media (max-width: 1100px) {
+    .c-form-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .c-aside {
+      position: static;
+      padding-top: 0;
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  @media (min-width: 700px) and (max-width: 1100px) {
+    .c-aside {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      column-gap: var(--s-7);
+    }
+    .c-aside-title,
+    .c-aside > p.muted {
+      grid-column: 1 / -1;
+    }
+    .c-steps {
+      grid-row: span 2;
+    }
+  }
+</style>

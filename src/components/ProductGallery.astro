@@ -1,0 +1,180 @@
+---
+// Product photo grid with mixed spans and no orphan cells. Each tile opens the page Lightbox
+// (include <Lightbox lang={lang} /> once on the page).
+import type { Lang } from '../data/types';
+import { altOf, lightboxSrc } from '../lib/images';
+import Img from './Img.astro';
+import Icon from './Icon.astro';
+
+interface Props {
+  lang: Lang;
+  /** image paths relative to src/assets/img; the first one gets the large tile */
+  images: string[];
+  /** lightbox group */
+  group?: string;
+  /** used to build alt text when an image has no metadata */
+  name: string;
+}
+const { lang, images, group = 'product', name } = Astro.props;
+const photo = lang === 'bg' ? 'снимка' : 'photo';
+const open = lang === 'bg' ? 'Отвори снимката' : 'Open image';
+
+/** [columns of 12, rows] for each tile, chosen so every row is filled */
+function layout(n: number): [number, number][] {
+  if (n <= 0) return [];
+  if (n === 1) return [[12, 3]];
+  if (n === 2) return [[7, 2], [5, 2]];
+  if (n === 4) return [[7, 2], [5, 2], [5, 2], [7, 2]];
+  const out: [number, number][] = [[8, 2], [4, 1], [4, 1]];
+  let r = n - 3;
+  while (r > 0) {
+    if (r === 1) {
+      out.push([12, 2]);
+      r -= 1;
+    } else if (r === 2 || r === 4) {
+      out.push([6, 2], [6, 2]);
+      r -= 2;
+    } else {
+      out.push([4, 2], [4, 2], [4, 2]);
+      r -= 3;
+    }
+  }
+  return out;
+}
+
+const spans = layout(images.length);
+const tiles = await Promise.all(
+  images.map(async (src, i) => {
+    const alt = altOf(src, lang) || `${name}, ${photo} ${i + 1}`;
+    const [c, r] = spans[i];
+    const bigSizes =
+      c >= 12 ? '(min-width: 1440px) 1330px, 100vw' : c >= 7 ? '(min-width: 1440px) 890px, (min-width: 700px) 62vw, 100vw' : '';
+    return {
+      src,
+      alt,
+      href: await lightboxSrc(src),
+      c,
+      r,
+      sizes: bigSizes || (c >= 5 ? '(min-width: 1440px) 660px, (min-width: 700px) 48vw, 50vw' : '(min-width: 1440px) 440px, (min-width: 700px) 33vw, 50vw'),
+    };
+  }),
+);
+// Phones: two columns; the first tile spans both, and so does the last when the rest is odd.
+const mobileWideLast = images.length > 1 && (images.length - 1) % 2 === 1;
+---
+
+{
+  tiles.length > 0 && (
+    <ul class="pgal" role="list">
+      {tiles.map((tl, i) => (
+        <li
+          class:list={['pg-tile', { 'm-wide': i === 0 || (mobileWideLast && i === tiles.length - 1) }]}
+          style={`--c:${tl.c};--r:${tl.r}`}
+        >
+          {tl.href ? (
+            <a class="pg-link media" href={tl.href} data-lightbox={group} data-caption={tl.alt}>
+              <Img src={tl.src} lang={lang} alt={tl.alt} sizes={tl.sizes} widths={[480, 768, 1080, 1440, 1920]} />
+              <span class="pg-zoom" aria-hidden="true">
+                <Icon name="expand" size={18} />
+              </span>
+              <span class="sr-only">{open}</span>
+            </a>
+          ) : (
+            <div class="media pg-link">
+              <Img src={tl.src} lang={lang} alt={tl.alt} sizes={tl.sizes} />
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+<style>
+  .pgal {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-auto-rows: clamp(170px, 15vw, 250px);
+    gap: var(--s-4);
+  }
+  .pg-tile {
+    grid-column: span var(--c);
+    grid-row: span var(--r);
+    min-width: 0;
+  }
+  .pg-link {
+    display: block;
+    width: 100%;
+    height: 100%;
+    color: #fff;
+  }
+  .pg-link :global(img),
+  .pg-link :global(.img-missing) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.35s var(--ease);
+  }
+  .pg-link:hover :global(img) {
+    opacity: 0.88;
+  }
+  .pg-zoom {
+    position: absolute;
+    right: var(--s-4);
+    bottom: var(--s-4);
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(10, 10, 8, 0.55);
+    color: #fff;
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 0.25s var(--ease),
+      transform 0.25s var(--ease),
+      background-color 0.2s var(--ease);
+  }
+  .pg-link:hover .pg-zoom,
+  .pg-link:focus-visible .pg-zoom {
+    opacity: 1;
+    transform: none;
+  }
+  .pg-link:hover .pg-zoom {
+    background: var(--yellow);
+    color: var(--ink);
+  }
+  .pg-link:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+  @media (hover: none) {
+    .pg-zoom {
+      opacity: 1;
+      transform: none;
+      width: 36px;
+      height: 36px;
+      right: var(--s-3);
+      bottom: var(--s-3);
+    }
+  }
+  @media (max-width: 699px) {
+    .pgal {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: 34vw;
+      gap: var(--s-2);
+    }
+    .pg-tile {
+      grid-column: span 1;
+      grid-row: span 1;
+    }
+    .pg-tile.m-wide {
+      grid-column: 1 / -1;
+      grid-row: span 2;
+    }
+  }
+</style>

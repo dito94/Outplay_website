@@ -1,7 +1,927 @@
 ---
+import { getImage } from 'astro:assets';
+import Base from '../../../../layouts/Base.astro';
+import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
+import SectionHead from '../../../../components/SectionHead.astro';
+import Img from '../../../../components/Img.astro';
+import Icon from '../../../../components/Icon.astro';
+import HotspotScene from '../../../../components/HotspotScene.astro';
+import LamellaDemo from '../../../../components/LamellaDemo.astro';
+import Lightbox from '../../../../components/Lightbox.astro';
+import InquiryForm from '../../../../components/InquiryForm.astro';
+import CtaBand from '../../../../components/CtaBand.astro';
+import SpecPlate from '../../../../components/SpecPlate.astro';
+import SubNav from '../../../../components/SubNav.astro';
+import ProductGallery from '../../../../components/ProductGallery.astro';
+import ProductGrid from '../../../../components/ProductGrid.astro';
+import VideoEmbed from '../../../../components/VideoEmbed.astro';
+import StickyCta from '../../../../components/StickyCta.astro';
+import type { Product } from '../../../../data/types';
+import { products } from '../../../../data/products';
+import { categories } from '../../../../data/categories';
+import { diagramHotspots } from '../../../../data/hotspots';
+import { site } from '../../../../data/site';
+import { ui } from '../../../../data/ui';
+import { LANGS, DEFAULT_LANG, getLang, url, categoryUrl, t, fmt } from '../../../../lib/i18n';
+import { productImages, img, altOf } from '../../../../lib/images';
+
 export function getStaticPaths() {
-  return [undefined, 'en'].flatMap((lang) => [{ params: { lang, category: 'c1', product: 'p1' } }]);
+  return LANGS.flatMap((l) =>
+    products.map((p) => ({
+      params: { lang: l === DEFAULT_LANG ? undefined : l, category: p.category, product: p.id },
+      props: { product: p },
+    })),
+  );
 }
-const { lang, category, product } = Astro.params;
+
+interface Props {
+  product: Product;
+}
+const { product } = Astro.props;
+const lang = getLang(Astro.params.lang);
+const category = categories.find((c) => c.id === product.category)!;
+
+const T = {
+  products: { bg: 'Продукти', en: 'Products' },
+  quote: { bg: 'Направете запитване', en: 'Request a quote' },
+  quoteShort: { bg: 'Запитване', en: 'Get a quote' },
+  navOverview: { bg: 'Описание', en: 'Overview' },
+  navTech: { bg: 'Технология', en: 'Technology' },
+  navSpecs: { bg: 'Параметри', en: 'Specifications' },
+  navGallery: { bg: 'Галерия', en: 'Gallery' },
+  navInquiry: { bg: 'Запитване', en: 'Inquiry' },
+  techTitle: { bg: 'Конструкцията отблизо', en: 'The structure up close' },
+  techIntroHotspots: {
+    bg: 'Изберете номер върху схемата, за да видите какво е вградено в конструкцията.',
+    en: 'Select a number on the drawing to see what is built into the structure.',
+  },
+  techIntroFeatures: {
+    bg: 'Основните елементи на конструкцията, събрани на една схема.',
+    en: 'The main elements of the structure on one drawing.',
+  },
+  videoText: {
+    bg: 'Видеото се отваря на outplay.bg в нов прозорец.',
+    en: 'The video opens on outplay.bg in a new window.',
+  },
+  lamTitle: { bg: 'Светлина, сянка и въздух', en: 'Light, shade and air' },
+  lamBalance: {
+    bg: 'Един мотор завърта ламелите от 0° до 120°. Изберете условия или плъзнете скалата, за да видите как реагира покривът.',
+    en: 'A single motor turns the louvres from 0° to 120°. Pick the conditions or drag the slider to see how the roof responds.',
+  },
+  lamInfinity: {
+    bg: 'Ламелите се завъртат от 0° до 120°, а втори мотор ги събира в края на конструкцията и открива небето. Изберете условия, за да видите разликата.',
+    en: 'The louvres turn from 0° to 120°, and a second motor gathers them at one end to open the roof to the sky. Pick the conditions to see the difference.',
+  },
+  galleryIntro: {
+    bg: 'Снимки и визуализации на {name}. Отворете изображение, за да го разгледате в цял размер.',
+    en: 'Photos and visualisations of {name}. Open any image to view it full size.',
+  },
+  relatedIntro: {
+    bg: 'Други системи, които си струва да разгледате заедно с {name}.',
+    en: 'Other systems worth considering alongside {name}.',
+  },
+  talk: { bg: 'Предпочитате да говорим?', en: 'Prefer to talk?' },
+  viber: { bg: 'Пишете ни във Viber', en: 'Message us on Viber' },
+  photo: { bg: 'снимка', en: 'photo' },
+};
+
+const name = t(product.name, lang);
+const { hero, gallery, diagram } = productImages(product.id);
+const hotspots = diagramHotspots[product.id] ?? [];
+const ratioOf = (p: string | undefined) => {
+  const m = img(p);
+  return m ? m.width / m.height : 1.5;
+};
+
+// Editorial rows: pair sections with gallery photos (landscape first), never the hero again.
+const rowPool = [...gallery].sort((a, b) => Number(ratioOf(b) >= 1.1) - Number(ratioOf(a) >= 1.1));
+let imageRow = 0;
+const norm = (v: string) => v.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const taglineKey = norm(t(product.tagline, lang));
+const rows = product.sections.map((s, i) => {
+  const image = rowPool[i];
+  const flip = image ? imageRow++ % 2 === 1 : false;
+  const ratio = image ? Math.min(1.6, Math.max(0.95, ratioOf(image))) : 1;
+  // The hero already shows the tagline; when the first section repeats it, open with a lead paragraph instead.
+  const intro = i === 0 && norm(t(s.heading, lang)) === taglineKey;
+  return { ...s, image, flip, ratio, intro };
+});
+const usedInRows = new Set(rows.map((r) => r.image).filter(Boolean));
+const galleryImages = [hero, ...gallery].filter((p): p is string => !!p);
+const videoPoster = gallery.find((g) => !usedInRows.has(g) && ratioOf(g) >= 1.1) ?? gallery[gallery.length - 1] ?? hero;
+
+const hasTech = !!diagram;
+const techWithHotspots = hasTech && hotspots.length > 0;
+const featuresInTech = hasTech && !techWithHotspots;
+const lamellaSeries = product.id === 'balance' ? 'balance' : product.id === 'infinity' ? 'infinity' : undefined;
+const hasVideo = !!product.video?.url;
+
+// Alternate day / light-grey bands down the page; the lamella demo is always a night band.
+const order = ['overview', hasTech && 'technology', lamellaSeries && 'lamella', 'specs', galleryImages.length && 'gallery', 'inquiry', 'related'].filter(
+  Boolean,
+) as string[];
+const band: Record<string, string> = {};
+let grey = false;
+for (const k of order) {
+  if (k === 'lamella') {
+    band[k] = 'night';
+    continue;
+  }
+  band[k] = grey ? 'mist' : '';
+  grey = !grey;
+}
+band.video = band.gallery ?? band.specs;
+
+const navItems = [
+  { id: 'overview', label: t(T.navOverview, lang) },
+  ...(hasTech ? [{ id: 'technology', label: t(T.navTech, lang) }] : []),
+  { id: 'specs', label: t(T.navSpecs, lang) },
+  ...(galleryImages.length ? [{ id: 'gallery', label: t(T.navGallery, lang) }] : []),
+  { id: 'inquiry', label: t(T.navInquiry, lang) },
+];
+
+const related = product.related
+  .map((id) => products.find((p) => p.id === id))
+  .filter((p): p is Product => !!p);
+
+const phone = site.phones[0];
+const viber = site.viberUrl;
+const longName = name.length > 14;
+
+// JSON-LD (no offers / prices: every system is quoted individually)
+const siteUrl = Astro.site ?? new URL('https://dito94.github.io');
+let ldImage: string | undefined;
+const heroMeta = img(hero);
+if (heroMeta) {
+  const out = await getImage({ src: heroMeta, width: Math.min(1600, heroMeta.width), format: 'jpg', quality: 82 });
+  ldImage = new URL(out.src, siteUrl).href;
+}
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: t(product.fullName, lang),
+  alternateName: name,
+  description: t(product.summary, lang),
+  ...(ldImage ? { image: [ldImage] } : {}),
+  brand: { '@type': 'Brand', name: 'OUTPLAY' },
+  category: t(category.name, lang),
+  url: new URL(Astro.url.pathname, siteUrl).href,
+};
 ---
-<p>{lang ?? 'bg'} {category} {product}</p>
+
+<Base
+  lang={lang}
+  title={t(product.fullName, lang)}
+  description={t(product.summary, lang)}
+  ogImage={hero}
+  jsonLd={jsonLd}
+>
+  <!-- 1. Product hero -->
+  <section class="p-hero" aria-labelledby="p-title">
+    <div class="wrap">
+      <Breadcrumbs
+        lang={lang}
+        items={[
+          { label: t(T.products, lang), href: url(lang, '/products/') },
+          { label: t(category.name, lang), href: categoryUrl(lang, category.id) },
+          { label: name },
+        ]}
+      />
+      <div class="p-head">
+        <div class="p-titles">
+          <h1 id="p-title" class:list={['p-h1', { 'is-long': longName }]} data-pid={product.id} data-pfield="name">{name}</h1>
+          <p class="p-full">{t(product.fullName, lang)}</p>
+        </div>
+        <div class="p-intro">
+          <p class="p-tagline" data-pid={product.id} data-pfield="tagline">{t(product.tagline, lang)}</p>
+          <p class="lead p-sum" data-pid={product.id} data-pfield="summary">{t(product.summary, lang)}</p>
+          <div class="btn-row p-ctas" data-sticky-cta-start>
+            <a class="btn" href="#inquiry">{t(T.quote, lang)} <Icon name="arrow-right" class="arrow" /></a>
+            <a class="btn btn-viber" href={viber}><Icon name="viber" /> Viber</a>
+            <a class="p-phone num" href={`tel:${phone.e164}`}><Icon name="phone" size={18} /> {phone.display}</a>
+          </div>
+        </div>
+      </div>
+      <div class="p-hero-media bracket">
+        <div class="media p-hero-img">
+          <Img
+            src={hero}
+            lang={lang}
+            alt={altOf(hero, lang) || t(product.fullName, lang)}
+            priority
+            sizes="(min-width: 1440px) 1330px, calc(100vw - 2 * clamp(16px, 4vw, 56px))"
+          />
+        </div>
+      </div>
+      <SpecPlate lang={lang} highlights={product.highlights} name={name} title={t(ui.product.highlights, lang)} id="p-plate" />
+    </div>
+  </section>
+
+  <!-- 3. In-page navigation -->
+  <SubNav lang={lang} items={navItems} title={name} cta={{ label: t(T.quoteShort, lang), href: '#inquiry' }} />
+
+  <!-- 4. Overview: editorial rows -->
+  <section id="overview" data-sn-section="overview" class:list={['section', 'p-overview', band.overview]}>
+    <div class="wrap rows">
+      {
+        rows.map((r) =>
+          r.image ? (
+            <article class:list={['row', { flip: r.flip }]} data-reveal>
+              <div class="row-text">
+                {r.intro ? <h2 class="sr-only">{t(T.navOverview, lang)}</h2> : <h2 class="h2 rule">{t(r.heading, lang)}</h2>}
+                <div class:list={['prose', { 'has-lead': r.intro }]}>
+                  {r.paragraphs.map((p) => (
+                    <p>{t(p, lang)}</p>
+                  ))}
+                </div>
+              </div>
+              <div class="row-media media" style={`aspect-ratio:${r.ratio.toFixed(3)}`}>
+                <Img
+                  src={r.image}
+                  lang={lang}
+                  alt={altOf(r.image, lang) || name}
+                  sizes="(min-width: 1440px) 720px, (min-width: 900px) 52vw, 100vw"
+                  widths={[480, 768, 1080, 1440]}
+                />
+              </div>
+            </article>
+          ) : (
+            <article class="row-solo" data-reveal>
+              {r.intro ? <h2 class="sr-only">{t(T.navOverview, lang)}</h2> : <h2 class="h2 rule">{t(r.heading, lang)}</h2>}
+              <div class:list={['prose', { 'has-lead': r.intro }]}>
+                {r.paragraphs.map((p) => (
+                  <p>{t(p, lang)}</p>
+                ))}
+              </div>
+            </article>
+          ),
+        )
+      }
+    </div>
+  </section>
+
+  <!-- 5. Technology in detail -->
+  {
+    hasTech && diagram && (
+      <section id="technology" data-sn-section="technology" class:list={['section', band.technology]} aria-labelledby="tech-title">
+        <div class="wrap">
+          <SectionHead id="tech-title" title={t(T.techTitle, lang)} intro={t(techWithHotspots ? T.techIntroHotspots : T.techIntroFeatures, lang)} />
+          <div class="tech-visual" style={`--dw:${img(diagram)?.width ?? 1000}px`} data-reveal>
+            {techWithHotspots ? (
+              <HotspotScene
+                lang={lang}
+                id={`${product.id}-diagram`}
+                image={diagram}
+                hotspots={hotspots}
+                sizes="(min-width: 1440px) 860px, (min-width: 1000px) 62vw, 100vw"
+              />
+            ) : (
+              <div class="tech-split">
+                <div class="tech-diagram" style={`aspect-ratio:${ratioOf(diagram).toFixed(3)}`}>
+                  <Img src={diagram} lang={lang} sizes="(min-width: 1440px) 860px, (min-width: 1000px) 62vw, 100vw" />
+                </div>
+                <ul class="ticks tech-ticks">
+                  {product.features.map((f) => (
+                    <li>{t(f, lang)}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- 6. Lamella demo (Balance / Infinity) -->
+  {
+    lamellaSeries && (
+      <section class="section night" data-sn-section="technology" aria-labelledby="lam-title">
+        <div class="wrap">
+          <SectionHead id="lam-title" title={t(T.lamTitle, lang)} intro={t(lamellaSeries === 'balance' ? T.lamBalance : T.lamInfinity, lang)} />
+          <LamellaDemo lang={lang} series={lamellaSeries} id={`${product.id}-lamella`} />
+        </div>
+      </section>
+    )
+  }
+
+  <!-- 7. Features, specifications, configurations, options -->
+  <section id="specs" data-sn-section="specs" class:list={['section', band.specs]}>
+    <div class="wrap">
+      <div class:list={['spec-grid', { 'spec-only': featuresInTech }]}>
+        {
+          !featuresInTech && (
+            <div class="spec-col" data-reveal>
+              <h2 class="h3 rule">{t(ui.product.features, lang)}</h2>
+              <ul class="ticks">
+                {product.features.map((f) => (
+                  <li>{t(f, lang)}</li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+        <div class="spec-col" data-reveal>
+          <h2 class="h3 rule" id="specs-title">{t(ui.product.specs, lang)}</h2>
+          <table class="spec-table" aria-labelledby="specs-title">
+            <tbody>
+              {
+                product.specs.map((s) => (
+                  <tr>
+                    <th scope="row">{t(s.label, lang)}</th>
+                    <td>{t(s.value, lang)}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+          <p class="spec-note small muted">{t(ui.product.specsNote, lang)} {t(ui.product.noPrices, lang)}</p>
+        </div>
+      </div>
+
+      {
+        product.configurations && product.configurations.length > 0 && (
+          <div class="confs" data-reveal>
+            <h2 class="h3 rule">{t(ui.product.configurations, lang)}</h2>
+            <ul
+              class="conf-grid"
+              data-n={product.configurations.length}
+              style={`--cols:${product.configurations.length === 5 ? 6 : Math.min(product.configurations.length, 4)}`}
+            >
+              {product.configurations.map((c) => (
+                <li class="conf">
+                  <h3 class="conf-title">{t(c.title, lang)}</h3>
+                  {c.text && <p class="conf-text">{t(c.text, lang)}</p>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      }
+
+      {
+        product.options && product.options.length > 0 && (
+          <div class="opts" data-reveal>
+            <h2 class="h4 opts-title">{t(ui.product.options, lang)}</h2>
+            <ul class="tags">
+              {product.options.map((o) => (
+                <li>{t(o, lang)}</li>
+              ))}
+            </ul>
+          </div>
+        )
+      }
+    </div>
+  </section>
+
+  <!-- 8. Gallery -->
+  {
+    galleryImages.length > 0 && (
+      <section id="gallery" data-sn-section="gallery" class:list={['section', band.gallery]} aria-labelledby="gallery-title">
+        <div class="wrap">
+          <SectionHead id="gallery-title" title={t(ui.product.gallery, lang)} intro={fmt(t(T.galleryIntro, lang), { name })} />
+          <ProductGallery lang={lang} images={galleryImages} group="product" name={name} />
+        </div>
+      </section>
+    )
+  }
+
+  <!-- 9. Video -->
+  {
+    hasVideo && product.video && (
+      <section class:list={['section', 'p-video', band.video, { joined: galleryImages.length > 0 }]} data-sn-section="gallery" aria-labelledby="video-title">
+        <div class="wrap video-grid">
+          <div class="video-copy" data-reveal>
+            <h2 id="video-title" class="h2 rule">
+              {t(ui.product.video, lang)}
+            </h2>
+            <p class="lead">{t(product.video.title, lang)}</p>
+            {!/youtu\.?be/.test(product.video.url) && <p class="small muted">{t(T.videoText, lang)}</p>}
+          </div>
+          <VideoEmbed
+            lang={lang}
+            url={product.video.url}
+            title={t(product.video.title, lang)}
+            poster={videoPoster}
+            showTitle={false}
+            id={`${product.id}-video`}
+          />
+        </div>
+      </section>
+    )
+  }
+
+  <!-- 10. Inquiry -->
+  <section id="inquiry" data-sn-section="inquiry" data-sticky-cta-hide class:list={['section', 'p-inquiry', band.inquiry]} aria-labelledby="inquiry-title">
+    <div class="wrap inq-grid">
+      <div class="inq-copy">
+        <h2 id="inquiry-title" class="h2 rule">{fmt(t(ui.product.quoteTitle, lang), { product: name })}</h2>
+        <p class="lead">{t(ui.product.quoteLead, lang)}</p>
+        <p class="small muted">{t(ui.product.noPrices, lang)}</p>
+      </div>
+      <div class="inq-form">
+        <InquiryForm lang={lang} productId={product.id} compact id="inquiry-form" />
+      </div>
+      <div class="inq-contacts">
+        <p class="inq-k">{t(T.talk, lang)}</p>
+        <ul>
+          {
+            site.phones.map((p) => (
+              <li>
+                <a class="num" href={`tel:${p.e164}`}>
+                  <Icon name="phone" size={18} /> {p.display}
+                </a>
+              </li>
+            ))
+          }
+          <li>
+            <a href={viber}><Icon name="viber" size={18} /> {t(T.viber, lang)}</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. Related -->
+  {
+    related.length > 0 && (
+      <section class:list={['section', band.related]} aria-labelledby="related-title">
+        <div class="wrap">
+          <SectionHead id="related-title" title={t(ui.product.related, lang)} intro={fmt(t(T.relatedIntro, lang), { name })} />
+          <ProductGrid lang={lang} products={related} headingLevel="h3" />
+        </div>
+      </section>
+    )
+  }
+
+  <CtaBand lang={lang} productId={product.id} />
+  <Lightbox lang={lang} />
+  <StickyCta lang={lang} href="#inquiry" />
+</Base>
+
+<style>
+  /* Hero */
+  .p-hero {
+    padding-top: var(--s-5);
+    padding-bottom: clamp(2.5rem, 1.5rem + 3vw, 4.5rem);
+  }
+  .p-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: var(--s-6) clamp(2rem, 1rem + 4vw, 6rem);
+    align-items: end;
+    padding-top: clamp(2rem, 1.2rem + 3vw, 4.5rem);
+    padding-bottom: clamp(2.5rem, 1.5rem + 3vw, 4.5rem);
+  }
+  .p-titles {
+    display: grid;
+    gap: var(--s-4);
+    align-content: end;
+  }
+  .p-h1 {
+    font-weight: 300;
+    font-size: clamp(3rem, 1.6rem + 6vw, 7rem);
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+  }
+  .p-h1.is-long {
+    font-size: clamp(2.3rem, 1.5rem + 3.4vw, 4.6rem);
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    max-width: 14ch;
+  }
+  .p-full {
+    max-width: 44ch;
+    color: var(--muted);
+    font-size: var(--step-0);
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--hair);
+  }
+  .p-intro {
+    display: grid;
+    gap: var(--s-4);
+    justify-items: start;
+  }
+  .p-tagline {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: var(--step-3);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    max-width: 22ch;
+    text-wrap: balance;
+  }
+  .p-sum {
+    max-width: 52ch;
+  }
+  .p-ctas {
+    margin-top: var(--s-3);
+    align-items: center;
+  }
+  .p-phone {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 52px;
+    padding: 0 0.4rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .p-phone:hover {
+    text-decoration: underline;
+  }
+  .p-hero-media {
+    --bracket-top: var(--ink);
+    margin-inline: 10px;
+  }
+  .p-hero-media::before,
+  .p-hero-media::after {
+    left: -10px;
+    right: -10px;
+    border-width: 10px;
+    height: 30%;
+  }
+  .p-hero-media::before {
+    top: -10px;
+    border-bottom: 0;
+  }
+  .p-hero-media::after {
+    bottom: -10px;
+    border-top: 0;
+  }
+  .p-hero-img {
+    aspect-ratio: 2 / 1;
+  }
+  .p-hero-media + :global(.plate) {
+    margin-top: calc(10px + var(--s-6));
+  }
+  @media (max-width: 1100px) {
+    .p-hero-img {
+      aspect-ratio: 16 / 9;
+    }
+  }
+  @media (max-width: 900px) {
+    .p-head {
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
+    }
+  }
+  @media (max-width: 640px) {
+    .p-hero-media {
+      margin-inline: 6px;
+    }
+    .p-hero-media::before,
+    .p-hero-media::after {
+      left: -6px;
+      right: -6px;
+      border-width: 6px;
+    }
+    .p-hero-media::before {
+      top: -6px;
+      border-bottom: 0;
+    }
+    .p-hero-media::after {
+      bottom: -6px;
+      border-top: 0;
+    }
+    .p-hero-media + :global(.plate) {
+      margin-top: calc(8px + var(--s-5));
+    }
+    .p-ctas .btn:first-child {
+      flex: 1 1 100%;
+    }
+  }
+
+  /* Anchored sections clear the sticky sub-navigation (html scroll-padding already clears the header) */
+  [data-sn-section] {
+    scroll-margin-top: 46px;
+  }
+  @media (max-width: 900px) {
+    [data-sn-section] {
+      scroll-margin-top: 0;
+    }
+  }
+
+  /* Overview rows */
+  .rows {
+    display: grid;
+    gap: clamp(4rem, 2.5rem + 5vw, 8rem);
+  }
+  .row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--s-6) var(--s-5);
+    align-items: center;
+  }
+  .row-text {
+    grid-column: 1 / span 5;
+    grid-row: 1;
+    display: grid;
+    gap: var(--s-5);
+  }
+  .row-media {
+    grid-column: 7 / span 6;
+    grid-row: 1;
+  }
+  .row.flip .row-text {
+    grid-column: 8 / span 5;
+  }
+  .row.flip .row-media {
+    grid-column: 1 / span 6;
+  }
+  .row .prose,
+  .row-solo .prose {
+    color: var(--muted);
+  }
+  .row .prose p:first-child,
+  .row-solo .prose p:first-child {
+    color: var(--fg);
+  }
+  .prose.has-lead p:first-child {
+    position: relative;
+    padding-top: 1.4rem;
+    margin-bottom: var(--s-5);
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: var(--step-2);
+    line-height: 1.35;
+    color: var(--fg);
+  }
+  .prose.has-lead p:first-child::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 56px;
+    height: 2px;
+    background: var(--yellow);
+  }
+  .row-solo {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--s-5);
+    align-items: start;
+  }
+  .row-solo h2 {
+    grid-column: 1 / span 5;
+  }
+  .row-solo .prose {
+    grid-column: 7 / span 6;
+  }
+  .row-solo .prose p {
+    max-width: 62ch;
+  }
+  @media (max-width: 900px) {
+    .row,
+    .row-solo {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .row-text,
+    .row.flip .row-text,
+    .row-media,
+    .row.flip .row-media,
+    .row-solo h2,
+    .row-solo .prose {
+      grid-column: 1;
+      grid-row: auto;
+    }
+    .row-media {
+      order: -1;
+      max-height: 70vh;
+    }
+  }
+
+  /* Technology: diagram (natural size at most) with the legend / features beside it */
+  .tech-visual :global(.scene-legend) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tech-split {
+    display: grid;
+    gap: var(--s-6);
+  }
+  .tech-diagram {
+    background: #eaeae8;
+    max-width: var(--dw);
+  }
+  .tech-diagram :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  @media (min-width: 1000px) {
+    .tech-visual :global(.scene),
+    .tech-split {
+      grid-template-columns: minmax(0, var(--dw)) minmax(300px, 1fr);
+      gap: var(--s-6) clamp(2rem, 1rem + 3vw, 4.5rem);
+      align-items: center;
+    }
+  }
+
+  /* Specs */
+  .spec-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+    gap: var(--s-8) clamp(2rem, 1rem + 4vw, 6rem);
+    align-items: start;
+  }
+  .spec-grid.spec-only {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 920px;
+  }
+  .spec-col {
+    display: grid;
+    gap: var(--s-6);
+    align-content: start;
+  }
+  .spec-col .spec-table {
+    border-top: 1px solid var(--hair);
+  }
+  .spec-col .spec-table td {
+    font-size: var(--step-0);
+  }
+  .spec-note {
+    max-width: 60ch;
+  }
+  .confs {
+    margin-top: clamp(4rem, 2.5rem + 4vw, 7rem);
+    display: grid;
+    gap: var(--s-6);
+  }
+  .conf-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+    gap: var(--s-6) var(--s-5);
+  }
+  .conf {
+    display: grid;
+    align-content: start;
+    gap: var(--s-3);
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--fg);
+  }
+  .conf-title {
+    font-size: var(--step-1);
+    font-weight: 400;
+    line-height: 1.25;
+  }
+  .conf-text {
+    color: var(--muted);
+    font-size: var(--step--1);
+    line-height: 1.6;
+    max-width: 46ch;
+  }
+  .conf-grid[data-n='5'] .conf {
+    grid-column: span 2;
+  }
+  .conf-grid[data-n='5'] .conf:nth-child(n + 4) {
+    grid-column: span 3;
+  }
+  .opts {
+    margin-top: var(--s-8);
+    padding-top: var(--s-6);
+    border-top: 1px solid var(--hair);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+    gap: var(--s-4) var(--s-6);
+    align-items: baseline;
+  }
+  .opts-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+  }
+  .tags {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+  }
+  .tags li {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0.45rem 0.95rem;
+    border: 1px solid color-mix(in srgb, var(--fg) 18%, transparent);
+    border-radius: var(--radius);
+    background: var(--bg);
+    font-size: var(--step--1);
+    font-weight: 500;
+  }
+  @media (max-width: 1100px) {
+    .conf-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .conf-grid[data-n='5'] .conf,
+    .conf-grid[data-n='5'] .conf:nth-child(n + 4) {
+      grid-column: auto;
+    }
+    .conf-grid .conf:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 900px) {
+    .spec-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .opts {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  @media (max-width: 600px) {
+    .conf-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .conf-grid .conf:last-child:nth-child(odd) {
+      grid-column: auto;
+    }
+  }
+
+  /* Video */
+  .p-video.joined {
+    padding-top: 0;
+  }
+  .video-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.6fr);
+    gap: var(--s-6) clamp(2rem, 1rem + 4vw, 5rem);
+    align-items: center;
+  }
+  .video-copy {
+    display: grid;
+    gap: var(--s-4);
+    justify-items: start;
+  }
+  @media (max-width: 900px) {
+    .video-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* Inquiry */
+  .inq-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.5fr);
+    grid-template-areas:
+      'copy form'
+      'contacts form';
+    grid-template-rows: auto 1fr;
+    gap: var(--s-6) clamp(2rem, 1rem + 4vw, 6rem);
+    align-items: start;
+  }
+  .inq-copy {
+    grid-area: copy;
+  }
+  .inq-form {
+    grid-area: form;
+  }
+  .inq-contacts {
+    grid-area: contacts;
+  }
+  .inq-copy {
+    display: grid;
+    gap: var(--s-5);
+    align-content: start;
+  }
+  .inq-contacts {
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--hair);
+    display: grid;
+    gap: var(--s-3);
+  }
+  .inq-k {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+  }
+  .inq-contacts ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--s-1);
+  }
+  .inq-contacts a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 44px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .inq-contacts a:hover {
+    text-decoration: underline;
+  }
+  .inq-form {
+    min-width: 0;
+  }
+  @media (max-width: 900px) {
+    .inq-grid {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: 'copy' 'form' 'contacts';
+      grid-template-rows: auto;
+    }
+  }
+</style>

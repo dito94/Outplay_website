@@ -1,0 +1,520 @@
+---
+// Projects gallery: category filter (real buttons with aria-pressed), a mixed-span mosaic that always fills complete
+// rows, "show more" paging and lightbox links. Without JS every image is shown and the filter is hidden.
+// Include <Lightbox lang={lang} /> once on the page.
+import type { GalleryItem, Lang } from '../data/types';
+import { categories } from '../data/categories';
+import { products } from '../data/products';
+import { ui } from '../data/ui';
+import { productUrl, fmt, t } from '../lib/i18n';
+import { lightboxSrc } from '../lib/images';
+import { layout2, layout3, type Span2, type Span3 } from '../lib/gallery-layout';
+import Img from './Img.astro';
+import Icon from './Icon.astro';
+
+interface Props {
+  lang: Lang;
+  items: GalleryItem[];
+  /** lightbox group name */
+  group?: string;
+  /** tiles shown before "show more" (keep it a multiple of 3 so earlier tiles keep their spans) */
+  initial?: number;
+}
+const { lang, items, group = 'gallery', initial = 12 } = Astro.props;
+
+const T = {
+  one: { bg: '1 снимка', en: '1 image' },
+  many: { bg: '{count} снимки', en: '{count} images' },
+  more: { bg: 'Покажи още', en: 'Show more' },
+  open: { bg: 'отваря снимката на цял екран', en: 'opens the image full screen' },
+  product: { bg: 'Виж продукта {product}', en: 'View {product}' },
+};
+
+// [px at ≥1440, vw at 1001–1439] for each 3-up span; vw for each 2-up span (see the grid CSS below)
+const SZ3: Record<Span3, [number, number]> = { S: [440, 31], H: [660, 47], F: [880, 62], P: [1330, 94] };
+const SZ2: Record<Span2, number> = { S: 47, W: 94 };
+const sizesFor = (s3: Span3, s2: Span2) =>
+  `(min-width: 1440px) ${SZ3[s3][0]}px, (min-width: 1001px) ${SZ3[s3][1]}vw, (min-width: 601px) ${SZ2[s2]}vw, 94vw`;
+
+const tiles = await Promise.all(
+  items.map(async (it) => {
+    const p = it.productId ? products.find((x) => x.id === it.productId) : undefined;
+    return {
+      ...it,
+      href: await lightboxSrc(it.image),
+      caption: t(it.caption, lang),
+      product: p ? { name: t(p.name, lang), href: productUrl(lang, p.category, p.id) } : undefined,
+    };
+  }),
+);
+
+// No-JS layout covers every tile; the JS layout covers the first page of tiles (applied before first paint via html.js)
+const n3 = layout3(tiles.length);
+const n2 = layout2(tiles.length);
+const firstN = Math.min(initial, tiles.length);
+const j3 = layout3(firstN);
+const j2 = layout2(firstN);
+
+const cats = [...categories]
+  .sort((a, b) => a.order - b.order)
+  .map((c) => ({ id: c.id, name: t(c.name, lang), count: tiles.filter((x) => x.category === c.id).length }))
+  .filter((c) => c.count > 0);
+
+const countText = (n: number) => (n === 1 ? t(T.one, lang) : fmt(t(T.many, lang), { count: n }));
+const sizesJson = JSON.stringify({ SZ3, SZ2 });
+---
+
+<div
+  class="gm"
+  data-gm
+  data-initial={initial}
+  data-one={t(T.one, lang)}
+  data-many={t(T.many, lang)}
+  data-sizes={sizesJson}
+>
+  {
+    cats.length > 1 && (
+      <div class="gm-bar">
+        <div class="gm-filter" role="group" aria-label={t(ui.gallery.filterBy, lang)}>
+          <button type="button" class="gm-chip" aria-pressed="true" data-gm-cat="all">
+            {t(ui.gallery.all, lang)} <span class="gm-n num">{tiles.length}</span>
+          </button>
+          {cats.map((c) => (
+            <button type="button" class="gm-chip" aria-pressed="false" data-gm-cat={c.id}>
+              {c.name} <span class="gm-n num">{c.count}</span>
+            </button>
+          ))}
+        </div>
+        <p class="gm-count small muted num" aria-live="polite" data-gm-count>
+          {countText(tiles.length)}
+        </p>
+      </div>
+    )
+  }
+
+  <ul class="gm-grid" data-gm-grid>
+    {
+      tiles.map((tile, i) => (
+        <li
+          class="gm-tile"
+          data-gm-tile
+          data-cat={tile.category}
+          data-n3={n3[i]}
+          data-n2={n2[i]}
+          data-l3={i < firstN ? j3[i] : undefined}
+          data-l2={i < firstN ? j2[i] : undefined}
+        >
+          <a class="gm-open" href={tile.href} data-lightbox={group} data-caption={tile.caption}>
+            <Img
+              src={tile.image}
+              lang={lang}
+              sizes={i < firstN ? sizesFor(j3[i], j2[i]) : sizesFor(n3[i], n2[i])}
+              widths={[480, 768, 1080, 1440, 1920]}
+            />
+            <span class="sr-only">({t(T.open, lang)})</span>
+            <span class="gm-zoom" aria-hidden="true">
+              <Icon name="expand" size={18} />
+            </span>
+          </a>
+          <div class="gm-meta">
+            <p class="gm-cap">{tile.caption}</p>
+            {tile.product && (
+              <a class="gm-prod" href={tile.product.href} aria-label={fmt(t(T.product, lang), { product: tile.product.name })}>
+                <span>{tile.product.name}</span>
+                <Icon name="arrow-right" size={16} />
+              </a>
+            )}
+          </div>
+        </li>
+      ))
+    }
+  </ul>
+
+  <p class="gm-empty muted" hidden data-gm-empty>{t(ui.gallery.empty, lang)}</p>
+
+  {
+    tiles.length > initial && (
+      <div class="gm-more-row">
+        <button type="button" class="btn btn-ghost gm-more" data-gm-more>
+          {t(T.more, lang)} <span class="num" data-gm-more-n></span>
+          <Icon name="chevron-down" size={18} />
+        </button>
+      </div>
+    )
+  }
+</div>
+
+<style>
+  .gm {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-6);
+  }
+
+  /* Filter */
+  .gm-bar {
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4) var(--s-6);
+  }
+  :global(html.js) .gm-bar {
+    display: flex;
+  }
+  .gm-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+  }
+  .gm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent);
+    border-radius: var(--radius);
+    background: var(--bg);
+    font-size: var(--step--1);
+    font-weight: 500;
+    line-height: 1.2;
+    transition:
+      background-color 0.18s var(--ease),
+      border-color 0.18s var(--ease),
+      color 0.18s var(--ease);
+  }
+  .gm-chip:hover {
+    border-color: var(--fg);
+  }
+  .gm-chip[aria-pressed='true'] {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .gm-n {
+    font-size: var(--step--2);
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .gm-chip[aria-pressed='true'] .gm-n {
+    color: var(--yellow);
+  }
+  .gm-count {
+    margin-left: auto;
+  }
+  @media (max-width: 600px) {
+    .gm-count {
+      margin-left: 0;
+    }
+  }
+
+  /* Mosaic: 3-up on a 6-column grid, 2-up on tablets, 1-up on phones */
+  .gm-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-auto-rows: clamp(220px, 21vw, 320px);
+    gap: var(--s-4);
+  }
+  .gm-tile {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    background: var(--graphite);
+    grid-column: span var(--c3, 2);
+    grid-row: span var(--r3, 1);
+  }
+  :global(html:not(.js)) .gm-tile[data-n3='H'],
+  :global(html.js) .gm-tile[data-l3='H'] {
+    --c3: 3;
+  }
+  :global(html:not(.js)) .gm-tile[data-n3='F'],
+  :global(html.js) .gm-tile[data-l3='F'] {
+    --c3: 4;
+    --r3: 2;
+  }
+  :global(html:not(.js)) .gm-tile[data-n3='P'],
+  :global(html.js) .gm-tile[data-l3='P'] {
+    --c3: 6;
+    --r3: 2;
+  }
+  :global(html:not(.js)) .gm-tile[data-n2='W'],
+  :global(html.js) .gm-tile[data-l2='W'] {
+    --c2: 2;
+    --r2: 2;
+  }
+  /* Before the script runs, tiles beyond the first page stay hidden (no layout jump) */
+  :global(html.js) .gm-tile:not([data-l3]) {
+    display: none;
+  }
+  @media (max-width: 1000px) {
+    .gm-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: clamp(170px, 27vw, 270px);
+    }
+    .gm-tile {
+      grid-column: span var(--c2, 1);
+      grid-row: span var(--r2, 1);
+    }
+  }
+  @media (max-width: 600px) {
+    .gm-grid {
+      grid-template-columns: minmax(0, 1fr);
+      grid-auto-rows: auto;
+      gap: var(--s-3);
+    }
+    .gm-tile {
+      grid-column: auto;
+      grid-row: auto;
+      aspect-ratio: 3 / 2;
+    }
+  }
+
+  .gm-open {
+    position: absolute;
+    inset: 0;
+    display: block;
+    color: #fff;
+  }
+  .gm-open :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .gm-open::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(10, 10, 8, 0.86) 0%, rgba(10, 10, 8, 0.55) 26%, rgba(10, 10, 8, 0.12) 52%, rgba(10, 10, 8, 0) 66%);
+    transition: background-color 0.3s var(--ease);
+  }
+  .gm-open:hover::after {
+    background-color: rgba(10, 10, 8, 0.14);
+  }
+  .gm-open:focus-visible {
+    outline: none;
+  }
+  .gm-tile:has(.gm-open:focus-visible) {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+    overflow: visible;
+  }
+  .gm-zoom {
+    position: absolute;
+    top: var(--s-4);
+    right: var(--s-4);
+    z-index: 1;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--yellow);
+    color: var(--ink);
+    opacity: 0;
+    transform: scale(0.9);
+    transition:
+      opacity 0.25s var(--ease),
+      transform 0.25s var(--ease);
+  }
+  .gm-open:hover .gm-zoom,
+  .gm-open:focus-visible .gm-zoom {
+    opacity: 1;
+    transform: none;
+  }
+
+  .gm-meta {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    display: grid;
+    justify-items: start;
+    gap: 0.1rem;
+    padding: var(--s-4) var(--s-5) var(--s-2);
+    color: #fff;
+    pointer-events: none;
+  }
+  .gm-cap {
+    max-width: 52ch;
+    font-size: var(--step--1);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-shadow: 0 1px 12px rgba(10, 10, 8, 0.35);
+  }
+  @media (min-width: 1001px) {
+    .gm-tile[data-l3='F'] .gm-cap,
+    .gm-tile[data-l3='P'] .gm-cap {
+      font-family: var(--font-display);
+      font-size: var(--step-1);
+      line-height: 1.3;
+    }
+  }
+  .gm-prod {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    color: var(--yellow);
+    font-size: var(--step--1);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+  }
+  .gm-prod span {
+    border-bottom: 1px solid currentColor;
+    padding-bottom: 1px;
+  }
+  .gm-prod :global(svg) {
+    transition: transform 0.25s var(--ease);
+  }
+  .gm-prod:hover :global(svg) {
+    transform: translateX(3px);
+  }
+  .gm-prod:focus-visible {
+    outline-color: var(--yellow);
+  }
+  @media (max-width: 600px) {
+    .gm-meta {
+      padding-inline: var(--s-4);
+    }
+  }
+
+  .gm-tile.gm-in {
+    animation: gm-in 0.45s var(--ease) both;
+  }
+  @keyframes gm-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+
+  .gm-empty {
+    padding: var(--s-7) 0;
+    text-align: center;
+  }
+  .gm-more-row {
+    display: none;
+    justify-content: center;
+  }
+  :global(html.js) .gm-more-row {
+    display: flex;
+  }
+  .gm-more-row[hidden] {
+    display: none !important;
+  }
+</style>
+
+<script>
+  import { layout2, layout3, type Span2, type Span3 } from '../lib/gallery-layout';
+
+  document.querySelectorAll<HTMLElement>('[data-gm]').forEach((root) => {
+    const tiles = Array.from(root.querySelectorAll<HTMLElement>('[data-gm-tile]'));
+    const btns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-gm-cat]'));
+    const countEl = root.querySelector<HTMLElement>('[data-gm-count]');
+    const emptyEl = root.querySelector<HTMLElement>('[data-gm-empty]');
+    const moreBtn = root.querySelector<HTMLButtonElement>('[data-gm-more]');
+    const moreRow = moreBtn?.parentElement ?? null;
+    const moreN = root.querySelector<HTMLElement>('[data-gm-more-n]');
+    // phones get shorter pages (both values are multiples of 3, so earlier tiles keep their spans)
+    const base = Number(root.dataset.initial) || 12;
+    const step = window.matchMedia('(max-width: 600px)').matches ? Math.max(3, Math.round(base / 6) * 3) : base;
+    const { SZ3, SZ2 } = JSON.parse(root.dataset.sizes || '{}') as {
+      SZ3: Record<Span3, [number, number]>;
+      SZ2: Record<Span2, number>;
+    };
+    const sizesFor = (s3: Span3, s2: Span2) =>
+      `(min-width: 1440px) ${SZ3[s3][0]}px, (min-width: 1001px) ${SZ3[s3][1]}vw, (min-width: 601px) ${SZ2[s2]}vw, 94vw`;
+    const countText = (n: number) => (n === 1 ? root.dataset.one ?? '' : (root.dataset.many ?? '').replace('{count}', String(n)));
+    const valid = new Set(btns.map((b) => b.dataset.gmCat));
+
+    let cat = 'all';
+    let limit = step;
+
+    const render = (opts: { animateFrom?: number; announce?: boolean } = {}) => {
+      const matching = tiles.filter((el) => cat === 'all' || el.dataset.cat === cat);
+      const visible = matching.slice(0, limit);
+      const l3 = layout3(visible.length);
+      const l2 = layout2(visible.length);
+      tiles.forEach((el) => {
+        const i = visible.indexOf(el);
+        el.classList.remove('gm-in');
+        if (i < 0) {
+          el.hidden = true;
+          delete el.dataset.l3;
+          delete el.dataset.l2;
+          return;
+        }
+        el.hidden = false;
+        if (el.dataset.l3 !== l3[i] || el.dataset.l2 !== l2[i]) {
+          el.dataset.l3 = l3[i];
+          el.dataset.l2 = l2[i];
+          const s = sizesFor(l3[i], l2[i]);
+          el.querySelectorAll('source, img').forEach((n) => n.setAttribute('sizes', s));
+        }
+        if (opts.animateFrom !== undefined && i >= opts.animateFrom) {
+          void el.offsetWidth;
+          el.style.animationDelay = `${Math.min(i - opts.animateFrom, 8) * 40}ms`;
+          el.classList.add('gm-in');
+        }
+      });
+      btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.gmCat === cat)));
+      if (countEl && opts.announce) countEl.textContent = countText(matching.length);
+      if (emptyEl) emptyEl.hidden = matching.length > 0;
+      const rest = matching.length - visible.length;
+      if (moreRow) moreRow.hidden = rest <= 0;
+      if (moreN) moreN.textContent = rest > 0 ? `(${rest})` : '';
+      return visible;
+    };
+
+    const setCat = (next: string) => {
+      cat = valid.has(next) ? next : 'all';
+      limit = step;
+      render({ animateFrom: 0, announce: true });
+      try {
+        const u = new URL(window.location.href);
+        if (cat === 'all') u.searchParams.delete('category');
+        else u.searchParams.set('category', cat);
+        history.replaceState(history.state, '', u);
+      } catch {
+        /* URL sync is optional */
+      }
+    };
+
+    btns.forEach((b, i) => {
+      b.addEventListener('click', () => setCat(b.dataset.gmCat ?? 'all'));
+      b.addEventListener('keydown', (e) => {
+        const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (!d) return;
+        e.preventDefault();
+        btns[(i + d + btns.length) % btns.length].focus();
+      });
+    });
+
+    moreBtn?.addEventListener('click', () => {
+      const before = Math.min(limit, tiles.filter((el) => cat === 'all' || el.dataset.cat === cat).length);
+      limit += step;
+      const visible = render({ animateFrom: before });
+      // keep keyboard users in place: move focus to the first newly shown image
+      visible[before]?.querySelector<HTMLElement>('.gm-open')?.focus({ preventScroll: false });
+    });
+
+    const initial = new URLSearchParams(window.location.search).get('category');
+    if (initial && valid.has(initial)) {
+      cat = initial;
+      render({ announce: true });
+    } else {
+      render();
+    }
+  });
+</script>

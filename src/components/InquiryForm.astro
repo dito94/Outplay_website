@@ -1,6 +1,18 @@
 ---
-// STUB — replaced by the inquiry build step. Props are the contract.
-import type { Lang } from '../data/types';
+// Three-step inquiry form: product + approximate dimensions (live scale sketch) → configuration → contact.
+// Static site: on submit the request is stored in this browser (src/lib/store.ts) and a demo notice says so.
+// Progressive enhancement: without JS every step renders as readable fields and points to phone/email.
+import type { Lang, OptionGroup } from '../data/types';
+import { products } from '../data/products';
+import { categories } from '../data/categories';
+import { inquiryFamilies, inquiryCommon, inquiryTextFields, productOptionDefaults } from '../data/inquiry';
+import { ui } from '../data/ui';
+import { pages } from '../data/pages';
+import { site } from '../data/site';
+import { t } from '../lib/i18n';
+import Icon from './Icon.astro';
+import CopyButton from './CopyButton.astro';
+
 interface Props {
   lang: Lang;
   /** preselected product id (from product page or ?product= query) */
@@ -9,6 +21,2688 @@ interface Props {
   compact?: boolean;
   id?: string;
 }
-const { id = 'inquiry' } = Astro.props;
+const { lang, productId, compact = false, id = 'inquiry' } = Astro.props;
+
+/** Demo build: nothing is sent anywhere. Set to false once a real endpoint exists. */
+const DEMO = true;
+const MAX_FILES = 10;
+const MAX_MB = 15;
+
+const T = {
+  step1: { bg: 'Продукт и размери', en: 'Product and size' },
+  step2: { bg: 'Конфигурация', en: 'Configuration' },
+  step3: { bg: 'Контакти', en: 'Contact details' },
+  progress: { bg: 'Стъпки на запитването', en: 'Request steps' },
+  productHint: {
+    bg: 'Не сте сигурни? Изберете най-близкия продукт и опишете идеята си в следващата стъпка.',
+    en: 'Not sure? Pick the closest product and describe your idea in the next step.',
+  },
+  multi: { bg: 'изберете колкото желаете', en: 'choose any' },
+  dropMain: { bg: 'Плъзнете снимки тук или', en: 'Drag photos here or' },
+  dropPick: { bg: 'изберете файлове', en: 'choose files' },
+  dropFormats: { bg: 'JPG, PNG или WEBP · до {n} снимки', en: 'JPG, PNG or WEBP · up to {n} photos' },
+  photosLocal: {
+    bg: 'Снимките остават във Вашия браузър – в демо версията не се качват никъде.',
+    en: 'Photos stay in your browser; in this demo they are not uploaded anywhere.',
+  },
+  removePhoto: { bg: 'Премахни снимката {name}', en: 'Remove photo {name}' },
+  tooMany: { bg: 'Може да добавите до {n} снимки.', en: 'You can add up to {n} photos.' },
+  tooLarge: { bg: 'Файлът {name} е по-голям от {n} MB.', en: '{name} is larger than {n} MB.' },
+  privacyLink: { bg: 'Как използваме данните Ви', en: 'How we use your details' },
+  privacyText: {
+    bg: 'Използваме името, телефона и имейла Ви само за да отговорим на това запитване и да подготвим оферта. В тази демо версия данните остават единствено във Вашия браузър и не се изпращат никъде.',
+    en: 'We use your name, phone number and email only to reply to this request and prepare a quote. In this demo your details stay in your browser and are not sent anywhere.',
+  },
+  demoHint: {
+    bg: 'Демо версия: запитването ще бъде запазено само в този браузър и няма да бъде изпратено.',
+    en: 'Demo: your request will be saved in this browser only and will not be sent.',
+  },
+  draft: {
+    bg: 'Продължавате незавършено запитване, запазено в този браузър.',
+    en: 'You are continuing a request saved in this browser.',
+  },
+  startOver: { bg: 'Започнете отначало', en: 'Start over' },
+  noscript: {
+    bg: 'За да изпратите запитването онлайн, е нужен JavaScript. Можете да ни се обадите, да пишете във Viber или на имейл:',
+    en: 'Sending the request online needs JavaScript. You can call us, message us on Viber or email:',
+  },
+  storageFailed: {
+    bg: 'Не успяхме да запазим запитването в този браузър – съхранението на данни може да е изключено. Обобщението по-долу е пълно: копирайте го или ни се обадете.',
+    en: 'We could not save the request in this browser; site storage may be turned off. The summary below is complete: copy it or give us a call.',
+  },
+  copySummary: { bg: 'Копирай обобщението', en: 'Copy summary' },
+  copied: { bg: 'Копирано', en: 'Copied' },
+  preferCall: { bg: 'Предпочитате разговор?', en: 'Prefer to talk?' },
+  facade: { bg: 'Фасада', en: 'Façade' },
+  sketchNote: { bg: 'Схема по въведените размери', en: 'Sketch drawn to your dimensions' },
+  dec: { bg: 'Намали', en: 'Decrease' },
+  inc: { bg: 'Увеличи', en: 'Increase' },
+  fixErrors: { bg: 'Проверете отбелязаните полета.', en: 'Please check the highlighted fields.' },
+  secProduct: { bg: 'Продукт', en: 'Product' },
+  secDims: { bg: 'Размери', en: 'Dimensions' },
+  secPhotos: { bg: 'Снимки', en: 'Photos' },
+  secMessage: { bg: 'Съобщение', en: 'Message' },
+  secContact: { bg: 'Контакти', en: 'Contact' },
+  channelShort: { bg: 'Връзка', en: 'Contact by' },
+  short: {
+    width: { bg: 'Ширина', en: 'Width' },
+    depth: { bg: 'Дълбочина', en: 'Depth' },
+    height: { bg: 'Височина', en: 'Height' },
+    length: { bg: 'Дължина', en: 'Length' },
+    units: { bg: 'Брой', en: 'Units' },
+  },
+};
+
+const tx = (v: { bg: string; en: string }) => t(v, lang);
+const fid = (s: string) => `${id}-${s}`;
+const locale = lang === 'bg' ? 'bg-BG' : 'en-GB';
+const nf = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
+const fmtN = (v: number) => nf.format(v);
+
+const preselected = productId ? products.find((p) => p.id === productId) : undefined;
+const isCompact = compact && !!preselected;
+const initialFamily = preselected?.family ?? 'pergola';
+const preset = (preselected && productOptionDefaults[preselected.id]) || {};
+
+const cats = [...categories].sort((a, b) => a.order - b.order);
+const byCat = (cid: string) => products.filter((p) => p.category === cid).sort((a, b) => a.order - b.order);
+const families = Object.values(inquiryFamilies);
+
+function isChecked(g: OptionGroup, choice: string, family: string): boolean {
+  const v = family === initialFamily && preset[g.id] !== undefined ? preset[g.id] : g.default;
+  return Array.isArray(v) ? v.includes(choice) : v === choice;
+}
+/** Short label used on the drawing (long field labels like "Ширина на отвора" → "Ширина") */
+const shortLabel = (did: keyof typeof T.short, label: string) => (label.length <= 12 ? label : tx(T.short[did]));
+
+const config = {
+  lang,
+  demo: DEMO,
+  maxFiles: MAX_FILES,
+  maxMb: MAX_MB,
+  defaults: productOptionDefaults,
+  products: Object.fromEntries(
+    products.map((p) => [
+      p.id,
+      { family: p.family, name: t(p.name, lang), full: t(p.fullName, lang), cat: t(categories.find((c) => c.id === p.category)?.name, lang) },
+    ]),
+  ),
+  s: {
+    required: tx(ui.form.errors.required),
+    product: tx(ui.form.errors.product),
+    phone: tx(ui.form.errors.phone),
+    email: tx(ui.form.errors.email),
+    range: tx(ui.form.errors.range),
+    rangePcs: tx(ui.form.errors.rangePcs),
+    number: tx(ui.form.errors.number),
+    consent: tx(ui.form.errors.consent),
+    fileType: tx(ui.form.errors.fileType),
+    tooMany: tx(T.tooMany),
+    tooLarge: tx(T.tooLarge),
+    removePhoto: tx(T.removePhoto),
+    stepOf: tx(ui.inquiry.stepOf),
+    planView: tx(ui.inquiry.planView),
+    elevationView: tx(ui.inquiry.elevationView),
+    area: tx(ui.inquiry.area),
+    approx: tx(ui.inquiry.approx),
+    facade: tx(T.facade),
+    m: tx(ui.units.m),
+    m2: tx(ui.units.m2),
+    pcs: tx(ui.units.pcs),
+    fixErrors: tx(T.fixErrors),
+    edit: tx(ui.actions.edit),
+    secProduct: tx(T.secProduct),
+    secDims: tx(T.secDims),
+    secOptions: tx(inquiryCommon.optionsTitle),
+    secProject: tx(inquiryCommon.projectTitle),
+    secPhotos: tx(T.secPhotos),
+    secMessage: tx(T.secMessage),
+    secContact: tx(T.secContact),
+    channelShort: tx(T.channelShort),
+    noneSelected: tx(ui.inquiry.noneSelected),
+    copied: tx(T.copied),
+  },
+};
+
+const success = pages.inquiry.success;
+const nextSteps = success.next;
+const projectGroups = inquiryCommon.projectGroups;
+const channel = inquiryCommon.contactChannel;
+const optional = tx(ui.form.hints.optional);
 ---
-<div id={id} class="inquiry-stub"></div>
+
+<div
+  class:list={['iq', { 'iq-compact': isCompact }]}
+  id={id}
+  data-inquiry
+  data-product={preselected?.id ?? ''}
+  data-family={initialFamily}
+>
+  <script type="application/json" data-iq-config set:html={JSON.stringify(config)} />
+
+  <ol class="iq-progress" aria-label={tx(T.progress)} data-iq-progress>
+    {
+      [T.step1, T.step2, T.step3].map((s, i) => (
+        <li class:list={['iq-pi', { 'is-current': i === 0 }]} data-pi={i + 1}>
+          <button type="button" class="iq-pi-btn" data-goto={i + 1} aria-current={i === 0 ? 'step' : undefined}>
+            <span class="iq-pi-n num" aria-hidden="true">
+              {i + 1}
+            </span>
+            <span class="iq-pi-l">
+              <span class="sr-only">{t(ui.inquiry.stepOf, lang).replace('{n}', String(i + 1)).replace('{total}', '3')}: </span>
+              {tx(s)}
+            </span>
+          </button>
+        </li>
+      ))
+    }
+  </ol>
+
+  <form class="iq-card iq-form" novalidate data-iq-form autocomplete="on">
+    <p class="iq-draft" data-iq-draft hidden>
+      <span>{tx(T.draft)}</span>
+      <button type="button" class="iq-textbtn" data-iq-reset>{tx(T.startOver)}</button>
+    </p>
+
+    <!-- Step 1 · product and dimensions -->
+    <section class="iq-step is-active" data-step="1" aria-labelledby={fid('s1-title')}>
+      <header class="iq-step-head">
+        <h3 class="iq-step-title" id={fid('s1-title')} tabindex="-1" data-step-title>
+          <span class="sr-only">{t(ui.inquiry.stepOf, lang).replace('{n}', '1').replace('{total}', '3')}: </span>
+          {tx(T.step1)}
+        </h3>
+        <p class="iq-step-lead">{tx(inquiryCommon.dimensionsNote)}</p>
+      </header>
+
+      <div class="iq-s1">
+        <div class="iq-s1-product">
+          {
+            isCompact && preselected && (
+              <div class="iq-fixed" data-iq-fixed>
+                <span class="iq-fixed-k">{tx(ui.inquiry.selectedProduct)}</span>
+                <div class="iq-fixed-row">
+                  <span class="iq-fixed-name" data-iq-fixed-name>
+                    {t(preselected.name, lang)}
+                  </span>
+                  <button
+                    type="button"
+                    class="iq-textbtn"
+                    data-iq-change
+                    aria-expanded="false"
+                    aria-controls={fid('product-wrap')}
+                  >
+                    {tx(ui.inquiry.changeProduct)}
+                  </button>
+                </div>
+              </div>
+            )
+          }
+          <div
+            class:list={['field', 'iq-product', { 'is-collapsed': isCompact }]}
+            id={fid('product-wrap')}
+            data-iq-product-wrap
+          >
+            <label for={fid('product')}>{tx(ui.form.labels.product)}</label>
+            <select
+              class="select"
+              id={fid('product')}
+              name="product"
+              required
+              aria-required="true"
+              aria-describedby={fid('product-hint')}
+              data-iq-select
+            >
+              <option value="" selected={!preselected}>
+                {tx(ui.form.placeholders.product)}
+              </option>
+              {
+                cats.map((c) => (
+                  <optgroup label={t(c.name, lang)}>
+                    {byCat(c.id).map((p) => (
+                      <option value={p.id} data-family={p.family} selected={p.id === preselected?.id}>
+                        {t(p.name, lang)}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))
+              }
+            </select>
+            <p class="hint" id={fid('product-hint')}>{tx(T.productHint)}</p>
+            <p class="error" id={fid('product-err')}></p>
+          </div>
+        </div>
+
+        <figure class="iq-preview" data-iq-preview>
+          <div class="iq-board" data-iq-board>
+            <svg class="iq-svg" role="img" aria-label={tx(ui.inquiry.preview)} data-iq-svg viewBox="0 0 520 340"></svg>
+          </div>
+          <figcaption class="iq-readout">
+            <span class="iq-readout-k">{tx(ui.inquiry.area)} <span class="iq-approx">{tx(ui.inquiry.approx)}</span></span>
+            <span class="iq-readout-v num"><span data-iq-area>—</span> <span class="iq-readout-u">{tx(ui.units.m2)}</span></span>
+            <span class="iq-readout-d num" data-iq-area-detail></span>
+            <span class="iq-readout-note">{tx(T.sketchNote)}</span>
+          </figcaption>
+          <p class="sr-only" aria-live="polite" data-iq-area-live></p>
+        </figure>
+
+        <div class="iq-s1-dims">
+          {
+            families.map((f) => (
+              <fieldset
+                class="iq-dims"
+                data-family-block={f.family}
+                data-preview={f.preview}
+                hidden={f.family !== initialFamily}
+                disabled={f.family !== initialFamily}
+              >
+                <legend class="iq-legend">{tx(inquiryCommon.dimensionsTitle)}</legend>
+                {f.dimensions.map((d) => {
+                  const inputId = fid(`${f.family}-${d.id}`);
+                  const hintId = `${inputId}-hint`;
+                  const label = t(d.label, lang);
+                  const pct = ((d.default - d.min) / (d.max - d.min)) * 100;
+                  return d.unit === 'pcs' ? (
+                    <div class="field iq-dim iq-dim-pcs" data-dim={d.id} data-min={d.min} data-max={d.max} data-inc={d.step} data-unit={d.unit} data-label={label} data-short={shortLabel(d.id, label)}>
+                      <label for={inputId}>{label}</label>
+                      <div class="iq-stepper">
+                        <button type="button" class="iq-stepper-btn" data-stepper="-1" aria-label={`${tx(T.dec)}: ${label}`} aria-controls={inputId}>
+                          <Icon name="minus" size={18} />
+                        </button>
+                        <input
+                          class="input num iq-num-input"
+                          id={inputId}
+                          name={`dim.${f.family}.${d.id}`}
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          value={fmtN(d.default)}
+                          aria-describedby={d.hint ? hintId : undefined}
+                          data-dim-input
+                        />
+                        <button type="button" class="iq-stepper-btn" data-stepper="1" aria-label={`${tx(T.inc)}: ${label}`} aria-controls={inputId}>
+                          <Icon name="plus" size={18} />
+                        </button>
+                      </div>
+                      {d.hint && <p class="hint" id={hintId}>{t(d.hint, lang)}</p>}
+                      <p class="error" id={`${inputId}-err`}></p>
+                    </div>
+                  ) : (
+                    <div class="field iq-dim" data-dim={d.id} data-min={d.min} data-max={d.max} data-inc={d.step} data-unit={d.unit} data-label={label} data-short={shortLabel(d.id, label)}>
+                      <div class="iq-dim-top">
+                        <label for={inputId}>
+                          {label}
+                          <span class="sr-only"> ({tx(ui.units.m)})</span>
+                        </label>
+                        <span class="iq-num">
+                          <input
+                            class="input num iq-num-input"
+                            id={inputId}
+                            name={`dim.${f.family}.${d.id}`}
+                            type="text"
+                            inputmode="decimal"
+                            autocomplete="off"
+                            value={fmtN(d.default)}
+                            aria-describedby={d.hint ? hintId : undefined}
+                            data-dim-input
+                          />
+                          <span class="iq-unit" aria-hidden="true">
+                            {tx(ui.units.m)}
+                          </span>
+                        </span>
+                      </div>
+                      <input
+                        class="iq-range"
+                        type="range"
+                        min={d.min}
+                        max={d.max}
+                        step={d.step}
+                        value={d.default}
+                        aria-label={label}
+                        aria-valuetext={`${fmtN(d.default)} ${tx(ui.units.m)}`}
+                        style={`--pct:${pct}%`}
+                        data-dim-range
+                      />
+                      <span class="iq-scale num" aria-hidden="true">
+                        <span>{fmtN(d.min)} {tx(ui.units.m)}</span>
+                        <span>{fmtN(d.max)} {tx(ui.units.m)}</span>
+                      </span>
+                      {d.hint && <p class="hint" id={hintId}>{t(d.hint, lang)}</p>}
+                      <p class="error" id={`${inputId}-err`}></p>
+                    </div>
+                  );
+                })}
+              </fieldset>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 2 · configuration -->
+    <section class="iq-step" data-step="2" aria-labelledby={fid('s2-title')}>
+      <header class="iq-step-head">
+        <h3 class="iq-step-title" id={fid('s2-title')} tabindex="-1" data-step-title>
+          <span class="sr-only">{t(ui.inquiry.stepOf, lang).replace('{n}', '2').replace('{total}', '3')}: </span>
+          {tx(T.step2)}
+        </h3>
+      </header>
+
+      <div class="iq-s2">
+        <div class="iq-block">
+          <h4 class="iq-sub">{tx(inquiryCommon.optionsTitle)}</h4>
+          {
+            families.map((f) => (
+              <div class="iq-opts" data-family-block={f.family} hidden={f.family !== initialFamily}>
+                {f.optionGroups.map((g) => (
+                  <fieldset class="iq-group" data-group={g.id} data-type={g.type} data-label={t(g.label, lang)} disabled={f.family !== initialFamily}>
+                    <legend class="iq-legend-v">
+                      {t(g.label, lang)}
+                      {g.type === 'multi' && <span class="iq-opt"> · {tx(T.multi)}</span>}
+                    </legend>
+                    <div class="chips">
+                      {g.choices.map((c) => (
+                        <label class="chip">
+                          <input
+                            type={g.type === 'single' ? 'radio' : 'checkbox'}
+                            name={`opt.${f.family}.${g.id}`}
+                            value={c.id}
+                            checked={isChecked(g, c.id, f.family)}
+                          />
+                          <span>{t(c.label, lang)}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                ))}
+                <div class="iq-texts">
+                  {inquiryTextFields[f.family].map((tf) => (
+                    <div class="field">
+                      <label for={fid(`${f.family}-${tf.id}`)}>
+                        {t(tf.label, lang)} <span class="iq-opt">· {optional}</span>
+                      </label>
+                      <input
+                        class="input"
+                        type="text"
+                        id={fid(`${f.family}-${tf.id}`)}
+                        name={`txt.${f.family}.${tf.id}`}
+                        placeholder={t(tf.placeholder, lang)}
+                        data-text-field={tf.id}
+                        data-label={t(tf.label, lang)}
+                        disabled={f.family !== initialFamily}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          }
+        </div>
+
+        <div class="iq-block" data-iq-project>
+          <h4 class="iq-sub">{tx(inquiryCommon.projectTitle)}</h4>
+          {
+            projectGroups.map((g) => (
+              <fieldset class="iq-group" data-group={g.id} data-type={g.type} data-label={t(g.label, lang)}>
+                <legend class="iq-legend-v">{t(g.label, lang)}</legend>
+                <div class="chips">
+                  {g.choices.map((c) => (
+                    <label class="chip">
+                      <input type="radio" name={`proj.${g.id}`} value={c.id} checked={g.default === c.id} />
+                      <span>{t(c.label, lang)}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            ))
+          }
+        </div>
+
+        <div class="iq-block iq-photos">
+          <span class="iq-legend-v" id={fid('photos-label')}>
+            {tx(ui.form.labels.photos)} <span class="iq-opt">· {optional}</span>
+          </span>
+          <label class="iq-drop" data-iq-drop>
+            <input
+              class="iq-file"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              aria-labelledby={fid('photos-label')}
+              aria-describedby={`${fid('photos-hint')} ${fid('photos-err')}`}
+              data-iq-file
+            />
+            <Icon name="upload" size={26} />
+            <span class="iq-drop-main">
+              {tx(T.dropMain)} <span class="iq-drop-pick">{tx(T.dropPick)}</span>
+            </span>
+            <span class="iq-drop-sub">{tx(T.dropFormats).replace('{n}', String(MAX_FILES))}</span>
+          </label>
+          <p class="hint" id={fid('photos-hint')}>{tx(ui.form.hints.photos)} {tx(T.photosLocal)}</p>
+          <p class="error" id={fid('photos-err')} aria-live="polite"></p>
+          <ul class="iq-thumbs" data-iq-thumbs></ul>
+        </div>
+
+        <div class="iq-block field">
+          <label for={fid('message')} class="iq-legend-v">
+            {tx(ui.form.labels.message)} <span class="iq-opt">· {optional}</span>
+          </label>
+          <textarea class="textarea" id={fid('message')} name="message" rows="4" placeholder={tx(ui.form.placeholders.message)}></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 3 · contact -->
+    <section class="iq-step" data-step="3" aria-labelledby={fid('s3-title')}>
+      <header class="iq-step-head">
+        <h3 class="iq-step-title" id={fid('s3-title')} tabindex="-1" data-step-title>
+          <span class="sr-only">{t(ui.inquiry.stepOf, lang).replace('{n}', '3').replace('{total}', '3')}: </span>
+          {tx(T.step3)}
+        </h3>
+        <p class="iq-step-lead">{tx(ui.form.hints.contactRequired)}</p>
+      </header>
+
+      <div class="iq-s3">
+        <div class="iq-s3-fields">
+          <div class="field iq-full">
+            <label for={fid('name')}>{tx(ui.form.labels.name)}</label>
+            <input class="input" type="text" id={fid('name')} name="contact.name" autocomplete="name" required aria-required="true" placeholder={tx(ui.form.placeholders.name)} />
+            <p class="error" id={fid('name-err')}></p>
+          </div>
+
+          <fieldset class="iq-group iq-full" data-group={channel.id} data-type="single" data-label={t(channel.label, lang)}>
+            <legend class="iq-legend-v">{t(channel.label, lang)}</legend>
+            <div class="chips">
+              {
+                channel.choices.map((c) => (
+                  <label class="chip">
+                    <input type="radio" name="contact.channel" value={c.id} checked={channel.default === c.id} data-iq-channel />
+                    <span>
+                      {c.id === 'phone' && <Icon name="phone" size={16} />}
+                      {c.id === 'viber' && <Icon name="viber" size={16} />}
+                      {c.id === 'email' && <Icon name="mail" size={16} />}
+                      {t(c.label, lang)}
+                    </span>
+                  </label>
+                ))
+              }
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label for={fid('phone')}>
+              {tx(ui.form.labels.phone)} <span class="iq-opt" data-opt-mark="phone" hidden>· {optional}</span>
+            </label>
+            <input
+              class="input num"
+              type="tel"
+              id={fid('phone')}
+              name="contact.phone"
+              autocomplete="tel"
+              inputmode="tel"
+              placeholder={tx(ui.form.placeholders.phone)}
+              aria-describedby={fid('phone-hint')}
+              data-iq-phone
+            />
+            <p class="hint" id={fid('phone-hint')}>{tx(ui.form.hints.phone)}</p>
+            <p class="error" id={fid('phone-err')}></p>
+          </div>
+
+          <div class="field">
+            <label for={fid('email')}>
+              {tx(ui.form.labels.email)} <span class="iq-opt" data-opt-mark="email">· {optional}</span>
+            </label>
+            <input
+              class="input"
+              type="email"
+              id={fid('email')}
+              name="contact.email"
+              autocomplete="email"
+              inputmode="email"
+              spellcheck="false"
+              placeholder={tx(ui.form.placeholders.email)}
+              data-iq-email
+            />
+            <p class="error" id={fid('email-err')}></p>
+          </div>
+
+          <div class="field iq-full">
+            <label for={fid('city')}>
+              {tx(ui.form.labels.city)} <span class="iq-opt">· {optional}</span>
+            </label>
+            <input class="input" type="text" id={fid('city')} name="contact.city" autocomplete="address-level2" placeholder={tx(ui.form.placeholders.city)} />
+          </div>
+
+          <div class="iq-consent iq-full">
+            <label class="iq-check" for={fid('consent')}>
+              <input type="checkbox" id={fid('consent')} name="consent" required aria-required="true" data-iq-consent />
+              <span>{tx(ui.form.labels.consent)}</span>
+            </label>
+            <p class="error iq-consent-err" id={fid('consent-err')}></p>
+            <details class="iq-privacy">
+              <summary>{tx(T.privacyLink)}</summary>
+              <p>{tx(T.privacyText)}</p>
+            </details>
+          </div>
+        </div>
+
+        <aside class="iq-summary" aria-labelledby={fid('sum-title')}>
+          <h4 class="iq-sub" id={fid('sum-title')}>{tx(pages.inquiry.summaryTitle)}</h4>
+          <div data-iq-summary></div>
+        </aside>
+      </div>
+    </section>
+
+    <div class="iq-nav" data-iq-nav>
+      <button type="button" class="btn btn-ghost iq-back" data-iq-back hidden>
+        <Icon name="arrow-left" />
+        {tx(ui.actions.back)}
+      </button>
+      <span class="iq-nav-step num" data-iq-steptext aria-hidden="true">
+        {t(ui.inquiry.stepOf, lang).replace('{n}', '1').replace('{total}', '3')}
+      </span>
+      <button type="button" class="btn iq-next" data-iq-next>
+        {tx(ui.actions.continue)}
+        <Icon name="arrow-right" class="arrow" />
+      </button>
+      <button type="submit" class="btn iq-submit" data-iq-submit hidden>
+        {tx(ui.actions.submit)}
+        <Icon name="arrow-right" class="arrow" />
+      </button>
+    </div>
+    {DEMO && <p class="iq-demo-hint" data-iq-demo-hint hidden>{tx(T.demoHint)}</p>}
+    <p class="sr-only" aria-live="polite" data-iq-live></p>
+
+    <noscript>
+      <div class="iq-noscript">
+        <p>{tx(T.noscript)}</p>
+        <p class="iq-noscript-links">
+          {site.phones.map((p) => <a class="num" href={`tel:${p.e164}`}>{p.display}</a>)}
+          <a href={site.viberUrl}>Viber</a>
+          <a href={`mailto:${site.email}`}>{site.email}</a>
+        </p>
+      </div>
+    </noscript>
+  </form>
+
+  <!-- Success state -->
+  <div class="iq-card iq-success" data-iq-success hidden>
+    <div class="iq-success-head">
+      <span class="iq-success-mark" aria-hidden="true"><Icon name="check" size={26} /></span>
+      <h3 class="iq-success-title" tabindex="-1" data-iq-success-title>{tx(success.title)}</h3>
+    </div>
+    {
+      DEMO ? (
+        <p class="iq-demo-note" role="note">
+          <strong>{tx(ui.misc.demo)}</strong>
+          <span>{tx(pages.inquiry.demoNotice)}</span>
+        </p>
+      ) : (
+        <p class="lead">{tx(success.text)}</p>
+      )
+    }
+    <p class="iq-storage-note" data-iq-storage-note hidden>{tx(T.storageFailed)}</p>
+
+    <div class="iq-success-grid">
+      <section class="iq-success-sum" aria-labelledby={fid('ok-sum')}>
+        <div class="iq-success-sum-head">
+          <h4 class="iq-sub" id={fid('ok-sum')}>{tx(pages.inquiry.summaryTitle)}</h4>
+          <button type="button" class="iq-textbtn" data-iq-copy-summary>
+            <Icon name="copy" size={16} />
+            <span data-iq-copy-label>{tx(T.copySummary)}</span>
+          </button>
+        </div>
+        <div data-iq-success-summary></div>
+      </section>
+      <div class="iq-success-side">
+        <section aria-labelledby={fid('ok-next')}>
+          <h4 class="iq-sub" id={fid('ok-next')}>{tx(success.nextTitle)}</h4>
+          <ol class="iq-next-steps">
+            {
+              nextSteps.map((s, i) => (
+                <li>
+                  <span class="num">{String(i + 1).padStart(2, '0')}</span>
+                  {tx(s)}
+                </li>
+              ))
+            }
+          </ol>
+        </section>
+        <section aria-labelledby={fid('ok-direct')}>
+          <h4 class="iq-sub" id={fid('ok-direct')}>{tx(T.preferCall)}</h4>
+          <ul class="iq-direct">
+            {
+              site.phones.map((p) => (
+                <li>
+                  <a class="iq-direct-link num" href={`tel:${p.e164}`}>
+                    <Icon name="phone" size={18} />
+                    {p.display}
+                  </a>
+                  <CopyButton text={p.display} lang={lang} />
+                </li>
+              ))
+            }
+            <li>
+              <a class="iq-direct-link" href={`mailto:${site.email}`}>
+                <Icon name="mail" size={18} />
+                {site.email}
+              </a>
+              <CopyButton text={site.email} lang={lang} />
+            </li>
+            <li>
+              <a class="btn btn-viber btn-sm" href={site.viberUrl}>
+                <Icon name="viber" size={18} />
+                {tx(ui.actions.viber)}
+              </a>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </div>
+    <div class="iq-success-actions">
+      <button type="button" class="btn btn-ghost" data-iq-new>
+        <Icon name="plus" />
+        {tx(ui.actions.newInquiry)}
+      </button>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  /* ---------- Inquiry form (all selectors scoped under .iq; global because parts are rendered by JS) ---------- */
+  .iq {
+    --bg: var(--paper);
+    --fg: var(--ink);
+    --muted: var(--steel);
+    --hair: var(--line);
+    --focus: var(--ink);
+    --surface: var(--mist);
+    --iq-pad: clamp(1.25rem, 0.8rem + 2vw, 2.5rem);
+    --iq-gap: var(--s-6);
+    container: iq / inline-size;
+    color: var(--fg);
+    color-scheme: light;
+    min-width: 0;
+  }
+  .iq-compact {
+    --iq-pad: clamp(1rem, 0.7rem + 1.4vw, 1.75rem);
+    --iq-gap: var(--s-5);
+  }
+  .iq .error {
+    color: var(--danger);
+  }
+  .iq .field {
+    align-content: start;
+  }
+  .iq .error:empty {
+    display: none;
+  }
+  .iq .chips .chip input:checked + span {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .iq .chip span svg {
+    flex: none;
+  }
+  .iq fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+  .iq-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: var(--iq-pad);
+  }
+  .iq-opt {
+    font-weight: 400;
+    color: var(--muted);
+  }
+  .iq-textbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    padding: 0 0.15rem;
+    border: 0;
+    background: none;
+    color: var(--fg);
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+  }
+  .iq-textbtn:hover {
+    text-decoration-color: var(--yellow-deep);
+    text-decoration-thickness: 2px;
+  }
+
+  /* Progress */
+  .iq-progress {
+    list-style: none;
+    margin: 0 0 var(--s-4);
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s-2);
+  }
+  .iq-pi {
+    position: relative;
+    border-top: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  }
+  .iq-pi::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: -1px;
+    height: 3px;
+    width: 0;
+    background: var(--yellow);
+    transition: width 0.3s var(--ease);
+  }
+  .iq-pi.is-current::before,
+  .iq-pi.is-done::before {
+    width: 100%;
+  }
+  .iq-pi.is-done::before {
+    background: var(--ink);
+  }
+  .iq-pi-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    min-height: 52px;
+    padding: 0.55rem 0 0.35rem;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    text-align: left;
+    font-size: var(--step--1);
+    font-weight: 500;
+    line-height: 1.25;
+  }
+  .iq-pi-n {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition:
+      background-color 0.2s var(--ease),
+      border-color 0.2s var(--ease),
+      color 0.2s var(--ease);
+  }
+  .iq-pi.is-current .iq-pi-btn {
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .iq-pi.is-current .iq-pi-n {
+    background: var(--yellow);
+    border-color: var(--yellow);
+    color: var(--ink);
+  }
+  .iq-pi.is-done .iq-pi-btn {
+    color: var(--fg);
+  }
+  .iq-pi.is-done .iq-pi-n {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .iq-pi-btn:hover .iq-pi-l {
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+  }
+  html:not(.js) .iq-progress,
+  html:not(.js) .iq-nav {
+    display: none;
+  }
+
+  /* Steps */
+  .js .iq-step:not(.is-active) {
+    display: none;
+  }
+  .iq-step + .iq-step {
+    margin-top: var(--s-7);
+  }
+  .js .iq-step + .iq-step {
+    margin-top: 0;
+  }
+  .iq-step-head {
+    display: grid;
+    gap: var(--s-2);
+    margin-bottom: var(--iq-gap);
+  }
+  .iq-step-title {
+    font-size: var(--step-2);
+    font-weight: 300;
+    outline-offset: 6px;
+  }
+  .iq-step-lead {
+    color: var(--muted);
+    font-size: var(--step--1);
+    max-width: 62ch;
+  }
+  .iq-sub {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-weight: 400;
+    line-height: 1.25;
+  }
+  .iq-legend,
+  .iq-legend-v {
+    display: block;
+    padding: 0;
+    margin-bottom: var(--s-3);
+    font-size: var(--step--1);
+    font-weight: 600;
+  }
+  .iq-legend {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .iq-draft {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 var(--s-3);
+    margin: calc(var(--iq-pad) * -0.4) 0 var(--s-5);
+    padding: 0.3rem 0 0.3rem var(--s-4);
+    border-left: 3px solid var(--yellow);
+    background: var(--mist);
+    font-size: var(--step--1);
+  }
+
+  /* Step 1 layout */
+  .iq-s1 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'product' 'preview' 'dims';
+    gap: var(--iq-gap);
+  }
+  .iq-s1-product {
+    grid-area: product;
+    display: grid;
+    gap: var(--s-3);
+  }
+  .iq-preview {
+    grid-area: preview;
+    margin: 0;
+  }
+  .iq-s1-dims {
+    grid-area: dims;
+  }
+  @container iq (min-width: 780px) {
+    .iq-s1 {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+      grid-template-areas: 'product preview' 'dims preview';
+      grid-template-rows: auto 1fr;
+      column-gap: var(--s-7);
+    }
+    .iq-preview {
+      align-self: start;
+      position: sticky;
+      top: calc(var(--header-h) + 24px);
+    }
+  }
+  .js .iq-product.is-collapsed {
+    display: none;
+  }
+  .iq-fixed {
+    display: grid;
+    gap: 0.15rem;
+    padding: var(--s-3) var(--s-4);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--yellow);
+    background: var(--mist);
+  }
+  .iq-fixed-k {
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+  .iq-fixed-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0 var(--s-4);
+  }
+  .iq-fixed-name {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 400;
+    line-height: 1.2;
+  }
+  html:not(.js) .iq-fixed {
+    display: none;
+  }
+
+  /* Dimension fields */
+  .iq-dims {
+    display: grid;
+    gap: var(--s-5);
+  }
+  .iq-dim {
+    gap: 0.3rem;
+  }
+  .iq-dim-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+  }
+  .iq .iq-dim-top label {
+    font-size: var(--step-0);
+    font-weight: 600;
+  }
+  .iq-num {
+    position: relative;
+    flex: none;
+    width: 7.5rem;
+  }
+  .iq-num .input {
+    padding-right: 2.2rem;
+    text-align: right;
+    font-size: var(--step-1);
+    font-weight: 500;
+  }
+  .iq-unit {
+    position: absolute;
+    right: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .iq-range {
+    --pct: 50%;
+    width: 100%;
+    height: 44px;
+    margin: 0;
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+  }
+  .iq-range::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(to right, var(--ink) var(--pct), color-mix(in srgb, var(--ink) 16%, transparent) var(--pct));
+  }
+  .iq-range::-moz-range-track {
+    height: 3px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--ink) 16%, transparent);
+  }
+  .iq-range::-moz-range-progress {
+    height: 3px;
+    background: var(--ink);
+  }
+  .iq-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    margin-top: -10.5px;
+    border-radius: 50%;
+    border: 2px solid var(--ink);
+    background: var(--yellow);
+    transition: transform 0.15s var(--ease);
+  }
+  .iq-range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--ink);
+    background: var(--yellow);
+  }
+  .iq-range:active::-webkit-slider-thumb {
+    transform: scale(1.12);
+  }
+  .iq-range:focus {
+    outline: none;
+  }
+  .iq-range:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--ink);
+  }
+  .iq-range:focus-visible::-moz-range-thumb {
+    box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--ink);
+  }
+  .iq-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: -0.5rem;
+    font-size: var(--step--2);
+    color: var(--muted);
+  }
+  .iq-dim .hint {
+    font-size: var(--step--1);
+  }
+  .iq-stepper {
+    display: flex;
+    align-items: stretch;
+    width: max-content;
+  }
+  .iq-stepper .input {
+    width: 5rem;
+    text-align: center;
+    border-radius: 0;
+    font-size: var(--step-1);
+  }
+  .iq-stepper-btn {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    border: 1px solid color-mix(in srgb, var(--fg) 22%, transparent);
+    background: var(--paper);
+    color: var(--fg);
+  }
+  .iq-stepper-btn:first-child {
+    border-right: 0;
+    border-radius: var(--radius) 0 0 var(--radius);
+  }
+  .iq-stepper-btn:last-child {
+    border-left: 0;
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  .iq-stepper-btn:hover {
+    background: var(--mist);
+  }
+
+  /* Preview */
+  .iq-board {
+    position: relative;
+    border: 1px solid var(--line);
+    background-color: var(--mist);
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-position: -1px -1px;
+  }
+  html:not(.js) .iq-preview {
+    display: none;
+  }
+  .iq-svg {
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+    overflow: visible;
+  }
+  .iq-svg .t-k {
+    fill: var(--steel);
+    font-size: 11.5px;
+    font-weight: 500;
+  }
+  .iq-svg .t-v {
+    fill: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .iq-svg .f-area {
+    fill: color-mix(in srgb, var(--yellow) 24%, var(--paper));
+    stroke: var(--ink);
+    stroke-width: 1.5;
+  }
+  .iq-svg .f-glass {
+    fill: color-mix(in srgb, #9fb3c2 22%, var(--paper));
+    stroke: var(--ink);
+    stroke-width: 1.25;
+  }
+  .iq-svg .f-glass.tinted {
+    fill: color-mix(in srgb, var(--graphite) 42%, var(--paper));
+  }
+  .iq-svg .f-glass.frosted {
+    fill: color-mix(in srgb, var(--alu) 48%, var(--paper));
+  }
+  .iq-svg .f-fabric {
+    fill: color-mix(in srgb, var(--graphite) 18%, var(--paper));
+    stroke: var(--ink);
+    stroke-width: 1;
+  }
+  .iq-svg .f-fabric.dark {
+    fill: color-mix(in srgb, var(--graphite) 82%, var(--paper));
+  }
+  .iq-svg .f-frame {
+    fill: var(--ink);
+  }
+  .iq-svg .f-post {
+    fill: var(--ink);
+  }
+  .iq-svg .ln {
+    stroke: color-mix(in srgb, var(--ink) 34%, transparent);
+    stroke-width: 1;
+    fill: none;
+  }
+  .iq-svg .ln-strong {
+    stroke: var(--ink);
+    stroke-width: 1.25;
+    fill: none;
+  }
+  .iq-svg .hatch-ln {
+    stroke: color-mix(in srgb, var(--ink) 55%, transparent);
+    stroke-width: 1;
+  }
+  .iq-svg .dot {
+    fill: color-mix(in srgb, var(--ink) 30%, transparent);
+  }
+  .iq-svg .ground {
+    stroke: var(--ink);
+    stroke-width: 1.5;
+  }
+  .iq-svg .dim,
+  .iq-svg .ext {
+    stroke: var(--steel);
+    stroke-width: 1;
+  }
+  .iq-svg .ext {
+    stroke-dasharray: 2 3;
+  }
+  .iq-svg .tick {
+    stroke: var(--ink);
+    stroke-width: 1.5;
+  }
+  .iq-svg .scale {
+    stroke: var(--ink);
+    stroke-width: 2;
+  }
+  .iq-svg .arrow-ln {
+    stroke: var(--ink);
+    stroke-width: 1.25;
+    fill: none;
+  }
+  .iq-readout {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: baseline;
+    gap: 0.1rem var(--s-4);
+    padding: var(--s-4) 0 0;
+  }
+  .iq-readout-k {
+    font-size: var(--step--1);
+    font-weight: 600;
+  }
+  .iq-approx {
+    font-weight: 400;
+    color: var(--muted);
+  }
+  .iq-readout-v {
+    justify-self: end;
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    font-weight: 300;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+  .iq-readout-u {
+    font-size: var(--step-1);
+    color: var(--muted);
+  }
+  .iq-readout-d {
+    grid-column: 2;
+    justify-self: end;
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+  .iq-readout-d:empty {
+    display: none;
+  }
+  .iq-readout-note {
+    grid-column: 1 / -1;
+    font-size: var(--step--2);
+    color: var(--muted);
+  }
+
+  /* Step 2 */
+  .iq-s2 {
+    display: grid;
+    gap: var(--s-7);
+  }
+  .iq-block {
+    display: grid;
+    gap: var(--s-5);
+    align-content: start;
+  }
+  .iq-block + .iq-block {
+    padding-top: var(--s-6);
+    border-top: 1px solid var(--line);
+  }
+  .iq-opts {
+    display: grid;
+    gap: var(--s-5);
+  }
+  .iq-group .chips {
+    gap: var(--s-2);
+  }
+  .iq-texts {
+    display: grid;
+    gap: var(--s-4);
+  }
+  @container iq (min-width: 640px) {
+    .iq-texts {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .iq-drop {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 0.35rem;
+    padding: var(--s-6) var(--s-4);
+    border: 1px dashed color-mix(in srgb, var(--ink) 35%, transparent);
+    border-radius: var(--radius);
+    background: var(--mist);
+    text-align: center;
+    cursor: pointer;
+    transition:
+      border-color 0.15s var(--ease),
+      background-color 0.15s var(--ease);
+  }
+  .iq-drop:hover,
+  .iq-drop.is-over {
+    border-color: var(--ink);
+    background: color-mix(in srgb, var(--yellow) 12%, var(--paper));
+  }
+  .iq-drop:focus-within {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+  .iq-file {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .iq-drop-main {
+    font-weight: 500;
+  }
+  .iq-drop-pick {
+    text-decoration: underline;
+    text-decoration-color: var(--yellow-deep);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.25em;
+  }
+  .iq-drop-sub {
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+  .iq-thumbs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--s-2);
+  }
+  .iq-thumbs:empty {
+    display: none;
+  }
+  @container iq (min-width: 620px) {
+    .iq-thumbs {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .iq-thumb {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) 44px;
+    align-items: center;
+    gap: var(--s-3);
+    padding: 6px;
+    border: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .iq-thumb img {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    background: var(--mist);
+  }
+  .iq-thumb-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--step--1);
+    font-weight: 500;
+  }
+  .iq-thumb-size {
+    display: block;
+    font-size: var(--step--2);
+    color: var(--muted);
+  }
+  .iq-thumb-rm {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--fg);
+  }
+  .iq-thumb-rm:hover {
+    background: var(--mist);
+  }
+
+  /* Step 3 */
+  .iq-s3 {
+    display: grid;
+    gap: var(--s-7);
+  }
+  .iq-s3-fields {
+    display: grid;
+    gap: var(--s-5);
+    align-content: start;
+  }
+  @container iq (min-width: 620px) {
+    .iq-s3-fields {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .iq-full {
+      grid-column: 1 / -1;
+    }
+  }
+  @container iq (min-width: 980px) {
+    .iq-s3 {
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+      gap: var(--s-7);
+    }
+  }
+  .iq-consent {
+    display: grid;
+    gap: var(--s-2);
+  }
+  .iq-check {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-3);
+    min-height: 44px;
+    padding-top: 0.6rem;
+    cursor: pointer;
+    font-size: var(--step--1);
+    font-weight: 500;
+  }
+  .iq-check input {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    margin: 0;
+    accent-color: var(--ink);
+    cursor: pointer;
+  }
+  .iq-check input[aria-invalid='true'] {
+    outline: 2px solid var(--danger);
+    outline-offset: 2px;
+  }
+  .iq-consent-err,
+  .iq-privacy {
+    padding-left: calc(22px + var(--s-3));
+    font-size: var(--step--1);
+  }
+  .iq-privacy summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+  }
+  .iq-privacy p {
+    color: var(--muted);
+    max-width: 62ch;
+  }
+  .iq-summary {
+    align-self: start;
+    padding: var(--s-5);
+    background: var(--mist);
+    border-top: 3px solid var(--ink);
+  }
+  .iq-summary .iq-sub {
+    margin-bottom: var(--s-3);
+  }
+
+  /* Summary list (step 3 and success) */
+  .iq-sum {
+    margin: 0;
+    display: grid;
+  }
+  .iq-sum-sec {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.2rem var(--s-3);
+    padding: var(--s-3) 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  }
+  .iq-sum-sec:last-child {
+    border-bottom: 0;
+  }
+  .iq-sum dt {
+    grid-column: 1;
+    font-size: var(--step--1);
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .iq-sum dd {
+    grid-column: 1;
+    margin: 0;
+    font-size: var(--step--1);
+    line-height: 1.5;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+  .iq-sum dd strong {
+    font-weight: 600;
+  }
+  .iq-sum .iq-textbtn {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: start;
+    min-height: 32px;
+    margin-top: -4px;
+  }
+  .iq-sum-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.1rem;
+    white-space: normal;
+  }
+  .iq-sum-k {
+    color: var(--muted);
+  }
+
+  /* Navigation */
+  .iq-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    margin-top: var(--s-7);
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--line);
+  }
+  .iq-nav-step {
+    margin-right: auto;
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+  .iq-back:not([hidden]) + .iq-nav-step {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  @container iq (max-width: 460px) {
+    .iq-nav {
+      flex-wrap: wrap;
+    }
+    .iq-nav-step {
+      order: -1;
+      flex-basis: 100%;
+      margin: 0;
+    }
+    .iq-back:not([hidden]) + .iq-nav-step {
+      margin: 0;
+    }
+    .iq-next,
+    .iq-submit {
+      flex: 1 1 auto;
+    }
+    .iq-back {
+      padding-inline: 1rem;
+    }
+    .iq-pi-l {
+      display: none;
+    }
+    .iq-pi.is-current .iq-pi-l {
+      display: inline;
+    }
+    .iq-pi.is-current {
+      grid-column: span 1;
+    }
+  }
+  .iq-demo-hint {
+    margin-top: var(--s-3);
+    font-size: var(--step--1);
+    color: var(--muted);
+    text-align: right;
+  }
+  .iq-noscript {
+    margin-top: var(--s-6);
+    padding: var(--s-4) var(--s-5);
+    border-left: 3px solid var(--yellow);
+    background: var(--mist);
+    display: grid;
+    gap: var(--s-2);
+  }
+  .iq-noscript-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2) var(--s-5);
+    font-weight: 600;
+  }
+  .iq-noscript-links a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  html:not(.js) .iq-submit {
+    display: none;
+  }
+
+  /* Success */
+  .iq-success-head {
+    display: flex;
+    align-items: center;
+    gap: var(--s-4);
+    margin-bottom: var(--s-5);
+  }
+  .iq-success-mark {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--yellow);
+    color: var(--ink);
+  }
+  .iq-success-title {
+    font-size: var(--step-3);
+    font-weight: 300;
+    outline-offset: 6px;
+  }
+  .iq-demo-note {
+    display: grid;
+    gap: 0.25rem;
+    padding: var(--s-4) var(--s-5);
+    border-left: 3px solid var(--yellow);
+    background: var(--mist);
+    max-width: 72ch;
+  }
+  .iq-demo-note strong {
+    font-weight: 600;
+  }
+  .iq-storage-note {
+    margin-top: var(--s-3);
+    padding: var(--s-3) var(--s-5);
+    border-left: 3px solid var(--danger);
+    font-size: var(--step--1);
+    max-width: 72ch;
+  }
+  .iq-success-grid {
+    display: grid;
+    gap: var(--s-7);
+    margin-top: var(--s-7);
+  }
+  @container iq (min-width: 820px) {
+    .iq-success-grid {
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    }
+  }
+  .iq-success-sum-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0 var(--s-4);
+    padding-bottom: var(--s-2);
+    border-bottom: 1px solid var(--ink);
+  }
+  .iq-success-side {
+    display: grid;
+    gap: var(--s-6);
+    align-content: start;
+  }
+  .iq-success-side .iq-sub {
+    margin-bottom: var(--s-3);
+  }
+  .iq-next-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+  }
+  .iq-next-steps li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-3);
+    padding: 0.7rem 0;
+    border-top: 1px solid var(--line);
+  }
+  .iq-next-steps li:first-child {
+    border-top-color: var(--ink);
+  }
+  .iq-next-steps .num {
+    font-family: var(--font-display);
+    color: var(--steel);
+    min-width: 2ch;
+  }
+  .iq-direct {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--s-2);
+  }
+  .iq-direct li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-3);
+  }
+  .iq-direct-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 44px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .iq-direct-link:hover {
+    text-decoration: underline;
+  }
+  .iq-direct li:last-child {
+    margin-top: var(--s-2);
+  }
+  .iq-success-actions {
+    margin-top: var(--s-7);
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--line);
+  }
+
+  /* Compact tweaks */
+  .iq-compact .iq-step-title {
+    font-size: var(--step-1);
+    font-weight: 400;
+  }
+  .iq-compact .iq-s2 {
+    gap: var(--s-6);
+  }
+  .iq-compact .iq-nav {
+    margin-top: var(--s-6);
+  }
+  .iq-compact .iq-readout-v {
+    font-size: var(--step-2);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .iq-pi::before {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  import { saveInquiry, readJSON, writeJSON, remove, KEYS } from '../lib/store';
+
+  interface ProductCfg {
+    family: string;
+    name: string;
+    full: string;
+    cat: string;
+  }
+  interface Cfg {
+    lang: 'bg' | 'en';
+    demo: boolean;
+    maxFiles: number;
+    maxMb: number;
+    defaults: Record<string, Record<string, string | string[]>>;
+    products: Record<string, ProductCfg>;
+    s: Record<string, string>;
+  }
+  type Values = Record<string, string | string[]>;
+  interface Draft {
+    v: 1;
+    productId: string | null;
+    values: Values;
+    savedAt: string;
+  }
+  interface Dim {
+    el: HTMLElement;
+    id: string;
+    input: HTMLInputElement;
+    range: HTMLInputElement | null;
+    min: number;
+    max: number;
+    step: number;
+    unit: 'm' | 'pcs';
+    label: string;
+    short: string;
+    last: number;
+  }
+  type Control = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+
+  const CLOSE_SVG =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6 6 18"/></svg>';
+  const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const esc = (s: string) =>
+    s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+  const fill = (tpl: string, vars: Record<string, string | number>) =>
+    tpl.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
+  const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+  const isControl = (el: Element): el is Control =>
+    el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement;
+
+  /** "3,5" / "3.5" / "3,5 м" → 3.5 */
+  function parseNum(raw: string): number {
+    const s = raw.trim().replace(/\s+/g, '').replace(/(м|m|бр\.?|pcs)$/i, '').replace(',', '.');
+    return /^\d*\.?\d+$/.test(s) ? parseFloat(s) : NaN;
+  }
+  function normPhone(raw: string): string {
+    let s = raw.replace(/[\s\-().\/]/g, '');
+    if (s.startsWith('00')) s = '+' + s.slice(2);
+    return s;
+  }
+  /** Bulgarian numbers (08X XXX XXXX, 02 XXX XXXX, +359 …) or any international E.164 number */
+  function validPhone(raw: string): boolean {
+    const s = normPhone(raw);
+    return /^0[2-9]\d{7,8}$/.test(s) || /^\+3590?[2-9]\d{7,8}$/.test(s) || /^\+(?!359)[1-9]\d{7,14}$/.test(s);
+  }
+  function validEmail(raw: string): boolean {
+    const s = raw.trim();
+    return /^[^\s@]+@[^\s@]+\.[^\s@.]{2,}$/.test(s) && !s.includes('..');
+  }
+
+  function initInquiry(root: HTMLElement) {
+    const cfgEl = root.querySelector('[data-iq-config]');
+    if (!cfgEl) return;
+    const cfg = JSON.parse(cfgEl.textContent || '{}') as Cfg;
+    const S = cfg.s;
+    const locale = cfg.lang === 'bg' ? 'bg-BG' : 'en-GB';
+    const nf2 = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
+    const nf1 = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const fmtN = (v: number) => nf2.format(v);
+    const $ = <T extends Element = HTMLElement>(sel: string, ctx: ParentNode = root) => ctx.querySelector<T>(sel);
+    const $$ = <T extends Element = HTMLElement>(sel: string, ctx: ParentNode = root) =>
+      Array.from(ctx.querySelectorAll<T>(sel));
+
+    const form = $<HTMLFormElement>('[data-iq-form]')!;
+    const progress = $('[data-iq-progress]')!;
+    const stepEls = $$('section.iq-step[data-step]');
+    const total = stepEls.length;
+    const backBtn = $<HTMLButtonElement>('[data-iq-back]')!;
+    const nextBtn = $<HTMLButtonElement>('[data-iq-next]')!;
+    const submitBtn = $<HTMLButtonElement>('[data-iq-submit]')!;
+    const stepText = $('[data-iq-steptext]')!;
+    const demoHint = $('[data-iq-demo-hint]');
+    const live = $('[data-iq-live]')!;
+    const select = $<HTMLSelectElement>('[data-iq-select]')!;
+    const productWrap = $('[data-iq-product-wrap]')!;
+    const changeBtn = $<HTMLButtonElement>('[data-iq-change]');
+    const fixedName = $('[data-iq-fixed-name]');
+    const board = $('[data-iq-board]')!;
+    const svg = $<SVGSVGElement>('[data-iq-svg]')!;
+    const areaEl = $('[data-iq-area]')!;
+    const areaDetail = $('[data-iq-area-detail]')!;
+    const areaLive = $('[data-iq-area-live]')!;
+    const summaryEl = $('[data-iq-summary]')!;
+    const successEl = $('[data-iq-success]')!;
+    const fileInput = $<HTMLInputElement>('[data-iq-file]')!;
+    const drop = $('[data-iq-drop]')!;
+    const thumbs = $('[data-iq-thumbs]')!;
+    const photosErr = document.getElementById(`${root.id}-photos-err`)!;
+    const draftNote = $('[data-iq-draft]')!;
+    const P = root.id;
+
+    let step = 1;
+    let family = root.dataset.family || 'pergola';
+    let productId: string | null = null;
+    let files: { file: File; url: string }[] = [];
+    let saveTimer = 0;
+    let areaTimer = 0;
+    let submitted = false;
+    let lastSummaryText = '';
+
+    // ---------------------------------------------------------------- dimensions registry
+    const dims: Record<string, Dim[]> = {};
+    $$('[data-family-block][data-preview]').forEach((block) => {
+      const fam = block.dataset.familyBlock!;
+      dims[fam] = $$('[data-dim]', block).map((el) => {
+        const input = $<HTMLInputElement>('[data-dim-input]', el)!;
+        const d: Dim = {
+          el,
+          id: el.dataset.dim!,
+          input,
+          range: $<HTMLInputElement>('[data-dim-range]', el),
+          min: Number(el.dataset.min),
+          max: Number(el.dataset.max),
+          step: Number(el.dataset.inc),
+          unit: el.dataset.unit === 'pcs' ? 'pcs' : 'm',
+          label: el.dataset.label || '',
+          short: el.dataset.short || '',
+          last: parseNum(input.value),
+        };
+        return d;
+      });
+    });
+    const activeDims = () => dims[family] ?? [];
+    const dimsBlock = () => $(`[data-family-block="${family}"][data-preview]`)!;
+    const optsBlock = () => $(`.iq-opts[data-family-block="${family}"]`)!;
+
+    // ---------------------------------------------------------------- errors
+    function errFor(el: HTMLElement) {
+      return document.getElementById(`${el.id}-err`);
+    }
+    function setError(el: HTMLElement, msg: string) {
+      const err = errFor(el);
+      const ids = (el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+      if (msg) {
+        el.setAttribute('aria-invalid', 'true');
+        if (err) {
+          err.textContent = msg;
+          if (!ids.includes(err.id)) ids.push(err.id);
+        }
+      } else {
+        el.removeAttribute('aria-invalid');
+        if (err) err.textContent = '';
+        const i = err ? ids.indexOf(err.id) : -1;
+        if (i >= 0) ids.splice(i, 1);
+      }
+      if (ids.length) el.setAttribute('aria-describedby', ids.join(' '));
+      else el.removeAttribute('aria-describedby');
+    }
+    function announce(msg: string) {
+      live.textContent = '';
+      window.setTimeout(() => (live.textContent = msg), 40);
+    }
+
+    // ---------------------------------------------------------------- dimension validation + sync
+    function dimError(d: Dim): string {
+      const raw = d.input.value.trim();
+      const v = parseNum(raw);
+      const range = fill(d.unit === 'pcs' ? S.rangePcs : S.range, { min: fmtN(d.min), max: fmtN(d.max) });
+      if (!raw) return S.required;
+      if (Number.isNaN(v)) return d.unit === 'pcs' ? range : S.number;
+      if (v < d.min || v > d.max || (d.unit === 'pcs' && !Number.isInteger(v))) return range;
+      return '';
+    }
+    function validateDim(d: Dim, show = true): boolean {
+      const msg = dimError(d);
+      if (show) setError(d.input, msg);
+      if (!msg) {
+        d.last = parseNum(d.input.value);
+        syncRange(d);
+      }
+      return !msg;
+    }
+    function syncRange(d: Dim) {
+      if (!d.range) return;
+      d.range.value = String(d.last);
+      d.range.style.setProperty('--pct', `${((d.last - d.min) / (d.max - d.min)) * 100}%`);
+      d.range.setAttribute('aria-valuetext', `${fmtN(d.last)} ${S.m}`);
+    }
+    function setDim(d: Dim, v: number) {
+      const decimals = d.step < 0.1 ? 2 : d.step < 1 ? 1 : 0;
+      const value = clamp(Number(v.toFixed(decimals)), d.min, d.max);
+      d.last = value;
+      d.input.value = fmtN(value);
+      setError(d.input, '');
+      syncRange(d);
+      dimsChanged();
+    }
+    function dimsChanged() {
+      draw();
+      scheduleSave();
+    }
+
+    Object.values(dims)
+      .flat()
+      .forEach((d) => {
+        d.range?.addEventListener('input', () => setDim(d, Number(d.range!.value)));
+        d.input.addEventListener('input', () => {
+          const v = parseNum(d.input.value);
+          if (!Number.isNaN(v) && v >= d.min && v <= d.max) {
+            d.last = v;
+            syncRange(d);
+            draw();
+          }
+          if (d.input.getAttribute('aria-invalid') === 'true') validateDim(d);
+        });
+        d.input.addEventListener('change', () => {
+          if (validateDim(d)) d.input.value = fmtN(d.last);
+          else announce(errFor(d.input)?.textContent || '');
+          dimsChanged();
+        });
+        d.input.addEventListener('keydown', (e) => {
+          if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+          e.preventDefault();
+          const base = Number.isNaN(parseNum(d.input.value)) ? d.last : parseNum(d.input.value);
+          const mult = e.shiftKey ? 10 : 1;
+          setDim(d, base + (e.key === 'ArrowUp' ? 1 : -1) * d.step * mult);
+        });
+        $$<HTMLButtonElement>('[data-stepper]', d.el).forEach((b) =>
+          b.addEventListener('click', () => {
+            const base = Number.isNaN(parseNum(d.input.value)) ? d.last : parseNum(d.input.value);
+            setDim(d, base + Number(b.dataset.stepper) * d.step);
+          }),
+        );
+      });
+
+    // ---------------------------------------------------------------- product + family
+    function setFamily(fam: string) {
+      family = fam;
+      root.dataset.family = fam;
+      $$('[data-family-block]').forEach((block) => {
+        const on = block.dataset.familyBlock === fam;
+        block.hidden = !on;
+        if (block instanceof HTMLFieldSetElement) block.disabled = !on;
+        $$<HTMLFieldSetElement | Control>('fieldset, input, select, textarea', block).forEach((c) => (c.disabled = !on));
+      });
+    }
+    function applyPreset(id: string) {
+      const preset = cfg.defaults[id];
+      if (!preset) return;
+      Object.entries(preset).forEach(([group, val]) => {
+        const vals = Array.isArray(val) ? val : [val];
+        $$<HTMLInputElement>(`input[name="opt.${family}.${group}"]`).forEach((i) => (i.checked = vals.includes(i.value)));
+      });
+    }
+    function setProduct(id: string | null, applyDefaults: boolean) {
+      productId = id && cfg.products[id] ? id : null;
+      if (select.value !== (productId ?? '')) select.value = productId ?? '';
+      const fam = productId ? cfg.products[productId].family : family;
+      if (fam !== family) setFamily(fam);
+      if (productId && applyDefaults) applyPreset(productId);
+      if (fixedName && productId) fixedName.textContent = cfg.products[productId].name;
+      if (productId) setError(select, '');
+      draw();
+    }
+    select.addEventListener('change', () => {
+      setProduct(select.value || null, true);
+      scheduleSave();
+    });
+    changeBtn?.addEventListener('click', () => {
+      const open = changeBtn.getAttribute('aria-expanded') !== 'true';
+      changeBtn.setAttribute('aria-expanded', String(open));
+      productWrap.classList.toggle('is-collapsed', !open);
+      if (open) select.focus();
+    });
+    const opt = (group: string) =>
+      $<HTMLInputElement>(`input[name="opt.${family}.${group}"]:checked`)?.value ?? '';
+
+    // ---------------------------------------------------------------- preview drawing
+    function draw() {
+      const block = dimsBlock();
+      if (!block) return;
+      const preview = block.dataset.preview === 'plan' ? 'plan' : 'elevation';
+      const ds = Object.fromEntries(activeDims().map((d) => [d.id, d]));
+      const hd = ds.width ?? ds.length;
+      const vd = preview === 'plan' ? ds.depth : ds.height;
+      if (!hd || !vd) return;
+      const a = hd.last;
+      const b = vd.last;
+      const units = ds.units ? Math.round(ds.units.last) : 1;
+
+      const W = Math.round(clamp(board.clientWidth || 520, 280, 760));
+      const H = Math.round(clamp(W * (preview === 'plan' ? 0.68 : 0.62), 250, 420));
+      const narrow = W < 420;
+      const M = { l: 18, r: narrow ? 100 : 118, t: 56, b: preview === 'plan' ? 60 : 70 };
+      const aw = W - M.l - M.r;
+      const ah = H - M.t - M.b;
+      const s = Math.min(aw / a, ah / b);
+      const rw = a * s;
+      const rh = b * s;
+      const x0 = M.l + (aw - rw) / 2;
+      const y0 = M.t + (ah - rh) / 2;
+      const r = (n: number) => Math.round(n * 10) / 10;
+      const line = (x1: number, y1: number, x2: number, y2: number, cls: string) =>
+        `<line class="${cls}" x1="${r(x1)}" y1="${r(y1)}" x2="${r(x2)}" y2="${r(y2)}"/>`;
+      const rect = (x: number, y: number, w: number, h: number, cls: string, extra = '') =>
+        `<rect class="${cls}" x="${r(x)}" y="${r(y)}" width="${r(Math.max(0, w))}" height="${r(Math.max(0, h))}"${extra}/>`;
+      const txt = (x: number, y: number, body: string, anchor = 'start') =>
+        `<text x="${r(x)}" y="${r(y)}" text-anchor="${anchor}">${body}</text>`;
+      const tk = (s1: string) => `<tspan class="t-k">${esc(s1)}</tspan>`;
+      const tv = (s1: string) => `<tspan class="t-v">${esc(s1)}</tspan>`;
+      const m = (v: number) => `${fmtN(v)} ${S.m}`;
+
+      let out = `<defs>
+        <pattern id="${P}-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line class="hatch-ln" x1="0" y1="0" x2="0" y2="6"/></pattern>
+        <pattern id="${P}-dots" width="5" height="5" patternUnits="userSpaceOnUse"><circle class="dot" cx="2.5" cy="2.5" r="0.9"/></pattern>
+      </defs>`;
+
+      // Top row: view name (+ units) and a scale bar
+      const view = preview === 'plan' ? S.planView : S.elevationView;
+      out += txt(M.l, 22, tk(view + (units > 1 ? ` · ${units} ${S.pcs}` : '')));
+      const unitsList = [0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10];
+      let u = unitsList[0];
+      for (const c of unitsList) if (c * s <= 72) u = c;
+      const bx2 = W - 10;
+      const bx1 = bx2 - u * s;
+      out += line(bx1, 18, bx2, 18, 'scale') + line(bx1, 13, bx1, 23, 'tick') + line(bx2, 13, bx2, 23, 'tick');
+      out += txt(bx1 - 7, 22, tk(m(u)), 'end');
+
+      let rightPad = 22;
+      if (preview === 'plan') {
+        const mount = opt('mounting');
+        const wallTop = family === 'awning' ? opt('mounting') !== 'ceiling' : mount === 'wall';
+        const ceiling = family === 'awning' && opt('mounting') === 'ceiling';
+        const sideWalls = family === 'pergola' && mount === 'between-walls';
+        if (wallTop || ceiling) {
+          out += rect(x0 - 12, y0 - 10, rw + 24, 10, '', ` fill="url(#${P}-hatch)"`) + line(x0 - 12, y0, x0 + rw + 12, y0, 'ln-strong');
+          out += txt(x0 - 12, y0 - 16, tk(S.facade));
+        }
+        if (sideWalls) {
+          out += rect(x0 - 10, y0 - 8, 10, rh + 16, '', ` fill="url(#${P}-hatch)"`) + line(x0, y0 - 8, x0, y0 + rh + 8, 'ln-strong');
+          out += rect(x0 + rw, y0 - 8, 10, rh + 16, '', ` fill="url(#${P}-hatch)"`) + line(x0 + rw, y0 - 8, x0 + rw, y0 + rh + 8, 'ln-strong');
+          rightPad = 30;
+        }
+        out += rect(x0, y0, rw, rh, 'f-area');
+        if (family === 'pergola') {
+          const roof = opt('roofType');
+          const horiz = (gap: number, cls: string) => {
+            let g = '';
+            for (let y = y0 + gap; y < y0 + rh - 1; y += gap) g += line(x0 + 1, y, x0 + rw - 1, y, cls);
+            return g;
+          };
+          const vert = (gap: number, cls: string) => {
+            let g = '';
+            for (let x = x0 + gap; x < x0 + rw - 1; x += gap) g += line(x, y0 + 1, x, y0 + rh - 1, cls);
+            return g;
+          };
+          if (roof === 'lamellas') out += horiz(Math.max(5, 0.22 * s), 'ln');
+          else if (roof === 'pvc') out += horiz(Math.max(9, 0.55 * s), 'ln');
+          else if (roof === 'glass' || roof === 'thermo') out += vert(Math.max(14, (roof === 'glass' ? 1.1 : 1) * s), 'ln');
+          // posts
+          const ps = 8;
+          const corners: [number, number][] = [];
+          if (mount === 'freestanding' || mount === 'advise' || !mount)
+            corners.push([x0, y0], [x0 + rw - ps, y0], [x0, y0 + rh - ps], [x0 + rw - ps, y0 + rh - ps]);
+          else if (mount === 'wall') corners.push([x0, y0 + rh - ps], [x0 + rw - ps, y0 + rh - ps]);
+          corners.forEach(([x, y]) => (out += rect(x, y, ps, ps, 'f-post')));
+        } else {
+          // awning: cassette at the façade, fabric runs outwards, front profile
+          for (let x = x0 + Math.max(10, 0.5 * s); x < x0 + rw - 1; x += Math.max(10, 0.5 * s)) out += line(x, y0 + 5, x, y0 + rh - 3, 'ln');
+          out += rect(x0, y0, rw, 5, 'f-frame') + rect(x0, y0 + rh - 3, rw, 3, 'f-frame');
+        }
+      } else {
+        // Elevation: ground line
+        out += rect(x0 - 16, y0 + rh, rw + 32, 7, '', ` fill="url(#${P}-hatch)"`) + line(x0 - 16, y0 + rh, x0 + rw + 16, y0 + rh, 'ground');
+        const tint = opt('tint') || opt('glass');
+        const glassCls = `f-glass${tint === 'tinted' ? ' tinted' : tint === 'frosted' ? ' frosted' : ''}`;
+        if (family === 'glass') {
+          const sys = opt('systemType');
+          const panelsOpt = opt('panels');
+          out += rect(x0, y0, rw, rh, glassCls);
+          if (sys === 'guillotine') {
+            const mods = clamp(Math.ceil(a / 3.5), 1, 12);
+            for (let i = 1; i < mods; i++) out += line(x0 + (rw * i) / mods, y0, x0 + (rw * i) / mods, y0 + rh, 'ln-strong');
+            for (let i = 1; i < 3; i++) out += line(x0, y0 + (rh * i) / 3, x0 + rw, y0 + (rh * i) / 3, 'ln-strong');
+          } else {
+            const n = /^\d+$/.test(panelsOpt)
+              ? Number(panelsOpt)
+              : panelsOpt === 'more'
+                ? clamp(Math.round(a / 1.1), 5, 16)
+                : clamp(Math.round(a / 1.1), 2, 16);
+            const pw = rw / n;
+            for (let i = 0; i < n; i++) {
+              const off = sys === 'sliding' && i % 2 === 1 ? 3 : 0;
+              out += rect(x0 + i * pw + 1, y0 + 1 + off, pw - 2, rh - 2 - off * 2, glassCls);
+              if (sys === 'folding' && i > 0) out += `<circle class="f-post" cx="${r(x0 + i * pw)}" cy="${r(y0 + 6)}" r="2.2"/>`;
+            }
+          }
+          out += rect(x0, y0, rw, rh, 'ln-strong', ' fill="none" stroke-width="2"');
+        } else if (family === 'door') {
+          const hh = clamp(rh * 0.1, 7, 16);
+          const n = opt('leafType') === 'telescopic' ? 6 : 4;
+          const pw = rw / n;
+          for (let i = 0; i < n; i++) out += rect(x0 + i * pw + 1, y0 + hh + 1, pw - 2, rh - hh - 2, glassCls);
+          out += rect(x0 - 4, y0, rw + 8, hh, 'f-frame');
+          const cx = x0 + rw / 2;
+          const ay = y0 + hh + Math.min(18, (rh - hh) / 2);
+          const al = Math.min(pw * 0.6, 26);
+          out += `<path class="arrow-ln" d="M${r(cx - 4)} ${r(ay)}h${r(-al)}m5 -4l-5 4l5 4M${r(cx + 4)} ${r(ay)}h${r(al)}m-5 -4l5 4l-5 4"/>`;
+          rightPad = 26;
+        } else if (family === 'zip') {
+          const ch = clamp(0.14 * s, 7, 18);
+          const fabric = opt('fabric');
+          out += rect(x0 + 3, y0 + ch, rw - 6, rh - ch - 4, `f-fabric${fabric === 'blackout' ? ' dark' : ''}`);
+          if (fabric !== 'blackout') out += rect(x0 + 3, y0 + ch, rw - 6, rh - ch - 4, '', ` fill="url(#${P}-dots)"`);
+          out += rect(x0, y0 + ch, 3, rh - ch, 'f-frame') + rect(x0 + rw - 3, y0 + ch, 3, rh - ch, 'f-frame');
+          out += rect(x0 + 3, y0 + rh - 4, rw - 6, 4, 'f-frame') + rect(x0 - 3, y0, rw + 6, ch, 'f-frame');
+          rightPad = 25;
+        } else {
+          // windbreak: telescopic glass, upper panel raised over the fixed lower one
+          const mods = clamp(Math.ceil(a / 2), 1, 30);
+          out += rect(x0, y0 + rh * 0.46, rw, rh * 0.54, glassCls);
+          out += rect(x0 + 2, y0, rw - 4, rh * 0.52, glassCls);
+          for (let i = 0; i <= mods; i++) {
+            const x = x0 + (rw * i) / mods;
+            out += rect(clamp(x - 2, x0, x0 + rw - 4), y0 + rh * 0.4, 4, rh * 0.6, 'f-post');
+          }
+        }
+      }
+
+      // Dimension lines: horizontal below, vertical on the right (labels live in reserved margins → no overlaps)
+      const base = preview === 'plan' ? y0 + rh : y0 + rh + 7;
+      const dy = base + 20;
+      out += line(x0, base + 4, x0, dy + 6, 'ext') + line(x0 + rw, base + 4, x0 + rw, dy + 6, 'ext');
+      out += line(x0, dy, x0 + rw, dy, 'dim') + line(x0 - 4, dy + 4, x0 + 4, dy - 4, 'tick') + line(x0 + rw - 4, dy + 4, x0 + rw + 4, dy - 4, 'tick');
+      const hLabel = `${hd.short} ${m(a)}`;
+      const est = hd.short.length * 6.4 + m(a).length * 8.2 + 6;
+      const hcx = clamp(x0 + rw / 2, M.l + est / 2, W - 6 - est / 2);
+      out += txt(hcx, dy + 20, `${tk(hd.short)} ${tv(m(a))}`, 'middle');
+
+      const dx = x0 + rw + rightPad;
+      out += line(x0 + rw + 4, y0, dx + 6, y0, 'ext') + line(x0 + rw + 4, y0 + rh, dx + 6, y0 + rh, 'ext');
+      out += line(dx, y0, dx, y0 + rh, 'dim') + line(dx - 4, y0 + 4, dx + 4, y0 - 4, 'tick') + line(dx - 4, y0 + rh + 4, dx + 4, y0 + rh - 4, 'tick');
+      const mid = y0 + rh / 2;
+      out += `<text x="${r(dx + 10)}" y="${r(mid - 5)}">${tk(vd.short)}</text><text x="${r(dx + 10)}" y="${r(mid + 15)}">${tv(m(b))}</text>`;
+
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      svg.innerHTML = out;
+
+      // Area readout
+      const area = a * b;
+      const totalArea = area * units;
+      areaEl.textContent = nf1.format(totalArea);
+      areaDetail.textContent = units > 1 ? `${nf1.format(area)} ${S.m2} × ${units}` : '';
+      const desc = `${view}: ${hLabel}, ${vd.short} ${m(b)}${units > 1 ? `, ${units} ${S.pcs}` : ''}. ${S.area} ${S.approx} ${nf1.format(totalArea)} ${S.m2}`;
+      svg.setAttribute('aria-label', desc);
+      window.clearTimeout(areaTimer);
+      areaTimer = window.setTimeout(() => (areaLive.textContent = `${S.area} ${S.approx} ${nf1.format(totalArea)} ${S.m2}`), 700);
+    }
+    let raf = 0;
+    const redraw = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(draw);
+    };
+    if ('ResizeObserver' in window) new ResizeObserver(redraw).observe(board);
+    else window.addEventListener('resize', redraw);
+
+    // ---------------------------------------------------------------- photos
+    const fmtSize = (b: number) => (b > 1e6 ? `${nf1.format(b / 1e6)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);
+    function renderThumbs() {
+      thumbs.innerHTML = files
+        .map(
+          (f, i) => `<li class="iq-thumb"><img src="${f.url}" alt="" width="56" height="56"/><span><span class="iq-thumb-name">${esc(f.file.name)}</span><span class="iq-thumb-size num">${fmtSize(f.file.size)}</span></span><button type="button" class="iq-thumb-rm" data-rm="${i}" aria-label="${esc(fill(S.removePhoto, { name: f.file.name }))}">${CLOSE_SVG}</button></li>`,
+        )
+        .join('');
+    }
+    function addFiles(list: FileList | File[]) {
+      const errs = new Set<string>();
+      for (const f of Array.from(list)) {
+        const okType = /^image\/(jpeg|png|webp)$/.test(f.type) || (!f.type && /\.(jpe?g|png|webp)$/i.test(f.name));
+        if (!okType) {
+          errs.add(S.fileType);
+          continue;
+        }
+        if (f.size > cfg.maxMb * 1024 * 1024) {
+          errs.add(fill(S.tooLarge, { name: f.name, n: cfg.maxMb }));
+          continue;
+        }
+        if (files.some((x) => x.file.name === f.name && x.file.size === f.size)) continue;
+        if (files.length >= cfg.maxFiles) {
+          errs.add(fill(S.tooMany, { n: cfg.maxFiles }));
+          break;
+        }
+        files.push({ file: f, url: URL.createObjectURL(f) });
+      }
+      photosErr.textContent = [...errs].join(' ');
+      renderThumbs();
+    }
+    function clearFiles() {
+      files.forEach((f) => URL.revokeObjectURL(f.url));
+      files = [];
+      photosErr.textContent = '';
+      renderThumbs();
+    }
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files) addFiles(fileInput.files);
+      fileInput.value = '';
+    });
+    thumbs.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-rm]');
+      if (!btn) return;
+      const i = Number(btn.dataset.rm);
+      URL.revokeObjectURL(files[i].url);
+      files.splice(i, 1);
+      photosErr.textContent = '';
+      renderThumbs();
+      const next = $$<HTMLButtonElement>('[data-rm]', thumbs)[Math.min(i, files.length - 1)];
+      (next ?? fileInput).focus();
+    });
+    ['dragenter', 'dragover'].forEach((ev) =>
+      drop.addEventListener(ev, (e) => {
+        e.preventDefault();
+        drop.classList.add('is-over');
+      }),
+    );
+    ['dragleave', 'dragend'].forEach((ev) => drop.addEventListener(ev, () => drop.classList.remove('is-over')));
+    drop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      drop.classList.remove('is-over');
+      const dt = (e as DragEvent).dataTransfer;
+      if (dt?.files?.length) addFiles(dt.files);
+    });
+
+    // ---------------------------------------------------------------- contact requirements
+    const nameInput = $<HTMLInputElement>('[name="contact.name"]')!;
+    const phoneInput = $<HTMLInputElement>('[data-iq-phone]')!;
+    const emailInput = $<HTMLInputElement>('[data-iq-email]')!;
+    const consent = $<HTMLInputElement>('[data-iq-consent]')!;
+    const channelValue = () => $<HTMLInputElement>('[data-iq-channel]:checked')?.value ?? 'phone';
+    function updateRequired() {
+      const ch = channelValue();
+      const phoneReq = ch !== 'email';
+      phoneInput.setAttribute('aria-required', String(phoneReq));
+      emailInput.setAttribute('aria-required', String(!phoneReq));
+      const pm = $('[data-opt-mark="phone"]');
+      const em = $('[data-opt-mark="email"]');
+      if (pm) pm.hidden = phoneReq;
+      if (em) em.hidden = !phoneReq;
+    }
+    $$<HTMLInputElement>('[data-iq-channel]').forEach((r) =>
+      r.addEventListener('change', () => {
+        updateRequired();
+        if (phoneInput.hasAttribute('aria-invalid')) validateField(phoneInput);
+        if (emailInput.hasAttribute('aria-invalid')) validateField(emailInput);
+      }),
+    );
+    function fieldError(el: HTMLInputElement): string {
+      const v = el.value.trim();
+      const ch = channelValue();
+      if (el === nameInput) return v.length >= 2 ? '' : S.required;
+      if (el === phoneInput) return v ? (validPhone(v) ? '' : S.phone) : ch !== 'email' ? S.required : '';
+      if (el === emailInput) return v ? (validEmail(v) ? '' : S.email) : ch === 'email' ? S.required : '';
+      if (el === consent) return el.checked ? '' : S.consent;
+      return '';
+    }
+    function validateField(el: HTMLInputElement): boolean {
+      const msg = fieldError(el);
+      setError(el, msg);
+      return !msg;
+    }
+    [nameInput, phoneInput, emailInput].forEach((el) => {
+      el.addEventListener('blur', () => {
+        if (el.value.trim() || el.hasAttribute('aria-invalid')) {
+          if (!validateField(el)) announce(errFor(el)?.textContent || '');
+        }
+      });
+      el.addEventListener('input', () => {
+        if (el.hasAttribute('aria-invalid')) validateField(el);
+      });
+    });
+    consent.addEventListener('change', () => {
+      if (consent.hasAttribute('aria-invalid')) validateField(consent);
+    });
+
+    // ---------------------------------------------------------------- steps
+    function validateStep(n: number): HTMLElement | null {
+      let first: HTMLElement | null = null;
+      const flag = (el: HTMLElement | null) => {
+        if (el && !first) first = el;
+      };
+      if (n === 1) {
+        if (!productId) {
+          setError(select, S.product);
+          flag(select);
+        }
+        activeDims().forEach((d) => {
+          if (!validateDim(d)) flag(d.input);
+        });
+      } else if (n === total) {
+        [nameInput, phoneInput, emailInput, consent].forEach((el) => {
+          if (!validateField(el)) flag(el);
+        });
+      }
+      return first;
+    }
+    function focusInvalid(el: HTMLElement) {
+      if (el === select && productWrap.classList.contains('is-collapsed')) {
+        productWrap.classList.remove('is-collapsed');
+        changeBtn?.setAttribute('aria-expanded', 'true');
+      }
+      el.focus();
+      announce(S.fixErrors);
+    }
+    function scrollToTop() {
+      const top = root.getBoundingClientRect().top;
+      if (top < 0 || top > window.innerHeight * 0.6) root.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+    }
+    function show(n: number, focus = true) {
+      step = n;
+      stepEls.forEach((s) => {
+        const on = Number(s.dataset.step) === n;
+        s.classList.toggle('is-active', on);
+        s.hidden = !on;
+      });
+      $$('[data-pi]', progress).forEach((li) => {
+        const k = Number(li.dataset.pi);
+        li.classList.toggle('is-current', k === n);
+        li.classList.toggle('is-done', k < n);
+        const b = $<HTMLButtonElement>('[data-goto]', li)!;
+        if (k === n) b.setAttribute('aria-current', 'step');
+        else b.removeAttribute('aria-current');
+      });
+      backBtn.hidden = n === 1;
+      nextBtn.hidden = n === total;
+      submitBtn.hidden = n !== total;
+      if (demoHint) demoHint.hidden = n !== total;
+      stepText.textContent = fill(S.stepOf, { n, total });
+      if (n === total) renderSummary(summaryEl, false);
+      if (n === 1) redraw();
+      if (focus) {
+        $<HTMLElement>('[data-step-title]', stepEls[n - 1])?.focus({ preventScroll: true });
+        scrollToTop();
+      }
+    }
+    function goTo(n: number) {
+      if (n === step) return;
+      if (n > step) {
+        for (let k = step; k < n; k++) {
+          const bad = validateStep(k);
+          if (bad) {
+            if (k !== step) show(k, false);
+            focusInvalid(bad);
+            return;
+          }
+        }
+      }
+      show(n);
+    }
+    nextBtn.addEventListener('click', () => goTo(step + 1));
+    backBtn.addEventListener('click', () => goTo(step - 1));
+    $$<HTMLButtonElement>('[data-goto]', progress).forEach((b) => b.addEventListener('click', () => goTo(Number(b.dataset.goto))));
+    summaryEl.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-edit]');
+      if (b) goTo(Number(b.dataset.edit));
+    });
+
+    // Enter in a text field moves on instead of submitting early
+    form.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.isComposing) return;
+      const el = e.target as HTMLElement;
+      if (!(el instanceof HTMLInputElement)) return;
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        e.preventDefault();
+        el.click();
+        return;
+      }
+      if (['button', 'submit', 'file', 'range'].includes(el.type)) return;
+      e.preventDefault();
+      if (step < total) {
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        goTo(step + 1);
+      }
+    });
+
+    // ---------------------------------------------------------------- collect + summary
+    function collect() {
+      const p = productId ? cfg.products[productId] : null;
+      const dimList = activeDims().map((d) => ({ id: d.id, label: d.label, value: d.last, unit: d.unit }));
+      const groupInfo = (fs: HTMLElement) => {
+        const checked = $$<HTMLInputElement>('input:checked', fs);
+        return {
+          id: fs.dataset.group!,
+          label: fs.dataset.label || '',
+          multi: fs.dataset.type === 'multi',
+          values: checked.map((i) => i.value),
+          labels: checked.map((i) => i.nextElementSibling?.textContent?.replace(/\s+/g, ' ').trim() || i.value),
+        };
+      };
+      const optionGroups = $$('fieldset[data-group]', optsBlock()).map(groupInfo);
+      const texts = $$<HTMLInputElement>('[data-text-field]', optsBlock())
+        .map((i) => ({ id: i.dataset.textField!, label: i.dataset.label || '', value: i.value.trim() }))
+        .filter((x) => x.value);
+      const projectGroups = $$('fieldset[data-group]', $('[data-iq-project]')!).map(groupInfo);
+      const chInput = $<HTMLInputElement>('[data-iq-channel]:checked');
+      const ds = Object.fromEntries(dimList.map((d) => [d.id, d.value]));
+      const area = (ds.width ?? ds.length ?? 0) * (ds.depth ?? ds.height ?? 0) * (ds.units ?? 1);
+      return {
+        product: p,
+        dimList,
+        area,
+        optionGroups,
+        texts,
+        projectGroups,
+        contact: {
+          name: nameInput.value.trim(),
+          phone: phoneInput.value.trim(),
+          email: emailInput.value.trim(),
+          city: ($<HTMLInputElement>('[name="contact.city"]')?.value || '').trim(),
+          channel: chInput?.value ?? 'phone',
+          channelLabel: chInput?.nextElementSibling?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+        },
+        message: ($<HTMLTextAreaElement>('[name="message"]')?.value || '').trim(),
+        files: files.map((f) => f.file.name),
+      };
+    }
+    type Collected = ReturnType<typeof collect>;
+    const dimText = (c: Collected) =>
+      c.dimList.map((d) => `${d.label} ${fmtN(d.value)}${d.unit === 'pcs' ? ` ${S.pcs}` : ` ${S.m}`}`).join(' · ');
+    const groupText = (g: Collected['optionGroups'][number]) => (g.labels.length ? g.labels.join(', ') : S.noneSelected);
+
+    function renderSummary(target: HTMLElement, withContact: boolean) {
+      const c = collect();
+      const sec = (title: string, body: string, edit?: number) =>
+        `<div class="iq-sum-sec"><dt>${esc(title)}</dt><dd>${body}</dd>${edit ? `<button type="button" class="iq-textbtn" data-edit="${edit}">${esc(S.edit)}<span class="sr-only">: ${esc(title)}</span></button>` : ''}</div>`;
+      const list = (rows: [string, string][]) =>
+        `<ul class="iq-sum-list">${rows.map(([k, v]) => `<li><span class="iq-sum-k">${esc(k)}:</span> ${esc(v)}</li>`).join('')}</ul>`;
+      let html = '<dl class="iq-sum">';
+      html += sec(S.secProduct, c.product ? `<strong>${esc(c.product.name)}</strong>\n${esc(c.product.full)}` : '—', withContact ? undefined : 1);
+      html += sec(
+        S.secDims,
+        `${esc(dimText(c))}\n${esc(`${S.area} ${S.approx} ${nf1.format(c.area)} ${S.m2}`)}`,
+        withContact ? undefined : 1,
+      );
+      const optRows: [string, string][] = [
+        ...c.optionGroups.filter((g) => g.labels.length || !g.multi).map((g) => [g.label, groupText(g)] as [string, string]),
+        ...c.texts.map((x) => [x.label, x.value] as [string, string]),
+      ];
+      html += sec(S.secOptions, list(optRows), withContact ? undefined : 2);
+      html += sec(S.secProject, list(c.projectGroups.map((g) => [g.label, groupText(g)])), withContact ? undefined : 2);
+      if (c.files.length) html += sec(`${S.secPhotos} (${c.files.length})`, esc(c.files.join(', ')), withContact ? undefined : 2);
+      if (c.message) html += sec(S.secMessage, esc(c.message), withContact ? undefined : 2);
+      if (withContact) {
+        const lines = [c.contact.name, c.contact.phone, c.contact.email, c.contact.city].filter(Boolean).map(esc);
+        lines.push(`${esc(S.channelShort)}: ${esc(c.contact.channelLabel)}`);
+        html += sec(S.secContact, lines.join('\n'));
+      }
+      html += '</dl>';
+      target.innerHTML = html;
+
+      lastSummaryText = [
+        `${S.secProduct}: ${c.product ? `${c.product.name} (${c.product.full})` : '—'}`,
+        `${S.secDims}: ${dimText(c)}; ${S.area} ${S.approx} ${nf1.format(c.area)} ${S.m2}`,
+        ...optRows.map(([k, v]) => `${k}: ${v}`),
+        ...c.projectGroups.map((g) => `${g.label}: ${groupText(g)}`),
+        c.files.length ? `${S.secPhotos}: ${c.files.join(', ')}` : '',
+        c.message ? `${S.secMessage}: ${c.message}` : '',
+        `${S.secContact}: ${[c.contact.name, c.contact.phone, c.contact.email, c.contact.city].filter(Boolean).join(', ')} (${S.channelShort}: ${c.contact.channelLabel})`,
+      ]
+        .filter(Boolean)
+        .join('\n');
+      return c;
+    }
+
+    // ---------------------------------------------------------------- draft (localStorage)
+    function serialize(): Values {
+      const out: Values = {};
+      for (const el of Array.from(form.elements)) {
+        if (!isControl(el) || !el.name || el.name === 'consent') continue;
+        if (el instanceof HTMLInputElement && (el.type === 'file' || el.type === 'range')) continue;
+        if (el instanceof HTMLInputElement && el.type === 'radio') {
+          if (el.checked) out[el.name] = el.value;
+        } else if (el instanceof HTMLInputElement && el.type === 'checkbox') {
+          const arr = (out[el.name] as string[] | undefined) ?? [];
+          if (el.checked) arr.push(el.value);
+          out[el.name] = arr;
+        } else out[el.name] = el.value;
+      }
+      return out;
+    }
+    function restore(values: Values, filter?: (name: string) => boolean) {
+      for (const el of Array.from(form.elements)) {
+        if (!isControl(el) || !el.name || !(el.name in values) || (filter && !filter(el.name))) continue;
+        if (el instanceof HTMLInputElement && (el.type === 'file' || el.type === 'range')) continue;
+        const v = values[el.name];
+        if (el instanceof HTMLInputElement && (el.type === 'radio' || el.type === 'checkbox'))
+          el.checked = Array.isArray(v) ? v.includes(el.value) : v === el.value;
+        else if (typeof v === 'string') el.value = v;
+      }
+      Object.values(dims)
+        .flat()
+        .forEach((d) => validateDim(d, false));
+    }
+    function saveDraft() {
+      if (submitted) return;
+      const draft: Draft = { v: 1, productId, values: serialize(), savedAt: new Date().toISOString() };
+      writeJSON(KEYS.draft, draft);
+    }
+    function scheduleSave() {
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(saveDraft, 350);
+    }
+    form.addEventListener('input', (e) => {
+      if ((e.target as HTMLElement).matches('[data-iq-file]')) return;
+      scheduleSave();
+    });
+    form.addEventListener('change', (e) => {
+      const el = e.target as HTMLElement;
+      if (el.matches('input[name^="opt."]')) draw();
+      scheduleSave();
+    });
+
+    // ---------------------------------------------------------------- submit + success
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (step < total) {
+        goTo(step + 1);
+        return;
+      }
+      for (let k = 1; k <= total; k++) {
+        const bad = validateStep(k);
+        if (bad) {
+          if (k !== step) show(k, false);
+          focusInvalid(bad);
+          return;
+        }
+      }
+      const c = collect();
+      const options: Values = {};
+      c.optionGroups.forEach((g) => (options[g.id] = g.multi ? g.values : (g.values[0] ?? '')));
+      c.projectGroups.forEach((g) => (options[g.id] = g.values[0] ?? ''));
+      c.texts.forEach((x) => (options[x.id] = x.value));
+      const stored = saveInquiry({
+        lang: cfg.lang,
+        productId,
+        family,
+        dims: Object.fromEntries(c.dimList.map((d) => [d.id, d.value])),
+        options,
+        contact: {
+          name: c.contact.name,
+          phone: c.contact.phone,
+          email: c.contact.email,
+          city: c.contact.city || undefined,
+          channel: c.contact.channel,
+        },
+        message: c.message || undefined,
+        files: c.files.length ? c.files : undefined,
+      });
+      submitted = true;
+      window.clearTimeout(saveTimer);
+      remove(KEYS.draft);
+      renderSummary($('[data-iq-success-summary]')!, true);
+      $('[data-iq-storage-note]')!.hidden = !!stored;
+      form.hidden = true;
+      progress.hidden = true;
+      successEl.hidden = false;
+      root.dataset.state = 'sent';
+      if (stored) successEl.dataset.inquiryId = stored.id;
+      $<HTMLElement>('[data-iq-success-title]')?.focus({ preventScroll: true });
+      scrollToTop();
+    });
+
+    $('[data-iq-copy-summary]')?.addEventListener('click', async () => {
+      const label = $('[data-iq-copy-label]')!;
+      const orig = label.textContent;
+      try {
+        await navigator.clipboard.writeText(lastSummaryText);
+        label.textContent = S.copied;
+      } catch {
+        label.textContent = orig;
+      }
+      window.setTimeout(() => (label.textContent = orig), 1800);
+    });
+
+    function resetForm(keepContact: boolean) {
+      const keep = keepContact ? serialize() : {};
+      form.reset();
+      clearFiles();
+      if (keepContact) restore(keep, (n) => n.startsWith('contact.'));
+      $$<HTMLElement>('[aria-invalid]', form).forEach((el) => setError(el, ''));
+      Object.values(dims)
+        .flat()
+        .forEach((d) => validateDim(d, false));
+      const pre = initialProduct();
+      setProduct(pre ?? (select.value || null), true);
+      if (!productId) setFamily(root.dataset.initialFamily || family);
+      updateRequired();
+      draftNote.hidden = true;
+      submitted = false;
+    }
+    $('[data-iq-new]')?.addEventListener('click', () => {
+      const last = productId;
+      resetForm(true);
+      if (last && !initialProduct()) setProduct(last, true);
+      successEl.hidden = true;
+      form.hidden = false;
+      progress.hidden = false;
+      delete root.dataset.state;
+      show(1);
+    });
+    $('[data-iq-reset]')?.addEventListener('click', () => {
+      remove(KEYS.draft);
+      resetForm(false);
+      show(1);
+    });
+
+    // ---------------------------------------------------------------- init
+    function initialProduct(): string | null {
+      const fromProp = root.dataset.product;
+      if (fromProp && cfg.products[fromProp]) return fromProp;
+      const q = new URLSearchParams(window.location.search).get('product');
+      return q && cfg.products[q] ? q : null;
+    }
+    root.dataset.initialFamily = family;
+    const pre = initialProduct();
+    const draft = readJSON<Draft | null>(KEYS.draft, null);
+    if (draft && draft.v === 1 && draft.values && typeof draft.values === 'object') {
+      let before = '';
+      if (!pre || draft.productId === pre) {
+        // same product (or none preselected): continue exactly where the visitor left off
+        before = JSON.stringify(serialize());
+        const id = pre ?? (draft.productId && cfg.products[draft.productId] ? draft.productId : null);
+        if (id) setFamily(cfg.products[id].family);
+        restore(draft.values);
+        setProduct(id, false);
+      } else {
+        // another product was requested: keep only the personal details and project info
+        setProduct(pre, true);
+        before = JSON.stringify(serialize());
+        restore(draft.values, (n) => n.startsWith('contact.') || n.startsWith('proj.') || n === 'message');
+      }
+      if (JSON.stringify(serialize()) !== before) draftNote.hidden = false;
+    } else {
+      setProduct(pre, true);
+    }
+    setFamily(family);
+    updateRequired();
+    show(1, false);
+    root.classList.add('is-ready');
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-inquiry]').forEach(initInquiry);
+</script>

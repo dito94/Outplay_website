@@ -1,0 +1,405 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Breadcrumbs from '../../../components/Breadcrumbs.astro';
+import SectionHead from '../../../components/SectionHead.astro';
+import BeforeAfter from '../../../components/BeforeAfter.astro';
+import GalleryMosaic from '../../../components/GalleryMosaic.astro';
+import Lightbox from '../../../components/Lightbox.astro';
+import CtaBand from '../../../components/CtaBand.astro';
+import Img from '../../../components/Img.astro';
+import Icon from '../../../components/Icon.astro';
+import type { BeforeAfterPair } from '../../../data/types';
+import { pages } from '../../../data/pages';
+import { site } from '../../../data/site';
+import { ui } from '../../../data/ui';
+import { beforeAfter } from '../../../data/before-after';
+import { gallery } from '../../../data/gallery';
+import { references } from '../../../data/references';
+import { langParams, getLang, url, t } from '../../../lib/i18n';
+import { img, hasImg } from '../../../lib/images';
+
+export function getStaticPaths() {
+  return langParams();
+}
+const lang = getLang(Astro.params.lang);
+const page = pages.gallery;
+const home = pages.home;
+
+const T = {
+  metaDescription: {
+    bg: 'Реализирани обекти и визуализации на биоклиматични перголи, стъклени системи, ZIP завеси, тенти и ветрозащита от OUTPLAY, София.',
+    en: 'Completed projects and visualisations of OUTPLAY bioclimatic pergolas, glass systems, ZIP screens, awnings and windbreaks, Sofia.',
+  },
+  onPage: { bg: 'На тази страница', en: 'On this page' },
+  galleryIntro: {
+    bg: 'Снимки и визуализации, подредени по категории. Отворете снимка, за да я разгледате на цял екран.',
+    en: 'Photos and visualisations, sorted by category. Open any image to view it full screen.',
+  },
+  askTitle: { bg: 'Имате подобно място?', en: 'Have a similar space?' },
+  askText: {
+    bg: 'Изпратете ни няколко снимки и приблизителни размери – ще предложим подходяща система и ориентировъчна оферта.',
+    en: 'Send us a few photos and rough dimensions, and we will suggest the right system with an indicative quote.',
+  },
+};
+
+const pairs = beforeAfter.filter((p) => hasImg(p.before) && hasImg(p.after));
+const [lead, ...rest] = pairs;
+const items = gallery.filter((g) => hasImg(g.image));
+const refs = references.filter((r) => hasImg(r.image));
+
+/** Aspect ratio of a pair's photos, clamped so sliders stay usable */
+const ratio = (p: BeforeAfterPair, min: number, max: number) => {
+  const m = img(p.after);
+  const r = m ? m.width / m.height : 1.6;
+  return Math.min(max, Math.max(min, r)).toFixed(4);
+};
+
+const jump = [
+  pairs.length > 0 && { href: '#before-after', label: t(home.beforeAfter.title, lang), n: pairs.length },
+  items.length > 0 && { href: '#gallery', label: t(ui.nav.gallery, lang), n: items.length },
+  refs.length > 0 && { href: '#references', label: t(home.references.title, lang), n: refs.length },
+].filter(Boolean) as { href: string; label: string; n: number }[];
+---
+
+<Base lang={lang} title={t(page.title, lang)} description={t(T.metaDescription, lang)} ogImage="products/balance/hero.jpg">
+  <section class="ph" aria-labelledby="page-title">
+    <div class="wrap">
+      <Breadcrumbs lang={lang} items={[{ label: t(page.title, lang) }]} />
+      <div class="ph-grid">
+        <h1 id="page-title" class="h1 rule">{t(page.title, lang)}</h1>
+        <div class="ph-side">
+          <p class="lead">{t(page.intro, lang)}</p>
+          {
+            jump.length > 1 && (
+              <nav class="ph-jump" aria-label={t(T.onPage, lang)}>
+                <ul>
+                  {jump.map((j) => (
+                    <li>
+                      <a href={j.href}>
+                        <span>{j.label}</span>
+                        <span class="ph-n num">{j.n}</span>
+                        <Icon name="arrow-right" size={16} />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            )
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {
+    lead && (
+      <section class="section ba-sec" id="before-after" aria-labelledby="ba-title">
+        <div class="wrap">
+          <div class="ba-top">
+            <div class="ba-copy" data-reveal>
+              <div class="ba-intro">
+                <h2 id="ba-title" class="h2 rule">
+                  {t(home.beforeAfter.title, lang)}
+                </h2>
+                <p class="lead">{t(home.beforeAfter.intro, lang)}</p>
+              </div>
+              <div class="ba-ask">
+                <p class="ba-ask-title">{t(T.askTitle, lang)}</p>
+                <p class="muted small">{t(T.askText, lang)}</p>
+                <a class="link-arrow" href={url(lang, '/contact/#inquiry')}>
+                  {t(ui.actions.requestQuote, lang)} <Icon name="arrow-right" size={16} />
+                </a>
+              </div>
+            </div>
+            <div class="ba-slot" style={`--r:${ratio(lead, 1.2, 1.9)};--rm:${ratio(lead, 1.1, 1.6)}`}>
+              <BeforeAfter lang={lang} pair={lead} sizes="(min-width: 1440px) 880px, (min-width: 901px) 62vw, 94vw" />
+            </div>
+          </div>
+          {rest.length > 0 && (
+            <div class="ba-rest">
+              {rest.map((p, i) => {
+                const span = rest.length % 2 === 1 && i === rest.length - 1;
+                return (
+                  <div
+                    class:list={['ba-slot', { 'ba-span': span }]}
+                    style={span ? `--r:${ratio(p, 2.2, 2.6)};--rm:${ratio(p, 1.2, 1.6)}` : '--r:1.3333;--rm:1.3333'}
+                    data-reveal
+                  >
+                    <BeforeAfter
+                      lang={lang}
+                      pair={p}
+                      sizes={span ? '(min-width: 1440px) 1330px, 94vw' : '(min-width: 1440px) 660px, (min-width: 901px) 46vw, 94vw'}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    items.length > 0 && (
+      <section class="section mist" id="gallery" aria-labelledby="gallery-title">
+        <div class="wrap">
+          <SectionHead id="gallery-title" title={t(ui.nav.gallery, lang)} intro={t(T.galleryIntro, lang)} />
+          <GalleryMosaic lang={lang} items={items} />
+        </div>
+      </section>
+    )
+  }
+
+  {
+    refs.length > 0 && (
+      <section class="section night" id="references" aria-labelledby="refs-title">
+        <div class="wrap">
+          <SectionHead id="refs-title" title={t(home.references.title, lang)} intro={t(home.references.intro, lang)} />
+          <ul class="refs">
+            {refs.map((r) => (
+              <li class="ref" data-reveal>
+                <div class="media ref-media">
+                  <Img
+                    src={r.image}
+                    lang={lang}
+                    sizes="(min-width: 1440px) 430px, (min-width: 901px) 30vw, (min-width: 521px) 46vw, 94vw"
+                    widths={[480, 768]}
+                  />
+                </div>
+                <h3 class="ref-name">{r.name}</h3>
+                <p class="ref-type small">{t(r.type, lang)}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    )
+  }
+
+  <section class:list={['section-tight', 'partners-sec', { night: refs.length > 0 }]} aria-labelledby="partners-title">
+    <div class="wrap">
+      <div class="partners">
+      <div class="partners-copy">
+        <h2 id="partners-title" class="h3">{t(home.partners.title, lang)}</h2>
+        <p class="muted small">{t(home.partners.intro, lang)}</p>
+      </div>
+      <ul class="partner-list">
+        {site.partners.map((p) => <li>{p}</li>)}
+        <li class="partner-more">{t(site.partnersMore, lang)}</li>
+      </ul>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand lang={lang} />
+  <Lightbox lang={lang} />
+</Base>
+
+<style>
+  /* Page head */
+  .ph {
+    padding-top: clamp(1.25rem, 0.8rem + 1.5vw, 2rem);
+    padding-bottom: clamp(2.5rem, 1.8rem + 3vw, 4.5rem);
+    border-bottom: 1px solid var(--hair);
+  }
+  .ph-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: var(--s-6) var(--s-8);
+    align-items: end;
+    margin-top: clamp(2rem, 1.2rem + 3vw, 4rem);
+  }
+  .ph-side {
+    display: grid;
+    gap: var(--s-6);
+  }
+  .ph-jump ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--s-6);
+    border-top: 1px solid var(--hair);
+  }
+  .ph-jump a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 48px;
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .ph-jump a:hover span:first-child {
+    text-decoration: underline;
+    text-decoration-color: var(--yellow);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.3em;
+  }
+  .ph-n {
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .ph-jump a :global(svg) {
+    transform: rotate(90deg);
+    color: var(--muted);
+  }
+  @media (max-width: 860px) {
+    .ph-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* Before / after */
+  .ba-sec {
+    padding-top: clamp(3rem, 2rem + 4vw, 6rem);
+  }
+  .ba-top {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr);
+    gap: var(--s-6) var(--s-8);
+    align-items: stretch;
+  }
+  .ba-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--s-7);
+  }
+  .ba-intro {
+    display: grid;
+    gap: var(--s-5);
+  }
+  .ba-ask {
+    display: grid;
+    gap: var(--s-3);
+    justify-items: start;
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--hair);
+    max-width: 40ch;
+  }
+  .ba-ask-title {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: 1.25;
+  }
+  .ba-ask .link-arrow {
+    margin-top: var(--s-2);
+  }
+  .ba-slot :global(.ba-stage) {
+    aspect-ratio: var(--r);
+  }
+  .ba-rest {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-7) var(--s-5);
+    margin-top: clamp(3rem, 2rem + 3vw, 5rem);
+  }
+  .ba-span {
+    grid-column: 1 / -1;
+  }
+  @media (max-width: 900px) {
+    .ba-top {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .ba-copy {
+      display: grid;
+      gap: var(--s-6);
+    }
+    .ba-ask {
+      order: 2;
+    }
+  }
+  @media (max-width: 700px) {
+    .ba-slot :global(.ba-stage) {
+      aspect-ratio: var(--rm);
+    }
+    .ba-rest {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* References */
+  .refs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s-7) var(--s-5);
+  }
+  .ref {
+    display: grid;
+    align-content: start;
+    gap: var(--s-1);
+  }
+  .ref-media {
+    aspect-ratio: 3 / 2;
+    margin-bottom: var(--s-3);
+  }
+  .ref-name {
+    font-size: var(--step-1);
+    font-weight: 400;
+    line-height: 1.25;
+  }
+  .ref-type {
+    color: var(--muted);
+  }
+  @media (max-width: 900px) {
+    .refs {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 520px) {
+    .refs {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--s-6);
+    }
+  }
+
+  /* Partners */
+  .partners-sec.night {
+    padding-top: 0;
+  }
+  .partners {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr);
+    gap: var(--s-5) var(--s-8);
+    align-items: start;
+    padding-top: var(--s-7);
+    border-top: 1px solid var(--hair);
+  }
+  .partners-copy {
+    display: grid;
+    gap: var(--s-3);
+    max-width: 40ch;
+  }
+  .partner-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-3) var(--s-6);
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  .partner-list li {
+    white-space: nowrap;
+  }
+  .partner-more {
+    letter-spacing: 0;
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    align-self: center;
+  }
+  @media (max-width: 860px) {
+    .partners {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

@@ -1,0 +1,19 @@
+---
+import Base from '../../../layouts/Base.astro';
+import AdminApp from '../../../components/admin/AdminApp.astro';
+import { pages } from '../../../data/pages';
+import { getLang, langParams, t } from '../../../lib/i18n';
+
+export function getStaticPaths() {
+  return langParams();
+}
+const lang = getLang(Astro.params.lang);
+const description = {
+  bg: 'Демо на административния панел на OUTPLAY: запитвания, продукти, въпроси и настройки. Промените се пазят само в този браузър.',
+  en: 'OUTPLAY admin panel demo: inquiries, products, FAQ and settings. Changes are saved in this browser only.',
+};
+---
+
+<Base lang={lang} title={t(pages.admin.title, lang)} description={t(description, lang)} fab={false} bodyClass="adm-body">
+  <AdminApp lang={lang} />
+</Base>

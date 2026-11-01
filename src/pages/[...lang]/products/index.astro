@@ -1,0 +1,236 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Breadcrumbs from '../../../components/Breadcrumbs.astro';
+import SectionHead from '../../../components/SectionHead.astro';
+import Icon from '../../../components/Icon.astro';
+import CtaBand from '../../../components/CtaBand.astro';
+import ProductGrid from '../../../components/ProductGrid.astro';
+import { categories } from '../../../data/categories';
+import { products } from '../../../data/products';
+import { pages } from '../../../data/pages';
+import { ui } from '../../../data/ui';
+import { langParams, getLang, url, categoryUrl, t, fmt } from '../../../lib/i18n';
+
+export function getStaticPaths() {
+  return langParams();
+}
+const lang = getLang(Astro.params.lang);
+
+const T = {
+  metaTitle: { bg: 'Продукти – перголи, стъклени системи, слънцезащита и ветрозащита', en: 'Products – pergolas, glass systems, sun protection and windbreaks' },
+  all: { bg: 'Всички', en: 'All' },
+  filter: { bg: 'Покажи категория', en: 'Show category' },
+  showing: { bg: 'Показани са {count} продукта', en: 'Showing {count} products' },
+  showingOne: { bg: 'Показан е 1 продукт', en: 'Showing 1 product' },
+  view: { bg: 'Към категорията', en: 'Go to category' },
+};
+
+const cats = [...categories].sort((a, b) => a.order - b.order);
+const groups = cats.map((c) => ({
+  cat: c,
+  items: products.filter((p) => p.category === c.id).sort((a, b) => a.order - b.order),
+}));
+const total = products.length;
+const statusText = (n: number) => (n === 1 ? t(T.showingOne, lang) : fmt(t(T.showing, lang), { count: n }));
+const countText = (n: number) => (n === 1 ? t(ui.category.productOne, lang) : fmt(t(ui.category.productCount, lang), { count: n }));
+
+const itemList = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: t(pages.products.title, lang),
+  itemListElement: groups.map((g, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: t(g.cat.name, lang),
+    url: new URL(categoryUrl(lang, g.cat.id), Astro.site).href,
+  })),
+};
+---
+
+<Base lang={lang} title={t(T.metaTitle, lang)} description={t(pages.products.intro, lang)} ogImage="categories/bioclimatic-pergolas.jpg" jsonLd={itemList}>
+  <section class="pi-head">
+    <div class="wrap">
+      <Breadcrumbs lang={lang} items={[{ label: t(pages.products.title, lang) }]} />
+      <div class="pi-intro">
+        <h1 class="display pi-title">{t(pages.products.title, lang)}</h1>
+        <p class="lead">{t(pages.products.intro, lang)}</p>
+      </div>
+      <div class="pi-filter" data-filter>
+        <p class="sr-only" id="pi-filter-label">{t(T.filter, lang)}</p>
+        <div class="seg" role="group" aria-labelledby="pi-filter-label">
+          <button type="button" class="seg-btn" aria-pressed="true" data-filter-btn="all" data-count={total}>
+            <span>{t(T.all, lang)}</span>
+            <span class="seg-n num" aria-hidden="true">{total}</span>
+          </button>
+          {
+            groups.map((g) => (
+              <button type="button" class="seg-btn" aria-pressed="false" data-filter-btn={g.cat.id} data-count={g.items.length}>
+                <span>{t(g.cat.name, lang)}</span>
+                <span class="seg-n num" aria-hidden="true">
+                  {g.items.length}
+                </span>
+              </button>
+            ))
+          }
+        </div>
+        <p class="sr-only" aria-live="polite" data-filter-status></p>
+      </div>
+    </div>
+  </section>
+
+  {
+    groups.map((g, i) => (
+      <section class:list={['section', 'pi-group', { mist: i % 2 === 0 }]} id={g.cat.id} data-group={g.cat.id} aria-labelledby={`pg-${g.cat.id}`}>
+        <div class="wrap">
+          <SectionHead id={`pg-${g.cat.id}`} title={t(g.cat.name, lang)} intro={t(g.cat.tagline, lang)}>
+            <p class="pi-meta">
+              <a class="link-arrow" href={categoryUrl(lang, g.cat.id)}>
+                {t(T.view, lang)} <Icon name="arrow-right" size={16} />
+              </a>
+              <span class="muted small">{countText(g.items.length)}</span>
+            </p>
+          </SectionHead>
+          <ProductGrid lang={lang} products={g.items} headingLevel="h3" />
+        </div>
+      </section>
+    ))
+  }
+
+  <CtaBand lang={lang} />
+</Base>
+
+<script define:vars={{ texts: { many: t(T.showing, lang), one: t(T.showingOne, lang) } }}>
+  const root = document.querySelector('[data-filter]');
+  if (root) {
+    const btns = Array.from(root.querySelectorAll('[data-filter-btn]'));
+    const groups = Array.from(document.querySelectorAll('[data-group]'));
+    const status = root.querySelector('[data-filter-status]');
+    const apply = (id, announce) => {
+      const valid = id === 'all' || groups.some((g) => g.dataset.group === id);
+      const key = valid ? id : 'all';
+      btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filterBtn === key)));
+      groups.forEach((g) => {
+        g.hidden = key !== 'all' && g.dataset.group !== key;
+      });
+      const active = btns.find((b) => b.dataset.filterBtn === key);
+      const n = Number(active?.dataset.count ?? 0);
+      if (announce && status) status.textContent = n === 1 ? texts.one : texts.many.replace('{count}', String(n));
+      const u = new URL(window.location.href);
+      if (key === 'all') u.searchParams.delete('c');
+      else u.searchParams.set('c', key);
+      history.replaceState(history.state, '', u);
+    };
+    btns.forEach((b) => b.addEventListener('click', () => apply(b.dataset.filterBtn ?? 'all', true)));
+    const initial = new URL(window.location.href).searchParams.get('c');
+    if (initial) apply(initial, false);
+  }
+</script>
+
+<style>
+  .pi-head {
+    padding-top: var(--s-5);
+    padding-bottom: clamp(2.5rem, 1.5rem + 3vw, 4.5rem);
+  }
+  .pi-intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: var(--s-5) var(--s-8);
+    align-items: end;
+    padding-top: clamp(2rem, 1.2rem + 3vw, 4.5rem);
+    padding-bottom: clamp(2rem, 1.5rem + 2.5vw, 3.5rem);
+  }
+  .pi-title {
+    font-size: clamp(3rem, 1.6rem + 6vw, 7rem);
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+  }
+  .pi-filter {
+    display: none;
+  }
+  :global(html.js) .pi-filter {
+    display: block;
+  }
+  .seg {
+    display: flex;
+    width: max-content;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--paper);
+  }
+  .seg::-webkit-scrollbar {
+    display: none;
+  }
+  .seg-btn {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 52px;
+    padding: 0 1.25rem;
+    border: 0;
+    border-right: 1px solid var(--line);
+    background: transparent;
+    color: var(--steel);
+    font-size: var(--step--1);
+    font-weight: 500;
+    white-space: nowrap;
+    transition:
+      background-color 0.2s var(--ease),
+      color 0.2s var(--ease);
+  }
+  .seg-btn:last-child {
+    border-right: 0;
+  }
+  .seg-btn:hover {
+    color: var(--ink);
+    background: var(--mist);
+  }
+  .seg-btn[aria-pressed='true'] {
+    background: var(--ink);
+    color: #fff;
+  }
+  .seg-n {
+    font-size: var(--step--2);
+    font-weight: 600;
+    color: var(--steel);
+    transition: color 0.2s var(--ease);
+  }
+  .seg-btn[aria-pressed='true'] .seg-n {
+    color: var(--yellow);
+  }
+  .seg-btn:focus-visible {
+    outline-offset: -4px;
+  }
+  .pi-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-3) var(--s-5);
+  }
+  @media (max-width: 860px) {
+    .pi-intro {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .pi-filter {
+      margin-inline: calc(-1 * var(--gutter));
+    }
+    .seg {
+      width: auto;
+      gap: var(--s-2);
+      border: 0;
+      border-radius: 0;
+      padding-inline: var(--gutter);
+      background: transparent;
+    }
+    .seg-btn,
+    .seg-btn:last-child {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      min-height: 46px;
+      padding: 0 1rem;
+    }
+  }
+</style>

@@ -1,0 +1,149 @@
+---
+// Horizontal process timeline (a real sequence, so steps are numbered). 6-up on wide screens, 3-up on tablets,
+// vertical on phones. The line runs from the first node to the last in each row.
+import type { L, Lang } from '../data/types';
+import { t } from '../lib/i18n';
+
+interface Props {
+  lang: Lang;
+  steps: { id: string; title: L; text: L }[];
+  headingLevel?: 'h3' | 'h4';
+}
+const { lang, steps, headingLevel = 'h3' } = Astro.props;
+const Tag = headingLevel;
+---
+
+<ol class="tl" style={`--n:${steps.length}`}>
+  {
+    steps.map((s, i) => (
+      <li class="tl-step" data-reveal>
+        <span class="tl-n num" aria-hidden="true">
+          {String(i + 1).padStart(2, '0')}
+        </span>
+        <span class="tl-node" aria-hidden="true"></span>
+        <Tag class="tl-title">{t(s.title, lang)}</Tag>
+        <p class="tl-text">{t(s.text, lang)}</p>
+      </li>
+    ))
+  }
+</ol>
+
+<style>
+  .tl {
+    --node: 13px;
+    --line: color-mix(in srgb, var(--fg) 28%, transparent);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    row-gap: var(--s-8);
+  }
+  .tl-step {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto auto auto 1fr;
+    align-content: start;
+    gap: var(--s-3);
+    padding-right: var(--s-6);
+  }
+  /* connecting line, centred on the node, through to the next step */
+  .tl-step::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(var(--n-h) + var(--s-3) + var(--node) / 2);
+    height: 1px;
+    background: var(--line);
+  }
+  .tl-step:last-child::before {
+    display: none;
+  }
+  .tl-step {
+    --n-h: calc(var(--step-3) * 1.1);
+  }
+  .tl-n {
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    font-weight: 300;
+    line-height: 1.1;
+    color: var(--muted);
+  }
+  .tl-node {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: var(--node);
+    height: var(--node);
+    border-radius: 50%;
+    background: var(--yellow);
+    box-shadow: 0 0 0 5px var(--bg);
+    margin-bottom: var(--s-3);
+  }
+  .tl-title {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-weight: 400;
+    line-height: 1.25;
+    max-width: 18ch;
+  }
+  .tl-text {
+    font-size: var(--step--1);
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 34ch;
+  }
+
+  @media (max-width: 1100px) {
+    .tl {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .tl-step:nth-child(3n)::before {
+      display: none;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .tl {
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: 0;
+    }
+    .tl-step {
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-rows: auto;
+      column-gap: var(--s-4);
+      row-gap: var(--s-2);
+      padding: 0 0 var(--s-6) calc(var(--node) + var(--s-5));
+    }
+    .tl-step::before,
+    .tl-step:nth-child(3n)::before {
+      display: block;
+      left: calc(var(--node) / 2);
+      right: auto;
+      top: 0.55rem;
+      bottom: -0.55rem;
+      width: 1px;
+      height: auto;
+    }
+    .tl-step:last-child::before {
+      display: none;
+    }
+    .tl-node {
+      position: absolute;
+      left: 0;
+      top: 0.55rem;
+      margin: 0;
+    }
+    .tl-n {
+      font-size: var(--step-1);
+      line-height: 1.25;
+    }
+    .tl-title {
+      max-width: none;
+    }
+    .tl-text {
+      grid-column: 2;
+    }
+  }
+</style>

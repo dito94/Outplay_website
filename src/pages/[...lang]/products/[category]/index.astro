@@ -1,0 +1,473 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
+import SectionHead from '../../../../components/SectionHead.astro';
+import Img from '../../../../components/Img.astro';
+import Icon from '../../../../components/Icon.astro';
+import LamellaDemo from '../../../../components/LamellaDemo.astro';
+import CtaBand from '../../../../components/CtaBand.astro';
+import ProductGrid from '../../../../components/ProductGrid.astro';
+import type { Category, Product } from '../../../../data/types';
+import { categories } from '../../../../data/categories';
+import { products } from '../../../../data/products';
+import { pages } from '../../../../data/pages';
+import { ui } from '../../../../data/ui';
+import { LANGS, DEFAULT_LANG, getLang, url, categoryUrl, productUrl, t } from '../../../../lib/i18n';
+
+export function getStaticPaths() {
+  return LANGS.flatMap((l) =>
+    categories.map((c) => ({
+      params: { lang: l === DEFAULT_LANG ? undefined : l, category: c.id },
+      props: { category: c },
+    })),
+  );
+}
+
+interface Props {
+  category: Category;
+}
+const { category } = Astro.props;
+const lang = getLang(Astro.params.lang);
+
+const T = {
+  products: { bg: 'Продукти', en: 'Products' },
+  quote: { bg: 'Направете запитване', en: 'Request a quote' },
+  lamTitle: { bg: 'Ламели, които следват деня', en: 'Louvres that follow the day' },
+  lamIntro: {
+    bg: 'Balance завърта ламелите от 0° до 120°, а Infinity може и да ги прибере в края на конструкцията. Изберете условия или плъзнете скалата.',
+    en: 'Balance turns its louvres from 0° to 120°; Infinity can also stack them at one end of the structure. Pick the conditions or drag the slider.',
+  },
+  lamLink: { bg: 'Серия Balance', en: 'Balance series' },
+  lamLink2: { bg: 'Серия Infinity', en: 'Infinity series' },
+  inCat: { bg: 'продукта в категорията', en: 'products in this category' },
+  inCatOne: { bg: 'продукт в категорията', en: 'product in this category' },
+};
+
+const isBio = category.id === 'bioclimatic-pergolas';
+const inCat = products.filter((p) => p.category === category.id).sort((a, b) => a.order - b.order);
+const countLabel = t(inCat.length === 1 ? T.inCatOne : T.inCat, lang);
+
+type Group = { id: string; title: string; intro?: string; items: Product[] };
+const groups: Group[] = category.subgroups?.length
+  ? category.subgroups.map((sg) => ({
+      id: sg.id,
+      title: t(sg.name, lang),
+      intro: sg.description ? t(sg.description, lang) : undefined,
+      items: sg.productIds.map((id) => inCat.find((p) => p.id === id)).filter((p): p is Product => !!p),
+    }))
+  : [{ id: 'all', title: t(ui.category.productsIn, lang), items: inCat }];
+// Products not listed in any subgroup still need a home
+const listed = new Set(groups.flatMap((g) => g.items.map((p) => p.id)));
+const rest = inCat.filter((p) => !listed.has(p.id));
+if (rest.length) groups.push({ id: 'more', title: t(ui.category.productsIn, lang), items: rest });
+
+const others = categories.filter((c) => c.id !== category.id).sort((a, b) => a.order - b.order);
+const [introLead, ...introRest] = category.intro;
+const options = pages.home.options;
+
+// Alternate grey / white after the intro; the lamella band is always night
+let grey = true;
+const nextBand = () => {
+  const b = grey ? 'mist' : '';
+  grey = !grey;
+  return b;
+};
+const groupBands = groups.map(() => nextBand());
+const optionsBand = isBio ? nextBand() : '';
+const othersBand = nextBand();
+---
+
+<Base
+  lang={lang}
+  title={t(category.title, lang)}
+  description={`${t(category.tagline, lang)} ${t(introLead, lang)}`.slice(0, 300)}
+  ogImage={`categories/${category.id}.jpg`}
+  header="overlay"
+>
+  <!-- Hero -->
+  <section class="c-hero night" aria-labelledby="c-title">
+    <div class="c-media">
+      <Img src={`categories/${category.id}.jpg`} lang={lang} priority sizes="(max-width: 700px) 240vw, 100vw" class="c-img" />
+      <div class="c-scrim" aria-hidden="true"></div>
+    </div>
+    <div class="wrap c-content">
+      <Breadcrumbs lang={lang} tone="light" items={[{ label: t(T.products, lang), href: url(lang, '/products/') }, { label: t(category.name, lang) }]} />
+      <h1 id="c-title" class="display c-title">{t(category.title, lang)}</h1>
+      <div class="c-foot">
+        <p class="c-tag">{t(category.tagline, lang)}</p>
+        <ul class="c-jump" aria-label={t(ui.category.productsIn, lang)}>
+          {
+            inCat.map((p) => (
+              <li>
+                <a href={productUrl(lang, p.category, p.id)}>{t(p.name, lang)}</a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Intro -->
+  <section class="section c-intro">
+    <div class="wrap c-intro-grid">
+      <p class="c-intro-lead" data-reveal>{t(introLead, lang)}</p>
+      <div class="c-intro-rest" data-reveal>
+        <div class="prose">
+          {introRest.map((p) => <p>{t(p, lang)}</p>)}
+        </div>
+        <p class="c-count">
+          <span class="num">{String(inCat.length).padStart(2, '0')}</span>
+          <span>{countLabel}</span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Product groups -->
+  {
+    groups.map((g, i) => (
+      <section class:list={['section', groupBands[i]]} id={g.id} aria-labelledby={`group-${g.id}`}>
+        <div class="wrap">
+          <SectionHead id={`group-${g.id}`} title={g.title} intro={g.intro} />
+          <ProductGrid lang={lang} products={g.items} headingLevel="h3" />
+        </div>
+      </section>
+    ))
+  }
+
+  {
+    isBio && (
+      <section class="section night" aria-labelledby="lam-title">
+        <div class="wrap">
+          <SectionHead id="lam-title" title={t(T.lamTitle, lang)} intro={t(T.lamIntro, lang)}>
+            <p class="lam-links">
+              <a class="link-arrow" href={productUrl(lang, 'bioclimatic-pergolas', 'balance')}>
+                {t(T.lamLink, lang)} <Icon name="arrow-right" size={16} />
+              </a>
+              <a class="link-arrow" href={productUrl(lang, 'bioclimatic-pergolas', 'infinity')}>
+                {t(T.lamLink2, lang)} <Icon name="arrow-right" size={16} />
+              </a>
+            </p>
+          </SectionHead>
+          <LamellaDemo lang={lang} series="both" id="cat-lamella" />
+        </div>
+      </section>
+    )
+  }
+
+  {
+    isBio && (
+      <section class:list={['section', optionsBand]} aria-labelledby="opts-title">
+        <div class="wrap opts-grid">
+          <div class="opts-copy" data-reveal>
+            <h2 id="opts-title" class="h2 rule">
+              {t(options.title, lang)}
+            </h2>
+            <p class="lead">{t(options.intro, lang)}</p>
+          </div>
+          <ul class="opts-list" data-reveal>
+            {options.items.map((o) => (
+              <li>{t(o.label, lang)}</li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- Other categories -->
+  <section class:list={['section', othersBand]} aria-labelledby="others-title">
+    <div class="wrap">
+      <SectionHead id="others-title" title={t(ui.category.otherCategories, lang)} />
+      <ul class="others">
+        {
+          others.map((c) => (
+            <li class="other" data-reveal>
+              <div class="media other-media">
+                <Img src={`categories/${c.id}.jpg`} lang={lang} alt="" sizes="(min-width: 1440px) 440px, (min-width: 800px) 31vw, 100vw" widths={[480, 768, 1080]} />
+              </div>
+              <div class="other-body">
+                <h3 class="other-title">
+                  <a href={categoryUrl(lang, c.id)} class="other-link">
+                    {t(c.name, lang)}
+                  </a>
+                </h3>
+                <p class="other-tag">{t(c.tagline, lang)}</p>
+              </div>
+              <span class="other-go" aria-hidden="true">
+                <Icon name="arrow-up-right" size={20} />
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <CtaBand lang={lang} />
+</Base>
+
+<style>
+  /* Hero */
+  .c-hero {
+    position: relative;
+    min-height: clamp(540px, 82svh, 860px);
+    display: grid;
+    align-items: end;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .c-media {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+  }
+  .c-media :global(.c-img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .c-scrim {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to top, rgba(10, 10, 8, 0.86) 0%, rgba(10, 10, 8, 0.45) 40%, rgba(10, 10, 8, 0.05) 72%),
+      linear-gradient(to right, rgba(10, 10, 8, 0.5) 0%, rgba(10, 10, 8, 0) 60%);
+  }
+  .c-content {
+    position: relative;
+    padding-top: calc(var(--header-h) + var(--s-8));
+    padding-bottom: clamp(2.5rem, 1.5rem + 4vw, 5rem);
+    display: grid;
+    gap: var(--s-5);
+    color: #fff;
+  }
+  .c-title {
+    max-width: 16ch;
+    color: #fff;
+    font-size: clamp(2.5rem, 1.5rem + 4.4vw, 5.6rem);
+  }
+  .c-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: end;
+    gap: var(--s-5) var(--s-8);
+    padding-top: var(--s-5);
+    border-top: 1px solid rgba(255, 255, 255, 0.22);
+  }
+  .c-tag {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: var(--step-2);
+    line-height: 1.25;
+    color: rgba(255, 255, 255, 0.92);
+    max-width: 30ch;
+  }
+  .c-jump {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0 var(--s-5);
+    max-width: 60ch;
+  }
+  .c-jump a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: var(--step--1);
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.82);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+  .c-jump a:hover {
+    color: #fff;
+    text-decoration: underline;
+    text-decoration-color: var(--yellow);
+    text-decoration-thickness: 2px;
+  }
+  @media (max-width: 700px) {
+    .c-jump {
+      justify-content: flex-start;
+    }
+  }
+
+  /* Intro */
+  .c-intro-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--s-7) var(--s-5);
+    align-items: start;
+  }
+  .c-intro-lead {
+    grid-column: 1 / span 6;
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: var(--step-2);
+    line-height: 1.38;
+    text-wrap: pretty;
+  }
+  .c-intro-rest {
+    grid-column: 8 / span 5;
+    display: grid;
+    gap: var(--s-6);
+    padding-top: 0.6rem;
+  }
+  .c-intro-rest .prose {
+    color: var(--muted);
+  }
+  .c-count {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-3);
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--hair);
+    font-size: var(--step--1);
+    font-weight: 500;
+  }
+  .c-count .num {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: var(--step-3);
+    line-height: 1;
+  }
+  @media (max-width: 900px) {
+    .c-intro-lead,
+    .c-intro-rest {
+      grid-column: 1 / -1;
+    }
+    .c-intro-lead {
+      font-size: var(--step-1);
+    }
+  }
+
+  /* Lamella links */
+  .lam-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-3) var(--s-6);
+  }
+
+  /* Integrated options: a compact typographic list */
+  .opts-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+    gap: var(--s-7) clamp(2rem, 1rem + 4vw, 6rem);
+    align-items: start;
+  }
+  .opts-copy {
+    display: grid;
+    gap: var(--s-5);
+  }
+  .opts-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--fg);
+  }
+  .opts-list li {
+    padding: 1.1rem 0;
+    border-bottom: 1px solid var(--hair);
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 300;
+    line-height: 1.2;
+  }
+  @media (max-width: 900px) {
+    .opts-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* Other categories */
+  .others {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s-5);
+  }
+  .other {
+    position: relative;
+    display: grid;
+    align-items: end;
+    min-height: clamp(280px, 24vw, 360px);
+    overflow: hidden;
+    isolation: isolate;
+    color: #fff;
+  }
+  .other-media {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+  }
+  .other-media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(10, 10, 8, 0.8) 0%, rgba(10, 10, 8, 0.25) 50%, rgba(10, 10, 8, 0.05) 75%);
+    transition: background-color 0.3s var(--ease);
+  }
+  .other:hover .other-media::after {
+    background-color: rgba(10, 10, 8, 0.12);
+  }
+  .other-body {
+    display: grid;
+    gap: var(--s-2);
+    padding: var(--s-5) var(--s-6) var(--s-6);
+  }
+  .other-title {
+    font-size: var(--step-2);
+    font-weight: 300;
+  }
+  .other-link {
+    text-decoration: none;
+  }
+  .other-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+  .other-link:focus-visible {
+    outline: none;
+  }
+  .other:focus-within {
+    outline: 2px solid var(--focus);
+    outline-offset: 4px;
+  }
+  .other-tag {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: var(--step--1);
+  }
+  .other-go {
+    position: absolute;
+    top: var(--s-5);
+    right: var(--s-5);
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--yellow);
+    color: var(--ink);
+    transition: transform 0.3s var(--ease);
+  }
+  .other:hover .other-go {
+    transform: rotate(45deg);
+  }
+  @media (max-width: 900px) {
+    .others {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .other {
+      min-height: 240px;
+    }
+  }
+</style>

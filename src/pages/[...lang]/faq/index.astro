@@ -1,0 +1,798 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Breadcrumbs from '../../../components/Breadcrumbs.astro';
+import FaqAccordion from '../../../components/FaqAccordion.astro';
+import CopyButton from '../../../components/CopyButton.astro';
+import CtaBand from '../../../components/CtaBand.astro';
+import Icon from '../../../components/Icon.astro';
+import { faq } from '../../../data/faq';
+import { pages } from '../../../data/pages';
+import { site } from '../../../data/site';
+import { ui } from '../../../data/ui';
+import { langParams, getLang, url, fmt, t } from '../../../lib/i18n';
+
+export function getStaticPaths() {
+  return langParams();
+}
+const lang = getLang(Astro.params.lang);
+const page = pages.faq;
+
+const T = {
+  metaDescription: {
+    bg: 'Отговори на често задавани въпроси за биоклиматични перголи, стъклени системи и ZIP завеси: избор, оферта, оглед, монтаж, поддръжка и гаранция.',
+    en: 'Answers to common questions about bioclimatic pergolas, glass systems and ZIP screens: choosing, quotes, site visits, installation, care and warranty.',
+  },
+  searchLabel: { bg: 'Търсете във въпросите', en: 'Search the questions' },
+  searchPlaceholder: { bg: 'напр. фундамент или гаранция', en: 'e.g. foundation or warranty' },
+  searchHint: { bg: 'Търси във въпросите и отговорите.', en: 'Searches questions and answers.' },
+  topics: { bg: 'Теми', en: 'Topics' },
+  total: { bg: '{count} въпроса в {groups} теми', en: '{count} questions in {groups} topics' },
+  emptyText: {
+    bg: 'Опитайте с друга дума или ни попитайте директно – ще Ви отговорим.',
+    en: 'Try a different word, or ask us directly and we will get back to you.',
+  },
+  helpTitle: { bg: 'Не намерихте отговор?', en: 'Didn’t find your answer?' },
+  helpText: {
+    bg: 'Обадете се или ни пишете – ще Ви помогнем да изберете подходящата система.',
+    en: 'Call or message us and we will help you choose the right system.',
+  },
+};
+
+const groups = faq.filter((g) => g.items.length > 0);
+const totalItems = groups.reduce((n, g) => n + g.items.length, 0);
+const totalText = fmt(t(T.total, lang), { count: totalItems, groups: groups.length });
+const quoteHref = url(lang, '/contact/#inquiry');
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  inLanguage: lang,
+  mainEntity: groups.flatMap((g) =>
+    g.items.map((i) => ({
+      '@type': 'Question',
+      name: t(i.q, lang),
+      acceptedAnswer: { '@type': 'Answer', text: t(i.a, lang) },
+    })),
+  ),
+};
+---
+
+<Base lang={lang} title={t(page.title, lang)} description={t(T.metaDescription, lang)} jsonLd={jsonLd}>
+  <section class="ph" aria-labelledby="page-title">
+    <div class="wrap">
+      <Breadcrumbs lang={lang} items={[{ label: t(page.title, lang) }]} />
+      <div class="ph-grid">
+        <h1 id="page-title" class="h1 rule">{t(page.title, lang)}</h1>
+        <p class="lead">{t(page.intro, lang)}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-tight faq-sec" aria-label={t(page.title, lang)}>
+    <div class="wrap faq-layout">
+      <div class="faq-side">
+        <div class="faq-sticky">
+          <form class="fs" role="search" data-faq-search>
+            <label for="faq-q" class="fs-label">{t(T.searchLabel, lang)}</label>
+            <div class="fs-box">
+              <Icon name="search" size={20} class="fs-icon" />
+              <input
+                id="faq-q"
+                class="fs-input"
+                type="search"
+                name="q"
+                autocomplete="off"
+                spellcheck="false"
+                enterkeyhint="search"
+                placeholder={t(T.searchPlaceholder, lang)}
+                aria-describedby="faq-count"
+                data-faq-input
+              />
+              <button type="button" class="fs-clear" aria-label={t(ui.actions.clear, lang)} hidden data-faq-clear>
+                <Icon name="close" size={20} />
+              </button>
+            </div>
+            <p class="fs-hint">{t(T.searchHint, lang)}</p>
+          </form>
+
+          <nav class="faq-nav" aria-label={t(T.topics, lang)}>
+            <p class="faq-nav-title" aria-hidden="true">{t(T.topics, lang)}</p>
+            <ul>
+              {
+                groups.map((g) => (
+                  <li data-faq-navitem={g.id}>
+                    <a href={`#${g.id}`} data-faq-navlink>
+                      <span class="fn-label">{t(g.title, lang)}</span>
+                      <span class="fn-n num" data-faq-navcount>
+                        {g.items.length}
+                      </span>
+                    </a>
+                  </li>
+                ))
+              }
+            </ul>
+          </nav>
+        </div>
+      </div>
+
+      <div class="faq-main">
+        <div class="faq-status">
+          <p
+            id="faq-count"
+            class="faq-count small num"
+            aria-live="polite"
+            data-faq-count
+            data-total={totalText}
+            data-one={t(ui.search.resultOne, lang)}
+            data-many={t(ui.search.resultsCount, lang)}
+            data-none={t(ui.search.noResults, lang)}
+          >
+            {totalText}
+          </p>
+          <button
+            type="button"
+            class="faq-toggle"
+            hidden
+            data-faq-toggle
+            data-expand={t(ui.faq.expandAll, lang)}
+            data-collapse={t(ui.faq.collapseAll, lang)}
+          >
+            <Icon name="plus" size={16} />
+            <span data-faq-toggle-label>{t(ui.faq.expandAll, lang)}</span>
+          </button>
+        </div>
+
+        {
+          groups.map((g) => (
+            <section class="faq-group" id={g.id} aria-labelledby={`${g.id}-title`} data-faq-group>
+              <h2 class="faq-group-title" id={`${g.id}-title`}>
+                {t(g.title, lang)}
+              </h2>
+              <FaqAccordion lang={lang} items={g.items} idPrefix={`faq-${g.id}`} />
+            </section>
+          ))
+        }
+
+        <div class="faq-empty" hidden data-faq-empty>
+          <p class="faq-empty-title" data-faq-empty-title></p>
+          <p class="muted">{t(T.emptyText, lang)}</p>
+          <div class="btn-row">
+            <a class="btn btn-dark btn-sm" href={`tel:${site.phones[0].e164}`}>
+              <Icon name="phone" size={18} />
+              <span class="num">{site.phones[0].display}</span>
+            </a>
+            <a class="btn btn-viber btn-sm" href={site.viberUrl}>
+              <Icon name="viber" size={18} /> Viber
+            </a>
+            <a class="btn btn-ghost btn-sm" href={`mailto:${site.email}`}>
+              <Icon name="mail" size={18} />
+              {site.email}
+            </a>
+          </div>
+        </div>
+
+        <aside class="faq-help" aria-labelledby="help-title">
+          <div class="help-copy">
+            <h2 id="help-title" class="h3">{t(T.helpTitle, lang)}</h2>
+            <p class="muted">{t(T.helpText, lang)}</p>
+            <a class="btn btn-dark help-cta" href={quoteHref}>
+              {t(ui.actions.requestQuote, lang)}
+              <Icon name="arrow-right" class="arrow" />
+            </a>
+          </div>
+          <ul class="help-list">
+            {
+              site.phones.map((p) => (
+                <li class="help-row">
+                  <a class="help-link" href={`tel:${p.e164}`} aria-label={fmt(t(ui.a11y.callLink, lang), { phone: p.display })}>
+                    <Icon name="phone" size={20} />
+                    <span class="num">{p.display}</span>
+                  </a>
+                  <CopyButton text={p.display} lang={lang} />
+                </li>
+              ))
+            }
+            <li class="help-row">
+              <a class="help-link" href={site.viberUrl} aria-label={t(ui.a11y.viberLink, lang)}>
+                <Icon name="viber" size={20} />
+                <span>Viber</span>
+              </a>
+            </li>
+            <li class="help-row">
+              <a class="help-link" href={`mailto:${site.email}`} aria-label={t(ui.a11y.emailLink, lang)}>
+                <Icon name="mail" size={20} />
+                <span>{site.email}</span>
+              </a>
+              <CopyButton text={site.email} lang={lang} />
+            </li>
+          </ul>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <CtaBand lang={lang} />
+</Base>
+
+<style>
+  /* Page head */
+  .ph {
+    padding-top: clamp(1.25rem, 0.8rem + 1.5vw, 2rem);
+    padding-bottom: clamp(2.5rem, 1.8rem + 3vw, 4.5rem);
+    border-bottom: 1px solid var(--hair);
+  }
+  .ph-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: var(--s-5) var(--s-8);
+    align-items: end;
+    margin-top: clamp(2rem, 1.2rem + 3vw, 4rem);
+  }
+  @media (max-width: 860px) {
+    .ph-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* Layout: sticky search + topics, questions on the right */
+  .faq-sec {
+    padding-top: clamp(2rem, 1.5rem + 2.5vw, 4rem);
+  }
+  .faq-layout {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.75fr) minmax(0, 2fr);
+    gap: var(--s-7) clamp(2.5rem, 1rem + 5vw, 7rem);
+    align-items: start;
+  }
+  .faq-sticky {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-7);
+  }
+  @media (min-width: 901px) and (min-height: 620px) {
+    .faq-sticky {
+      position: sticky;
+      top: calc(var(--header-h) + var(--s-6));
+    }
+  }
+
+  /* Search */
+  .fs {
+    display: none;
+    gap: var(--s-2);
+  }
+  :global(html.js) .fs {
+    display: grid;
+  }
+  .fs-label {
+    font-size: var(--step--1);
+    font-weight: 600;
+  }
+  .fs-box {
+    position: relative;
+  }
+  .fs-box :global(.fs-icon) {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .fs-input {
+    width: 100%;
+    min-height: 52px;
+    padding: 0.75rem 3.25rem 0.75rem 2.9rem;
+    border: 1px solid color-mix(in srgb, var(--fg) 26%, transparent);
+    border-radius: var(--radius);
+    background: var(--bg);
+    font-size: var(--step-0);
+    transition:
+      border-color 0.15s var(--ease),
+      box-shadow 0.15s var(--ease);
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .fs-input::placeholder {
+    color: color-mix(in srgb, var(--muted) 85%, transparent);
+  }
+  .fs-input::-webkit-search-cancel-button,
+  .fs-input::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .fs-input:hover {
+    border-color: color-mix(in srgb, var(--fg) 45%, transparent);
+  }
+  .fs-input:focus {
+    outline: none;
+    border-color: var(--fg);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--yellow) 70%, transparent);
+  }
+  .fs-clear {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--muted);
+  }
+  .fs-clear:hover {
+    color: var(--fg);
+    background: var(--mist);
+  }
+  .fs-hint {
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+
+  /* Topics */
+  .faq-nav-title {
+    margin-bottom: var(--s-3);
+    font-size: var(--step--1);
+    font-weight: 600;
+  }
+  .faq-nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--hair);
+  }
+  .faq-nav li {
+    border-bottom: 1px solid var(--hair);
+  }
+  .faq-nav a {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+    min-height: 48px;
+    padding: 0.55rem 0 0.55rem var(--s-4);
+    font-size: var(--step--1);
+    font-weight: 500;
+    line-height: 1.3;
+    text-decoration: none;
+    transition: background-color 0.18s var(--ease);
+  }
+  .faq-nav a::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 2px;
+    background: var(--yellow);
+    transform: scaleY(0);
+    transition: transform 0.25s var(--ease);
+  }
+  .faq-nav a:hover .fn-label {
+    text-decoration: underline;
+    text-decoration-color: var(--yellow);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.3em;
+  }
+  .faq-nav a[aria-current='true'] {
+    font-weight: 600;
+  }
+  .faq-nav a[aria-current='true']::before {
+    transform: none;
+  }
+  .fn-n {
+    flex: none;
+    min-width: 2ch;
+    text-align: right;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  /* Questions */
+  .faq-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3) var(--s-5);
+    min-height: 44px;
+    margin-bottom: var(--s-5);
+  }
+  .faq-count {
+    color: var(--muted);
+  }
+  .faq-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 44px;
+    padding: 0 0.25rem;
+    border: 0;
+    background: none;
+    font-size: var(--step--1);
+    font-weight: 600;
+  }
+  .faq-toggle:hover span {
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+  }
+  .faq-toggle[data-state='collapse'] :global(svg) {
+    transform: rotate(45deg);
+  }
+  .faq-toggle :global(svg) {
+    transition: transform 0.25s var(--ease);
+  }
+  .faq-group + .faq-group {
+    margin-top: clamp(2.5rem, 2rem + 2vw, 4rem);
+  }
+  .faq-group {
+    scroll-margin-top: calc(var(--header-h) + var(--s-5));
+  }
+  .faq-group-title {
+    font-size: var(--step-2);
+    font-weight: 300;
+    margin-bottom: var(--s-4);
+  }
+  .faq-main :global(mark) {
+    background: color-mix(in srgb, var(--yellow) 55%, transparent);
+    color: inherit;
+    padding: 0 0.08em;
+    border-radius: 1px;
+  }
+  .faq-main :global(.faq-item[hidden]) {
+    display: none;
+  }
+
+  /* Empty state */
+  .faq-empty {
+    display: grid;
+    gap: var(--s-4);
+    justify-items: start;
+    padding: var(--s-7) 0;
+    border-top: 1px solid var(--hair);
+  }
+  .faq-empty-title {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 300;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+  .faq-empty .btn-row {
+    margin-top: var(--s-3);
+  }
+
+  /* Contact aside */
+  .faq-help {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s-6) var(--s-7);
+    margin-top: clamp(3rem, 2rem + 3vw, 5rem);
+    padding: clamp(1.5rem, 1rem + 2vw, 2.75rem);
+    background: var(--mist);
+    position: relative;
+  }
+  .faq-help::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 56px;
+    height: 2px;
+    background: var(--yellow);
+  }
+  .help-copy {
+    display: grid;
+    gap: var(--s-4);
+    justify-items: start;
+    align-content: start;
+  }
+  .help-cta {
+    margin-top: var(--s-2);
+  }
+  .help-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid color-mix(in srgb, var(--fg) 14%, transparent);
+  }
+  .help-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    border-bottom: 1px solid color-mix(in srgb, var(--fg) 14%, transparent);
+  }
+  .help-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-height: 56px;
+    min-width: 0;
+    font-weight: 600;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+  .help-link:hover span {
+    text-decoration: underline;
+    text-decoration-color: var(--yellow);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.25em;
+  }
+  .help-link :global(svg) {
+    flex: none;
+  }
+  .help-row :global(.copy-btn) {
+    flex: none;
+    min-width: 44px;
+    height: 44px;
+    justify-content: center;
+  }
+
+  @media (max-width: 1100px) {
+    .faq-help {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 900px) {
+    .faq-layout {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--s-6);
+    }
+    .faq-sticky {
+      gap: var(--s-5);
+    }
+    .fs-hint {
+      display: none;
+    }
+    /* topics become a single scrollable row of chips */
+    .faq-nav-title {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+    }
+    .faq-nav ul {
+      display: flex;
+      gap: var(--s-2);
+      overflow-x: auto;
+      border: 0;
+      margin-inline: calc(-1 * var(--gutter));
+      padding: 2px var(--gutter) 6px;
+      scroll-padding-inline: var(--gutter);
+      scrollbar-width: none;
+      -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+      mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+    }
+    .faq-nav ul::-webkit-scrollbar {
+      display: none;
+    }
+    .faq-nav li {
+      flex: none;
+      border: 0;
+    }
+    .faq-nav a {
+      min-height: 44px;
+      padding: 0.5rem 0.95rem;
+      border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent);
+      border-radius: var(--radius);
+      white-space: nowrap;
+      gap: var(--s-3);
+    }
+    .faq-nav a::before {
+      display: none;
+    }
+    .faq-nav li:last-child {
+      padding-right: 24px;
+    }
+  }
+</style>
+
+<script>
+  // Client-side FAQ filter: diacritics- and case-insensitive, all words must match the question or answer.
+  const input = document.querySelector<HTMLInputElement>('[data-faq-input]');
+  const form = document.querySelector<HTMLFormElement>('[data-faq-search]');
+  const clearBtn = document.querySelector<HTMLButtonElement>('[data-faq-clear]');
+  const countEl = document.querySelector<HTMLElement>('[data-faq-count]');
+  const emptyEl = document.querySelector<HTMLElement>('[data-faq-empty]');
+  const emptyTitle = document.querySelector<HTMLElement>('[data-faq-empty-title]');
+  const toggle = document.querySelector<HTMLButtonElement>('[data-faq-toggle]');
+  const toggleLabel = document.querySelector<HTMLElement>('[data-faq-toggle-label]');
+  const groups = Array.from(document.querySelectorAll<HTMLElement>('[data-faq-group]'));
+  const navLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-faq-navlink]'));
+
+  const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{M}+/gu, '');
+  // Folded text plus a map from each folded character back to its index in the original string
+  const foldMap = (s: string) => {
+    let out = '';
+    const map: number[] = [];
+    for (let i = 0; i < s.length; i++) {
+      const f = fold(s[i]);
+      for (let k = 0; k < f.length; k++) {
+        out += f[k];
+        map.push(i);
+      }
+    }
+    return { out, map };
+  };
+
+  interface Field {
+    el: HTMLElement;
+    text: string;
+    folded: { out: string; map: number[] };
+  }
+  const field = (el: HTMLElement | null): Field | null => {
+    if (!el) return null;
+    const text = el.textContent ?? '';
+    return { el, text, folded: foldMap(text) };
+  };
+  const items = groups.flatMap((g) =>
+    Array.from(g.querySelectorAll<HTMLDetailsElement>('[data-faq-item]')).map((d) => ({
+      d,
+      group: g,
+      fields: [field(d.querySelector<HTMLElement>('.q')), field(d.querySelector<HTMLElement>('.a p'))].filter(Boolean) as Field[],
+    })),
+  );
+
+  const paint = (f: Field, terms: string[]) => {
+    const ranges: [number, number][] = [];
+    for (const term of terms) {
+      let from = 0;
+      for (;;) {
+        const at = f.folded.out.indexOf(term, from);
+        if (at < 0) break;
+        ranges.push([f.folded.map[at], f.folded.map[at + term.length - 1] + 1]);
+        from = at + term.length;
+      }
+    }
+    if (!ranges.length) {
+      if (f.el.childElementCount) f.el.textContent = f.text;
+      return;
+    }
+    ranges.sort((a, b) => a[0] - b[0]);
+    const merged: [number, number][] = [];
+    for (const r of ranges) {
+      const last = merged[merged.length - 1];
+      if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]);
+      else merged.push([...r]);
+    }
+    const frag = document.createDocumentFragment();
+    let pos = 0;
+    for (const [a, b] of merged) {
+      if (a > pos) frag.append(f.text.slice(pos, a));
+      const m = document.createElement('mark');
+      m.textContent = f.text.slice(a, b);
+      frag.append(m);
+      pos = b;
+    }
+    if (pos < f.text.length) frag.append(f.text.slice(pos));
+    f.el.replaceChildren(frag);
+  };
+
+  const updateToggle = () => {
+    if (!toggle || !toggleLabel) return;
+    const visible = items.filter((i) => !i.d.hidden);
+    toggle.hidden = visible.length === 0;
+    const allOpen = visible.length > 0 && visible.every((i) => i.d.open);
+    toggle.dataset.state = allOpen ? 'collapse' : 'expand';
+    toggleLabel.textContent = (allOpen ? toggle.dataset.collapse : toggle.dataset.expand) ?? '';
+  };
+
+  let liveTimer: number | undefined;
+  const announce = (text: string, now = false) => {
+    if (!countEl) return;
+    window.clearTimeout(liveTimer);
+    if (now) countEl.textContent = text;
+    else liveTimer = window.setTimeout(() => (countEl.textContent = text), 350);
+  };
+
+  const run = (raw: string, opts: { now?: boolean } = {}) => {
+    const query = raw.trim();
+    const terms = fold(query).split(/\s+/).filter(Boolean);
+    const active = query.length >= 2;
+    if (clearBtn) clearBtn.hidden = raw.length === 0;
+    let shown = 0;
+    for (const it of items) {
+      const hay = it.fields.map((f) => f.folded.out).join(' \n ');
+      const match = !active || terms.every((term) => hay.includes(term));
+      it.d.hidden = !match;
+      it.fields.forEach((f) => paint(f, active && match ? terms : []));
+      if (active && match) {
+        shown++;
+        if (!it.d.open) {
+          it.d.open = true;
+          it.d.dataset.autoOpen = '';
+        }
+      } else if ('autoOpen' in it.d.dataset) {
+        it.d.open = false;
+        delete it.d.dataset.autoOpen;
+      }
+    }
+    groups.forEach((g) => {
+      const n = items.filter((i) => i.group === g && !i.d.hidden).length;
+      g.hidden = n === 0;
+      const link = navLinks.find((a) => a.hash === `#${g.id}`);
+      const li = link?.closest('li');
+      if (li) li.hidden = n === 0;
+      const c = link?.querySelector<HTMLElement>('[data-faq-navcount]');
+      if (c) c.textContent = String(n);
+    });
+    if (emptyEl) emptyEl.hidden = !active || shown > 0;
+    const none = (countEl?.dataset.none ?? '').replace('{query}', query);
+    if (emptyTitle) emptyTitle.textContent = none;
+    if (!countEl) return;
+    if (!active) announce(countEl.dataset.total ?? '', true);
+    else if (shown === 0) announce(none, opts.now);
+    else announce(shown === 1 ? (countEl.dataset.one ?? '') : (countEl.dataset.many ?? '').replace('{count}', String(shown)), opts.now);
+    updateToggle();
+  };
+
+  if (input) {
+    input.addEventListener('input', () => run(input.value));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && input.value) {
+        e.preventDefault();
+        input.value = '';
+        run('', { now: true });
+      }
+    });
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      run(input.value, { now: true });
+      // jump to the first result on Enter
+      const first = items.find((i) => !i.d.hidden);
+      if (input.value.trim().length >= 2 && first) first.d.querySelector('summary')?.focus();
+    });
+    clearBtn?.addEventListener('click', () => {
+      input.value = '';
+      run('', { now: true });
+      input.focus();
+    });
+    // ?q= prefill (e.g. from the site search)
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (q) {
+      input.value = q;
+      run(q, { now: true });
+    }
+  }
+
+  toggle?.addEventListener('click', () => {
+    const open = toggle.dataset.state !== 'collapse';
+    items.filter((i) => !i.d.hidden).forEach((i) => (i.d.open = open));
+    updateToggle();
+  });
+  document.addEventListener('toggle', () => updateToggle(), true);
+  updateToggle();
+
+  // Deep link to a single question (#faq-quote-2) opens it
+  const openFromHash = () => {
+    const el = window.location.hash ? document.getElementById(decodeURIComponent(window.location.hash.slice(1))) : null;
+    if (el instanceof HTMLDetailsElement) el.open = true;
+  };
+  openFromHash();
+  window.addEventListener('hashchange', openFromHash);
+
+  // Highlight the topic currently in view
+  if ('IntersectionObserver' in window && navLinks.length) {
+    const seen = new Map<Element, boolean>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => seen.set(e.target, e.isIntersecting));
+        const current = groups.find((g) => seen.get(g) && !g.hidden);
+        if (!current) return;
+        navLinks.forEach((a) => {
+          if (a.hash === `#${current.id}`) a.setAttribute('aria-current', 'true');
+          else a.removeAttribute('aria-current');
+        });
+      },
+      { rootMargin: '-25% 0px -65% 0px' },
+    );
+    groups.forEach((g) => io.observe(g));
+  }
+</script>

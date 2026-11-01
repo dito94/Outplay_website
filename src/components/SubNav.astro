@@ -1,0 +1,221 @@
+---
+// In-page section navigation for product pages. Sticky under the header from 900px up, a horizontally
+// scrollable strip on phones. The current section is highlighted on scroll (IntersectionObserver):
+// any element with data-sn-section="<item id>" counts towards that item.
+import type { Lang } from '../data/types';
+import Icon from './Icon.astro';
+
+interface Props {
+  lang: Lang;
+  items: { id: string; label: string }[];
+  /** product name shown at the start of the bar on desktop */
+  title?: string;
+  cta?: { label: string; href: string };
+}
+const { lang, items, title, cta } = Astro.props;
+const label = lang === 'bg' ? 'Съдържание на страницата' : 'On this page';
+---
+
+<nav class="subnav" aria-label={label} data-subnav>
+  <div class="wrap sn-inner">
+    {
+      title && (
+        <span class="sn-title" aria-hidden="true">
+          {title}
+        </span>
+      )
+    }
+    <ul class="sn-list" data-sn-list>
+      {
+        items.map((it) => (
+          <li>
+            <a href={`#${it.id}`} class="sn-link" data-sn-link={it.id}>
+              {it.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    {
+      cta && (
+        <a class="btn btn-sm sn-cta" href={cta.href}>
+          {cta.label}
+          <Icon name="arrow-right" class="arrow" />
+        </a>
+      )
+    }
+  </div>
+</nav>
+
+<style>
+  .subnav {
+    position: sticky;
+    top: var(--header-h);
+    z-index: 40;
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+  }
+  .sn-inner {
+    display: flex;
+    align-items: center;
+    gap: var(--s-6);
+    min-height: 60px;
+  }
+  .sn-title {
+    flex: none;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    padding-right: var(--s-6);
+    border-right: 1px solid var(--line);
+    line-height: 1.6;
+    max-width: 22ch;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sn-list {
+    display: flex;
+    gap: var(--s-1);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sn-list::-webkit-scrollbar {
+    display: none;
+  }
+  .sn-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 60px;
+    padding: 0 var(--s-3);
+    font-size: var(--step--1);
+    font-weight: 500;
+    color: var(--steel);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 0.2s var(--ease);
+  }
+  .sn-link::after {
+    content: '';
+    position: absolute;
+    left: var(--s-3);
+    right: var(--s-3);
+    bottom: -1px;
+    height: 2px;
+    background: var(--yellow);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s var(--ease);
+  }
+  .sn-link:hover {
+    color: var(--ink);
+  }
+  .sn-link[aria-current='true'] {
+    color: var(--ink);
+  }
+  .sn-link[aria-current='true']::after {
+    transform: scaleX(1);
+  }
+  .sn-link:focus-visible {
+    outline-offset: -4px;
+  }
+  .sn-cta {
+    margin-left: auto;
+    flex: none;
+  }
+  @media (max-width: 1100px) {
+    .sn-title {
+      display: none;
+    }
+  }
+  @media (max-width: 900px) {
+    .subnav {
+      position: relative;
+      top: auto;
+    }
+    .sn-inner {
+      padding-inline: 0;
+      min-height: 52px;
+    }
+    .sn-list {
+      padding-inline: max(var(--gutter), env(safe-area-inset-left, 0px));
+      scroll-padding-inline: var(--gutter);
+    }
+    .sn-link {
+      min-height: 52px;
+      padding-inline: var(--s-3);
+    }
+    .sn-list li:first-child .sn-link {
+      padding-left: 0;
+    }
+    .sn-list li:first-child .sn-link::after {
+      left: 0;
+    }
+    .sn-cta {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-subnav]').forEach((nav) => {
+    const links = Array.from(nav.querySelectorAll<HTMLAnchorElement>('[data-sn-link]'));
+    const list = nav.querySelector<HTMLElement>('[data-sn-list]');
+    const ids = links.map((a) => a.dataset.snLink ?? '');
+    const sections = Array.from(document.querySelectorAll<HTMLElement>('[data-sn-section]')).filter((el) =>
+      ids.includes(el.dataset.snSection ?? ''),
+    );
+    if (!sections.length || !('IntersectionObserver' in window)) return;
+
+    let current = '';
+    const setCurrent = (id: string) => {
+      if (id === current) return;
+      current = id;
+      links.forEach((a) => {
+        if (a.dataset.snLink === id) a.setAttribute('aria-current', 'true');
+        else a.removeAttribute('aria-current');
+      });
+      // keep the active link visible in the horizontal strip without moving the page
+      const active = links.find((a) => a.dataset.snLink === id);
+      if (list && active && list.scrollWidth > list.clientWidth) {
+        const l = active.offsetLeft - list.offsetLeft;
+        const target = l - (list.clientWidth - active.offsetWidth) / 2;
+        list.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
+      }
+    };
+
+    // A 1px detection line just under the sticky bar: the section crossing it is the current one.
+    let io: IntersectionObserver | undefined;
+    const observe = () => {
+      io?.disconnect();
+      const header = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 72;
+      const sticky = getComputedStyle(nav).position === 'sticky';
+      const line = Math.round(header + (sticky ? nav.offsetHeight : 0) + 24);
+      const bottom = Math.max(0, window.innerHeight - line - 1);
+      io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) setCurrent((e.target as HTMLElement).dataset.snSection ?? '');
+          });
+          const first = sections[0];
+          if (first && first.getBoundingClientRect().top > line) setCurrent('');
+        },
+        { rootMargin: `-${line}px 0px -${bottom}px 0px`, threshold: 0 },
+      );
+      sections.forEach((s) => io!.observe(s));
+    };
+    observe();
+    let t: number | undefined;
+    window.addEventListener('resize', () => {
+      window.clearTimeout(t);
+      t = window.setTimeout(observe, 200);
+    });
+  });
+</script>

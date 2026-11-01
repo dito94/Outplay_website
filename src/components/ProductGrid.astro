@@ -1,0 +1,133 @@
+---
+// Responsive grid of ProductCards (3 / 2 / 1 columns) that never leaves an orphan row.
+// The first card grows only when that balances the grid:
+//   3 columns: n % 3 === 2 → spans 2 columns;  n % 3 === 1 → spans the full row as a horizontal feature.
+//   2 columns: n odd → spans the full row as a horizontal feature.
+import type { Lang, Product } from '../data/types';
+import ProductCard from './ProductCard.astro';
+
+interface Props {
+  lang: Lang;
+  products: Product[];
+  headingLevel?: 'h2' | 'h3';
+  class?: string;
+}
+const { lang, products: items, headingLevel = 'h3', class: cls } = Astro.props;
+const n = items.length;
+const lead3 = n % 3 === 2 ? 'span2' : n % 3 === 1 ? 'full' : 'none';
+const lead2 = n % 2 === 1 ? 'full' : 'none';
+const hasLead = lead3 !== 'none' || lead2 !== 'none';
+
+const SIZES = {
+  normal: '(min-width: 1440px) 440px, (min-width: 1100px) 31vw, (min-width: 700px) 47vw, 100vw',
+  span2: '(min-width: 1440px) 890px, (min-width: 1100px) 63vw, (min-width: 700px) 56vw, 100vw',
+  full: '(min-width: 1440px) 780px, (min-width: 1100px) 56vw, (min-width: 700px) 56vw, 100vw',
+};
+const leadSizes = lead3 === 'span2' ? SIZES.span2 : lead3 === 'full' ? SIZES.full : lead2 === 'full' ? SIZES.full : SIZES.normal;
+---
+
+<div class:list={['pgrid', cls]} data-lead3={lead3} data-lead2={lead2}>
+  {
+    items.map((p, i) => (
+      <div class="pg-item">
+        <ProductCard
+          lang={lang}
+          product={p}
+          size={i === 0 && hasLead ? 'large' : 'normal'}
+          headingLevel={headingLevel}
+          sizes={i === 0 ? leadSizes : SIZES.normal}
+        />
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  .pgrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s-8) var(--s-5);
+  }
+  .pg-item {
+    display: grid;
+    min-width: 0;
+  }
+  /* Same image proportion everywhere unless a lead card is promoted */
+  .pgrid > .pg-item :global(.pcard .pcard-media) {
+    aspect-ratio: 3 / 2;
+  }
+
+  @media (min-width: 1100px) {
+    .pgrid[data-lead3='span2'] > .pg-item:first-child {
+      grid-column: span 2;
+    }
+    .pgrid[data-lead3='span2'] > .pg-item:first-child :global(.pcard .pcard-media) {
+      aspect-ratio: 2 / 1;
+    }
+    .pgrid[data-lead3='span2'] > .pg-item:first-child :global(.pcard-title) {
+      font-size: var(--step-3);
+      font-weight: 300;
+    }
+    .pgrid[data-lead3='full'] > .pg-item:first-child {
+      grid-column: 1 / -1;
+    }
+    /* The card next to a 2-column lead grows its photo so both cards end on one line */
+    .pgrid[data-lead3='span2'] > .pg-item:nth-child(2) :global(.pcard) {
+      grid-template-rows: minmax(0, 1fr) auto;
+    }
+    .pgrid[data-lead3='span2'] > .pg-item:nth-child(2) :global(.pcard .pcard-media) {
+      aspect-ratio: auto;
+      min-height: 220px;
+    }
+  }
+  @media (max-width: 1099px) {
+    .pgrid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--s-7) var(--s-5);
+    }
+    .pgrid[data-lead2='full'] > .pg-item:first-child {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 699px) {
+    .pgrid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--s-7);
+    }
+  }
+
+  /* Horizontal feature card: the promoted card while it spans the whole row */
+  @media (min-width: 1100px) {
+    .pgrid[data-lead3='full'] > .pg-item:first-child :global(.pcard) {
+      grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+      grid-template-rows: none;
+      gap: var(--s-6) clamp(2rem, 1rem + 3vw, 4.5rem);
+      align-items: center;
+    }
+    .pgrid[data-lead3='full'] > .pg-item:first-child :global(.pcard .pcard-media) {
+      aspect-ratio: 16 / 10;
+    }
+    .pgrid[data-lead3='full'] > .pg-item:first-child :global(.pcard-title) {
+      font-size: var(--step-3);
+      font-weight: 300;
+    }
+    .pgrid[data-lead3='full'] > .pg-item:first-child :global(.pcard-tag) {
+      font-size: var(--step-1);
+    }
+    .pgrid[data-lead3='full'] > .pg-item:first-child :global(.pcard-sum) {
+      font-size: var(--step-0);
+      max-width: 44ch;
+    }
+  }
+  @media (min-width: 700px) and (max-width: 1099px) {
+    .pgrid[data-lead2='full'] > .pg-item:first-child :global(.pcard) {
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+      grid-template-rows: none;
+      gap: var(--s-5) var(--s-6);
+      align-items: center;
+    }
+    .pgrid[data-lead2='full'] > .pg-item:first-child :global(.pcard .pcard-media) {
+      aspect-ratio: 4 / 3;
+    }
+  }
+</style>

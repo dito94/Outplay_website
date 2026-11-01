@@ -1,0 +1,490 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Breadcrumbs from '../../../components/Breadcrumbs.astro';
+import SectionHead from '../../../components/SectionHead.astro';
+import ProcessTimeline from '../../../components/ProcessTimeline.astro';
+import CtaBand from '../../../components/CtaBand.astro';
+import Img from '../../../components/Img.astro';
+import Icon from '../../../components/Icon.astro';
+import { pages } from '../../../data/pages';
+import { site } from '../../../data/site';
+import { ui } from '../../../data/ui';
+import { langParams, getLang, url, t } from '../../../lib/i18n';
+
+export function getStaticPaths() {
+  return langParams();
+}
+const lang = getLang(Astro.params.lang);
+const about = pages.about;
+const proc = pages.process;
+
+const T = {
+  metaDescription: {
+    bg: 'OUTPLAY има 20 години опит в проектирането, производството и монтажа на биоклиматични перголи, стъклени системи, остъкляване и фасади. София.',
+    en: 'OUTPLAY has 20 years of experience designing, manufacturing and installing bioclimatic pergolas, glass systems, glazing and façades. Sofia.',
+  },
+  storyTitle: { bg: 'За компанията', en: 'The company' },
+  years: { bg: 'години опит', en: 'years of experience' },
+  yearsText: {
+    bg: 'в планирането, проектирането, производството и монтажа на архитектурни решения',
+    en: 'in planning, designing, manufacturing and installing architectural solutions',
+  },
+  approachTitle: { bg: 'Нашият подход', en: 'Our approach' },
+};
+
+// Mission: the first sentence becomes the pull-quote, the rest follows as body copy
+const missionText = t(about.mission.text, lang);
+const [missionLead, ...missionMore] = missionText.split(/(?<=\.)\s+/);
+const missionRest = missionMore.join(' ');
+const [storyFirst, ...storyRest] = about.story;
+---
+
+<Base lang={lang} title={t(about.title, lang)} description={t(T.metaDescription, lang)} ogImage="home/about.jpg" header="overlay">
+  <section class="ab-hero night" aria-labelledby="about-title">
+    <div class="ab-hero-media">
+      <Img src="home/about.jpg" lang={lang} priority sizes="(min-width: 1440px) 840px, (min-width: 1001px) 58vw, 100vw" />
+    </div>
+    <div class="wrap ab-hero-inner">
+      <Breadcrumbs lang={lang} tone="light" items={[{ label: t(ui.nav.about, lang) }]} />
+      <div class="ab-hero-copy">
+        <h1 id="about-title" class="display ab-hero-title">{t(about.title, lang)}</h1>
+        <p class="ab-hero-lead">{t(about.intro, lang)}</p>
+        <p class="ab-hero-meta">
+          <span>{t(site.city, lang)}</span>
+          <span aria-hidden="true" class="ab-dot"></span>
+          <span>{t(site.experience, lang)}</span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Company story -->
+  <section class="section" aria-labelledby="story-title">
+    <div class="wrap ab-story">
+      <div class="ab-story-copy" data-reveal>
+        <h2 id="story-title" class="h2 rule">{t(T.storyTitle, lang)}</h2>
+        <p class="ab-story-lead">{t(storyFirst, lang)}</p>
+        <div class="prose ab-story-more">
+          {storyRest.map((p) => <p>{t(p, lang)}</p>)}
+        </div>
+      </div>
+      <div class="ab-story-side" data-reveal>
+        <div class="bracket ab-story-frame">
+          <div class="media ab-story-img">
+            <Img src="home/mood-01.jpg" lang={lang} sizes="(min-width: 1440px) 560px, (min-width: 901px) 40vw, 94vw" />
+          </div>
+        </div>
+        <p class="ab-years">
+          <span class="ab-years-n num">{site.experienceYears}</span>
+          <span class="ab-years-l">
+            <strong>{t(T.years, lang)}</strong>
+            <span>{t(T.yearsText, lang)}</span>
+          </span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Activity areas -->
+  <section class="section mist" aria-labelledby="acts-title">
+    <div class="wrap">
+      <SectionHead id="acts-title" title={t(about.activitiesTitle, lang)} intro={t(site.scope, lang)}>
+        <a class="link-arrow" href={url(lang, '/products/')}>
+          {t(ui.actions.exploreProducts, lang)} <Icon name="arrow-right" size={16} />
+        </a>
+      </SectionHead>
+      <ul class="acts" data-reveal>
+        {
+          about.activities.map((a) => (
+            <li class="act">
+              <h3 class="act-title">{t(a.title, lang)}</h3>
+              <p class="act-text">{t(a.text, lang)}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- Mission -->
+  <section class="section night ab-mission" aria-labelledby="mission-title">
+    <div class="wrap">
+      <h2 id="mission-title" class="ab-mission-title rule">{t(about.mission.title, lang)}</h2>
+      <blockquote class="ab-quote" data-reveal>
+        <p>{missionLead}</p>
+      </blockquote>
+      {missionRest && <p class="ab-mission-rest">{missionRest}</p>}
+    </div>
+  </section>
+
+  <!-- Approach / values -->
+  <section class="section" aria-labelledby="values-title">
+    <div class="wrap ab-values">
+      <div class="media ab-values-img" data-reveal>
+        <Img src="home/mood-02.jpg" lang={lang} sizes="(min-width: 1440px) 540px, (min-width: 901px) 38vw, 94vw" />
+      </div>
+      <div class="ab-values-copy">
+        <h2 id="values-title" class="h2 rule">{t(T.approachTitle, lang)}</h2>
+        <ul class="values" data-reveal>
+          {
+            about.values.map((v) => (
+              <li class="value">
+                <h3 class="value-title">{t(v.title, lang)}</h3>
+                <p class="value-text">{t(v.text, lang)}</p>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Process -->
+  <section class="section mist" aria-labelledby="process-title">
+    <div class="wrap">
+      <SectionHead id="process-title" title={t(proc.title, lang)} intro={t(proc.intro, lang)} />
+      <ProcessTimeline lang={lang} steps={proc.steps} />
+      <p class="ab-note small muted">{t(proc.note, lang)}</p>
+    </div>
+  </section>
+
+  <!-- Partners -->
+  <section class="section" aria-labelledby="partners-title">
+    <div class="wrap">
+      <SectionHead id="partners-title" title={t(about.partners.title, lang)} intro={t(about.partners.intro, lang)} />
+      <ul class="pgrid" data-reveal>
+        {site.partners.map((p) => <li>{p}</li>)}
+      </ul>
+      <p class="pmore small muted">{t(site.partnersMore, lang)}</p>
+    </div>
+  </section>
+
+  <CtaBand lang={lang} />
+</Base>
+
+<style>
+  /* Hero: dark copy column, photograph bleeding off the right edge */
+  .ab-hero {
+    position: relative;
+    display: grid;
+    min-height: clamp(600px, 88svh, 880px);
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .ab-hero-media {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 58%;
+    z-index: -1;
+  }
+  .ab-hero-media :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .ab-hero-media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to right, var(--ink) 0%, rgba(10, 10, 8, 0.55) 14%, rgba(10, 10, 8, 0) 42%),
+      linear-gradient(to bottom, rgba(10, 10, 8, 0.7) 0%, rgba(10, 10, 8, 0.25) 14%, rgba(10, 10, 8, 0) 26%);
+  }
+  .ab-hero-inner {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    padding-top: calc(var(--header-h) + var(--s-5));
+    padding-bottom: clamp(3rem, 2rem + 5vw, 6.5rem);
+  }
+  .ab-hero-copy {
+    align-self: end;
+    display: grid;
+    gap: var(--s-5);
+    justify-items: start;
+    max-width: min(36rem, 40%);
+    padding-top: var(--s-8);
+  }
+  .ab-hero-title {
+    color: #fff;
+  }
+  .ab-hero-lead {
+    font-size: var(--step-1);
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.84);
+  }
+  .ab-hero-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-3);
+    margin-top: var(--s-2);
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--line-dark);
+    font-size: var(--step--1);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--alu);
+  }
+  .ab-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--yellow);
+  }
+  @media (max-width: 1000px) {
+    .ab-hero {
+      min-height: 0;
+    }
+    .ab-hero-media {
+      position: relative;
+      grid-row: 2;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      z-index: 0;
+    }
+    .ab-hero-media::after {
+      background: linear-gradient(to bottom, var(--ink) 0%, rgba(10, 10, 8, 0) 28%);
+    }
+    .ab-hero-inner {
+      grid-row: 1;
+      padding-bottom: var(--s-7);
+    }
+    .ab-hero-copy {
+      max-width: 40rem;
+      padding-top: var(--s-7);
+    }
+  }
+
+  /* Story */
+  .ab-story {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: var(--s-8) clamp(3rem, 1rem + 6vw, 8rem);
+    align-items: start;
+  }
+  .ab-story-copy {
+    display: grid;
+    gap: var(--s-6);
+  }
+  .ab-story-lead {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-weight: 400;
+    line-height: 1.55;
+    max-width: 46ch;
+  }
+  .ab-story-more {
+    color: var(--muted);
+  }
+  .ab-story-side {
+    display: grid;
+    gap: var(--s-7);
+    padding-top: var(--s-4);
+  }
+  .ab-story-img {
+    aspect-ratio: 4 / 5;
+  }
+  .ab-years {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-5);
+  }
+  .ab-years-n {
+    font-family: var(--font-display);
+    font-size: clamp(4rem, 3rem + 4vw, 7rem);
+    font-weight: 300;
+    line-height: 0.85;
+    letter-spacing: -0.03em;
+  }
+  .ab-years-l {
+    display: grid;
+    gap: var(--s-1);
+    padding-top: 0.3rem;
+    font-size: var(--step--1);
+    color: var(--muted);
+    max-width: 28ch;
+  }
+  .ab-years-l strong {
+    color: var(--fg);
+    font-weight: 600;
+    font-size: var(--step-0);
+  }
+  @media (max-width: 900px) {
+    .ab-story {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .ab-story-side {
+      padding-inline: 8px;
+    }
+    .ab-story-img {
+      aspect-ratio: 1 / 1;
+    }
+  }
+
+  /* Activities: titled rows with a thin rule (not a sequence, so no numbers) */
+  .acts {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--fg) 16%, transparent);
+  }
+  .act {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    gap: var(--s-4) var(--s-8);
+    padding-block: clamp(1.75rem, 1.2rem + 1.6vw, 2.75rem);
+    border-top: 1px solid color-mix(in srgb, var(--fg) 16%, transparent);
+  }
+  .act-title {
+    font-size: var(--step-2);
+    font-weight: 300;
+    line-height: 1.2;
+    max-width: 22ch;
+  }
+  .act-text {
+    color: var(--muted);
+    max-width: 62ch;
+    padding-top: 0.2rem;
+  }
+  @media (max-width: 800px) {
+    .act {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* Mission pull-quote */
+  .ab-mission-title {
+    font-size: var(--step-0);
+    font-family: var(--font-body);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+  }
+  .ab-quote {
+    margin: clamp(2rem, 1.5rem + 2vw, 3.5rem) 0 0;
+  }
+  .ab-quote p {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: clamp(1.9rem, 1.2rem + 3vw, 4rem);
+    line-height: 1.14;
+    letter-spacing: -0.012em;
+    max-width: 24ch;
+    text-wrap: balance;
+  }
+  .ab-mission-rest {
+    max-width: 58ch;
+    margin: clamp(2.5rem, 2rem + 3vw, 5rem) 0 0 auto;
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--hair);
+    font-size: var(--step-1);
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  /* Values */
+  .ab-values {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.3fr);
+    gap: var(--s-8) clamp(3rem, 1rem + 6vw, 8rem);
+    align-items: center;
+  }
+  .ab-values-img {
+    aspect-ratio: 4 / 5;
+  }
+  .ab-values-copy {
+    display: grid;
+    gap: clamp(2rem, 1.5rem + 2vw, 3.5rem);
+  }
+  .values {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-7) var(--s-6);
+  }
+  .value {
+    display: grid;
+    align-content: start;
+    gap: var(--s-3);
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--hair);
+  }
+  .value-title {
+    font-size: var(--step-1);
+    font-weight: 400;
+    line-height: 1.25;
+  }
+  .value-text {
+    color: var(--muted);
+    font-size: var(--step--1);
+    line-height: 1.6;
+    max-width: 40ch;
+  }
+  @media (max-width: 900px) {
+    .ab-values {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .ab-values-img {
+      aspect-ratio: 3 / 2;
+    }
+  }
+  @media (max-width: 560px) {
+    .values {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--s-5);
+    }
+  }
+
+  .ab-note {
+    margin-top: var(--s-8);
+    padding-top: var(--s-4);
+    border-top: 1px solid color-mix(in srgb, var(--fg) 16%, transparent);
+    max-width: none;
+  }
+
+  /* Partners: a typographic wall */
+  .pgrid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-top: 1px solid var(--hair);
+    border-left: 1px solid var(--hair);
+  }
+  .pgrid li {
+    display: grid;
+    place-items: center;
+    min-height: clamp(84px, 6vw + 40px, 128px);
+    padding: var(--s-4);
+    border-right: 1px solid var(--hair);
+    border-bottom: 1px solid var(--hair);
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    letter-spacing: 0.1em;
+    text-align: center;
+    color: var(--graphite);
+  }
+  .pmore {
+    margin-top: var(--s-4);
+    text-align: right;
+  }
+  @media (max-width: 900px) {
+    .pgrid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 560px) {
+    .pgrid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .pgrid li {
+      font-size: var(--step-0);
+      letter-spacing: 0.06em;
+    }
+  }
+</style>

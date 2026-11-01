@@ -1,0 +1,117 @@
+---
+// Mobile sticky action bar (≤ 900px): primary inquiry link + Viber icon button, fixed to the bottom with
+// safe-area padding. It appears once the element marked [data-sticky-cta-start] has scrolled away, and
+// hides while any [data-sticky-cta-hide] element (the inquiry section, the footer) is on screen.
+// While it is shown, body gets .has-sticky-cta so the floating Viber button moves above it.
+import type { Lang } from '../data/types';
+import { site } from '../data/site';
+import Icon from './Icon.astro';
+
+interface Props {
+  lang: Lang;
+  href: string;
+  label?: string;
+}
+const { lang, href, label } = Astro.props;
+const T = {
+  cta: { bg: 'Направете запитване', en: 'Request a quote' },
+  viber: { bg: 'Пишете ни във Viber', en: 'Message us on Viber' },
+  bar: { bg: 'Бързи действия', en: 'Quick actions' },
+};
+const viber = site.viberUrl ?? `viber://chat?number=${encodeURIComponent(site.viber ?? site.phones[0].e164)}`;
+---
+
+<div class="scta" data-scta role="region" aria-label={T.bar[lang]} inert>
+  <a class="btn scta-main" href={href}>
+    {label ?? T.cta[lang]}
+    <Icon name="arrow-right" class="arrow" />
+  </a>
+  <a class="btn btn-viber scta-viber" href={viber} aria-label={T.viber[lang]}>
+    <Icon name="viber" size={22} />
+  </a>
+</div>
+
+<style>
+  .scta {
+    display: none;
+  }
+  @media (max-width: 900px) {
+    .scta {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 55;
+      display: flex;
+      gap: var(--s-2);
+      padding: 10px max(var(--gutter), env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px))
+        max(var(--gutter), env(safe-area-inset-left, 0px));
+      background: var(--paper);
+      border-top: 1px solid var(--line);
+      box-shadow: 0 -12px 30px -18px rgba(10, 10, 8, 0.35);
+      transform: translateY(105%);
+      visibility: hidden;
+      transition:
+        transform 0.3s var(--ease),
+        visibility 0s linear 0.3s;
+    }
+    .scta.is-shown {
+      transform: none;
+      visibility: visible;
+      transition:
+        transform 0.3s var(--ease),
+        visibility 0s;
+    }
+    .scta-main {
+      flex: 1;
+      min-width: 0;
+    }
+    .scta-viber {
+      flex: none;
+      width: 52px;
+      padding: 0;
+    }
+  }
+  @media print {
+    .scta {
+      display: none !important;
+    }
+  }
+</style>
+
+<script>
+  const bar = document.querySelector<HTMLElement>('[data-scta]');
+  if (bar && 'IntersectionObserver' in window) {
+    const mq = window.matchMedia('(max-width: 900px)');
+    const start = document.querySelector<HTMLElement>('[data-sticky-cta-start]');
+    const hiders = Array.from(document.querySelectorAll<HTMLElement>('[data-sticky-cta-hide], body > footer, .site-footer'));
+    let passedStart = !start;
+    const onScreen = new Set<Element>();
+
+    const update = () => {
+      const show = mq.matches && passedStart && onScreen.size === 0;
+      bar.classList.toggle('is-shown', show);
+      bar.inert = !show;
+      document.body.classList.toggle('has-sticky-cta', show);
+    };
+
+    if (start) {
+      new IntersectionObserver(([e]) => {
+        // "passed" once the start element is out of view above the viewport
+        passedStart = !e.isIntersecting && e.boundingClientRect.top < 0;
+        update();
+      }).observe(start);
+    }
+    const hideIo = new IntersectionObserver((entries) => {
+      entries.forEach((e) => (e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target)));
+      update();
+    });
+    new Set(hiders).forEach((el) => hideIo.observe(el));
+    mq.addEventListener('change', update);
+    bar.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('.scta-main')) {
+        bar.classList.remove('is-shown');
+      }
+    });
+  }
+</script>

@@ -1,0 +1,296 @@
+// Admin demo microcopy. Labels already defined in src/data/pages.ts (pages.admin) are reused from there;
+// everything else specific to the demo lives here. Placeholders in braces are filled with fmt().
+import type { L, Lang } from '../../data/types';
+import { pages } from '../../data/pages';
+import { ui } from '../../data/ui';
+
+const A = pages.admin;
+
+export const T = {
+  // Chrome
+  title: A.title,
+  banner: A.banner,
+  brand: { bg: 'OUTPLAY Админ', en: 'OUTPLAY Admin' },
+  adminNav: { bg: 'Навигация в админ панела', en: 'Admin navigation' },
+  reset: { bg: 'Нулирай демо данните', en: 'Reset demo data' },
+  logout: A.nav.logout,
+  viewSite: A.nav.viewSite,
+  role: { bg: 'Администратор', en: 'Administrator' },
+  newWindow: { bg: '(отваря се в нов прозорец)', en: '(opens in a new window)' },
+  navDashboard: A.nav.dashboard,
+  navInquiries: A.nav.inquiries,
+  navProducts: A.nav.products,
+  navFaq: A.nav.faq,
+  navSettings: A.nav.settings,
+  close: ui.actions.close,
+  cancel: A.actions.cancel,
+  dismiss: { bg: 'Затвори известието', en: 'Dismiss notification' },
+  justNow: { bg: 'току-що', en: 'just now' },
+
+  // Login
+  loginTitle: { bg: 'OUTPLAY Админ', en: 'OUTPLAY Admin' },
+  loginLead: A.login.title,
+  username: A.login.username,
+  password: A.login.password,
+  submit: { bg: 'Влез', en: 'Sign in' },
+  loginHint: A.login.hint,
+  loginError: A.login.error,
+  loginEmpty: { bg: 'Въведете потребителско име и парола.', en: 'Enter your username and password.' },
+  fillDemo: { bg: 'Попълни demo / demo', en: 'Fill in demo / demo' },
+  showPassword: { bg: 'Покажи паролата', en: 'Show password' },
+  hidePassword: { bg: 'Скрий паролата', en: 'Hide password' },
+  noscript: {
+    bg: 'Админ демото работи с JavaScript. Включете го в браузъра, за да продължите.',
+    en: 'The admin demo needs JavaScript. Turn it on in your browser to continue.',
+  },
+  signedOut: { bg: 'Излязохте от админ панела.', en: 'You have signed out.' },
+
+  // Dashboard
+  dashLead: { bg: 'Запитвания и съдържание на сайта на едно място.', en: 'Inquiries and site content in one place.' },
+  welcome: { bg: 'Добре дошли, demo', en: 'Welcome, demo' },
+  statNew: A.dashboard.newInquiries,
+  statNewSub: { bg: 'чакат отговор', en: 'awaiting a reply' },
+  statTotal: A.dashboard.totalInquiries,
+  statTotalSub: { bg: 'от тях {n} примерни', en: 'including {n} examples' },
+  statProducts: A.dashboard.productsCount,
+  statProductsSub: { bg: 'в {n} категории', en: 'in {n} categories' },
+  statHidden: { bg: 'Скрити продукти', en: 'Hidden products' },
+  statHiddenSub0: { bg: 'всички са видими', en: 'all visible' },
+  statHiddenSub: { bg: 'не се показват на сайта', en: 'not shown on the site' },
+  statFaq: { bg: 'Въпроси в FAQ', en: 'FAQ items' },
+  statFaqSub: { bg: '{n} редактирани', en: '{n} edited' },
+  latest: { bg: 'Последни запитвания', en: 'Latest inquiries' },
+  seeAll: { bg: 'Всички запитвания', en: 'All inquiries' },
+  changes: A.dashboard.lastEdited,
+  changesEmpty: {
+    bg: 'Още няма промени. Редактирайте продукт или въпрос и промяната ще се появи тук.',
+    en: 'No changes yet. Edit a product or a question and it will appear here.',
+  },
+  chName: { bg: 'име', en: 'name' },
+  chTagline: { bg: 'подзаглавие', en: 'tagline' },
+  chSummary: { bg: 'описание', en: 'summary' },
+  chHidden: { bg: 'скрит от сайта', en: 'hidden from the site' },
+  chFaq: { bg: 'въпрос и отговор', en: 'question and answer' },
+  quick: A.dashboard.quickActions,
+  qaProducts: { bg: 'Редактирай продукт', en: 'Edit a product' },
+  qaNew: { bg: 'Прегледай новите запитвания', en: 'Review new inquiries' },
+  qaFaq: { bg: 'Редактирай въпросите', en: 'Edit the FAQ' },
+  qaSite: { bg: 'Отвори сайта', en: 'Open the website' },
+  howTitle: { bg: 'Как работи демото', en: 'How the demo works' },
+  howText: {
+    bg: 'Промените се записват в паметта на този браузър и се виждат на публичните страници само тук. В реалната версия се записват на сървъра и всеки посетител ги вижда веднага.',
+    en: 'Changes are saved in this browser’s storage and show on the public pages only here. In the live version they are saved on the server and every visitor sees them straight away.',
+  },
+
+  // Inquiries
+  inqLead: {
+    bg: 'Запитванията от формата на сайта, изпратени от този браузър, и няколко примерни записа.',
+    en: 'Requests sent through the site form from this browser, plus a few example records.',
+  },
+  search: { bg: 'Търсене по име или продукт', en: 'Search by name or product' },
+  statusFilter: { bg: 'Филтър по статус', en: 'Filter by status' },
+  all: { bg: 'Всички', en: 'All' },
+  colDate: A.fields.date,
+  colCustomer: A.fields.customer,
+  colProduct: { bg: 'Продукт', en: 'Product' },
+  colDims: { bg: 'Размери', en: 'Size' },
+  colChannel: { bg: 'Връзка', en: 'Contact by' },
+  colStatus: A.fields.status,
+  example: { bg: 'Пример', en: 'Example' },
+  exampleNote: {
+    bg: 'Записите с етикет „Пример“ са генерирани за демонстрацията и не се запазват.',
+    en: 'Records marked “Example” are generated for the demo and are not saved.',
+  },
+  noResults: { bg: 'Няма запитвания по тези критерии.', en: 'No inquiries match these filters.' },
+  clearFilters: { bg: 'Изчисти филтрите', en: 'Clear filters' },
+  shown: { bg: 'Показани {n} от {total}', en: 'Showing {n} of {total}' },
+  noProduct: { bg: 'Без избран продукт', en: 'No product selected' },
+  openInquiry: { bg: 'Отвори запитването от {name}', en: 'Open the inquiry from {name}' },
+
+  // Inquiry detail
+  received: { bg: 'Получено', en: 'Received' },
+  textTitle: { bg: 'Запитване за оферта', en: 'Quote request' },
+  status: A.fields.status,
+  statusSaved: { bg: 'Статусът е променен на „{s}“.', en: 'Status changed to “{s}”.' },
+  statusExample: {
+    bg: 'Примерен запис: промяната важи до презареждане на страницата.',
+    en: 'Example record: the change lasts until the page is reloaded.',
+  },
+  contact: { bg: 'Контакт', en: 'Contact' },
+  customer: A.fields.customer,
+  phone: ui.form.labels.phone,
+  email: ui.form.labels.email,
+  city: ui.form.labels.city,
+  channel: ui.form.labels.contactChannel,
+  call: { bg: 'Обади се', en: 'Call' },
+  viber: { bg: 'Viber', en: 'Viber' },
+  writeEmail: { bg: 'Пиши', en: 'Email' },
+  dims: { bg: 'Размери', en: 'Dimensions' },
+  dimsApprox: { bg: 'Приблизителни размери', en: 'Approximate dimensions' },
+  area: ui.inquiry.area,
+  totalArea: { bg: 'Обща площ', en: 'Total area' },
+  config: ui.inquiry.options,
+  project: ui.inquiry.project,
+  message: { bg: 'Съобщение', en: 'Message' },
+  files: { bg: 'Снимки от клиента', en: 'Customer photos' },
+  filesNote: {
+    bg: 'В демото се пазят само имената на файловете. В реалната версия снимките се отварят оттук.',
+    en: 'The demo keeps file names only. In the live version the photos open from here.',
+  },
+  copyText: { bg: 'Копирай като текст', en: 'Copy as text' },
+  copied: ui.actions.copied,
+  copiedToast: {
+    bg: 'Запитването е копирано. Поставете го в имейл или оферта.',
+    en: 'Inquiry copied. Paste it into an email or a quote.',
+  },
+  copy: ui.actions.copy,
+  delete: A.actions.delete,
+  deleteTitle: { bg: 'Изтриване на запитването', en: 'Delete this inquiry' },
+  deleteText: {
+    bg: 'Запитването от {name} ще бъде изтрито от този браузър. Действието не може да се отмени.',
+    en: 'The inquiry from {name} will be deleted from this browser. This cannot be undone.',
+  },
+  deleted: { bg: 'Запитването е изтрито.', en: 'Inquiry deleted.' },
+
+  // Products
+  prodLead: {
+    bg: '{n} продукта в {c} категории. Редакциите се виждат на публичните страници в този браузър.',
+    en: '{n} products in {c} categories. Edits show on the public pages in this browser.',
+  },
+  visible: A.fields.visible,
+  hiddenBadge: { bg: 'Скрит', en: 'Hidden' },
+  editedBadge: { bg: 'Редактиран', en: 'Edited' },
+  edit: A.actions.edit,
+  view: { bg: 'Виж на сайта', en: 'View on site' },
+  productsCount: { bg: '{n} продукта', en: '{n} products' },
+  productOne: { bg: '1 продукт', en: '1 product' },
+  hiddenToast: { bg: '„{name}“ е скрит от сайта.', en: '“{name}” is now hidden from the site.' },
+  shownToast: { bg: '„{name}“ отново се показва на сайта.', en: '“{name}” is visible on the site again.' },
+
+  // Product editor
+  back: { bg: 'Всички продукти', en: 'All products' },
+  langTabs: { bg: 'Език на съдържанието', en: 'Content language' },
+  tabBg: { bg: 'Български', en: 'Bulgarian' },
+  tabEn: { bg: 'Английски', en: 'English' },
+  fName: { bg: 'Име', en: 'Name' },
+  fTagline: A.fields.tagline,
+  fSummary: A.fields.summary,
+  original: { bg: 'Оригинал', en: 'Original' },
+  chars: { bg: '{n} знака', en: '{n} characters' },
+  nameRequired: { bg: 'Въведете име на продукта.', en: 'Enter a product name.' },
+  emptyKeepsOriginal: {
+    bg: 'Празно поле връща оригиналния текст.',
+    en: 'Leave it empty to use the original text.',
+  },
+  save: A.actions.save,
+  discard: { bg: 'Отказ', en: 'Discard' },
+  revert: { bg: 'Върни оригиналния текст', en: 'Restore original text' },
+  revertTitle: { bg: 'Връщане на оригиналния текст', en: 'Restore the original text' },
+  revertText: {
+    bg: 'Редакциите на „{name}“ на двата езика ще бъдат премахнати. Видимостта на продукта не се променя.',
+    en: 'Your edits to “{name}” in both languages will be removed. The product’s visibility stays as it is.',
+  },
+  revertConfirm: { bg: 'Върни оригинала', en: 'Restore original' },
+  savedToast: {
+    bg: 'Запазено — промените се виждат на сайта в този браузър',
+    en: 'Saved. The changes show on the site in this browser',
+  },
+  viewPage: { bg: 'Виж страницата', en: 'View page' },
+  revertedToast: { bg: 'Възстановен е оригиналният текст.', en: 'Original text restored.' },
+  unsaved: { bg: 'Незапазени промени', en: 'Unsaved changes' },
+  lastSaved: { bg: 'Последна промяна {t}', en: 'Last changed {t}' },
+  pristine: { bg: 'Текст от каталога, без промени', en: 'Catalogue text, unchanged' },
+  preview: { bg: 'Преглед на картата', en: 'Card preview' },
+  previewNote: {
+    bg: 'Така изглежда продуктът в списъците на сайта.',
+    en: 'How the product appears in listings on the site.',
+  },
+  viewProduct: ui.actions.viewProduct,
+  images: A.fields.images,
+  imagesNote: {
+    bg: 'Подредбата е автоматична: основна снимка, галерия и техническа схема.',
+    en: 'Images are ordered automatically: main photo, gallery, technical drawing.',
+  },
+  imgHero: { bg: 'Основна снимка', en: 'Main photo' },
+  imgGallery: { bg: 'Галерия {n}', en: 'Gallery {n}' },
+  imgDiagram: { bg: 'Схема', en: 'Drawing' },
+  upload: A.actions.uploadImage,
+  addVideo: A.actions.addVideo,
+  realOnly: { bg: 'Достъпно в реалната версия', en: 'Available in the live version' },
+  video: A.fields.video,
+  noVideo: { bg: 'Няма добавено видео.', en: 'No video added.' },
+  moreFields: {
+    bg: 'В реалната версия по същия начин се редактират и описанието, предимствата, характеристиките и техническите параметри.',
+    en: 'In the live version the description, key facts, features and specifications are edited the same way.',
+  },
+
+  // FAQ
+  faqLead: { bg: 'Често задавани въпроси, подредени по теми.', en: 'Frequently asked questions, grouped by topic.' },
+  faqNote: {
+    bg: 'В демото редакциите на въпросите се пазят само в админ панела, а публичната страница с въпроси показва оригиналния текст. В реалната версия промените се публикуват веднага.',
+    en: 'In the demo, FAQ edits are kept in the admin panel only and the public FAQ page shows the original text. In the live version changes are published straight away.',
+  },
+  openFaq: { bg: 'Страница с въпроси', en: 'FAQ page' },
+  question: { bg: 'Въпрос', en: 'Question' },
+  answer: { bg: 'Отговор', en: 'Answer' },
+  faqSaved: { bg: 'Въпросът е запазен.', en: 'Question saved.' },
+  faqReverted: { bg: 'Въпросът е върнат към оригинала.', en: 'Question restored to the original.' },
+  faqRevertText: {
+    bg: 'Редакциите на този въпрос на двата езика ще бъдат премахнати.',
+    en: 'Your edits to this question in both languages will be removed.',
+  },
+  faqRequired: { bg: 'Попълнете това поле.', en: 'Please fill in this field.' },
+  itemsCount: { bg: '{n} въпроса', en: '{n} questions' },
+
+  // Settings
+  setLead: { bg: 'Фирмени данни, езици и достъп.', en: 'Company details, languages and access.' },
+  company: { bg: 'Фирмени данни', en: 'Company details' },
+  companyNote: {
+    bg: 'В демото данните са само за преглед. В реалната версия се редактират оттук и се обновяват навсякъде в сайта: заглавната част, футъра, страницата за контакти и формата.',
+    en: 'Read-only in the demo. In the live version you edit them here and they update everywhere on the site: header, footer, contact page and form.',
+  },
+  companyName: { bg: 'Име на фирмата', en: 'Company name' },
+  address: ui.contact.address,
+  phone1: { bg: 'Телефон 1', en: 'Phone 1' },
+  phone2: { bg: 'Телефон 2', en: 'Phone 2' },
+  website: ui.contact.website,
+  languages: { bg: 'Езици', en: 'Languages' },
+  langNote: {
+    bg: 'Всеки текст в сайта има версия на двата езика. Българският е основен, английският е на адрес /en/.',
+    en: 'Every piece of text on the site exists in both languages. Bulgarian is the default; English lives under /en/.',
+  },
+  enabled: { bg: 'Активен', en: 'Enabled' },
+  primary: { bg: 'Основен', en: 'Default' },
+  access: { bg: 'Достъп', en: 'Access' },
+  accessNote: {
+    bg: 'В реалната версия всеки служител има личен акаунт със защитен вход и права според ролята.',
+    en: 'In the live version each team member has a personal account with secure sign-in and role-based permissions.',
+  },
+  storage: { bg: 'Данни в този браузър', en: 'Data in this browser' },
+  storageInq: { bg: 'Запитвания от формата', en: 'Inquiries from the form' },
+  storageProd: { bg: 'Редактирани продукти', en: 'Edited products' },
+  storageFaq: { bg: 'Редактирани въпроси', en: 'Edited questions' },
+  export: A.actions.exportJson,
+  exportDone: { bg: 'Файлът е изтеглен.', en: 'File downloaded.' },
+
+  // Reset
+  resetTitle: { bg: 'Нулиране на демо данните', en: 'Reset demo data' },
+  resetText: {
+    bg: 'Всички редакции на продукти и въпроси в този браузър ще бъдат изтрити и сайтът ще покаже оригиналното съдържание.',
+    en: 'All product and FAQ edits in this browser will be deleted and the site will show the original content again.',
+  },
+  resetInq: { bg: 'Изтрий и запитванията от формата ({n})', en: 'Also delete inquiries sent from the form ({n})' },
+  resetConfirm: { bg: 'Нулирай', en: 'Reset' },
+  resetDone: { bg: 'Демо данните са нулирани.', en: 'Demo data has been reset.' },
+
+  // Units
+  m: ui.units.m,
+  m2: ui.units.m2,
+  pcs: ui.units.pcs,
+} satisfies Record<string, L>;
+
+export type StringKey = keyof typeof T;
+
+export function strings(lang: Lang): Record<StringKey, string> {
+  return Object.fromEntries(Object.entries(T).map(([k, v]) => [k, v[lang] ?? v.bg])) as Record<StringKey, string>;
+}

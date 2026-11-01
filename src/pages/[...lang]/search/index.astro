@@ -1,0 +1,512 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Breadcrumbs from '../../../components/Breadcrumbs.astro';
+import Icon from '../../../components/Icon.astro';
+import { categories } from '../../../data/categories';
+import { products } from '../../../data/products';
+import { pages } from '../../../data/pages';
+import { ui } from '../../../data/ui';
+import { site } from '../../../data/site';
+import { langParams, getLang, url, categoryUrl, productUrl, t } from '../../../lib/i18n';
+
+export function getStaticPaths() {
+  return langParams();
+}
+const lang = getLang(Astro.params.lang);
+const tx = (v: { bg: string; en: string }) => t(v, lang);
+const P = pages.search;
+
+const T = {
+  submit: { bg: 'Търси', en: 'Search' },
+  browse: { bg: 'Или разгледайте продуктите', en: 'Or browse the products' },
+  help: { bg: 'Не намирате това, което търсите?', en: 'Can’t find what you are looking for?' },
+  helpText: {
+    bg: 'Обадете се или ни пишете – ще Ви кажем коя система е подходяща за Вашето място.',
+    en: 'Call or message us and we will tell you which system suits your space.',
+  },
+  error: { bg: 'Търсенето не успя да се зареди. Опитайте отново.', en: 'Search could not load. Please try again.' },
+  noscript: {
+    bg: 'Търсенето работи с JavaScript. Разгледайте продуктите по-долу или ни се обадете.',
+    en: 'Search needs JavaScript. Browse the products below or give us a call.',
+  },
+};
+const cats = [...categories].sort((a, b) => a.order - b.order);
+const byCat = (cid: string) => products.filter((p) => p.category === cid).sort((a, b) => a.order - b.order);
+const config = {
+  index: url(lang, '/search-index.json'),
+  s: {
+    resultsFor: tx(ui.search.resultsFor),
+    noResults: tx(ui.search.noResults),
+    count: tx(ui.search.resultsCount),
+    one: tx(ui.search.resultOne),
+    loading: tx(ui.a11y.loading),
+    error: tx(T.error),
+    groups: {
+      product: tx(ui.search.groups.products),
+      category: tx(ui.search.groups.categories),
+      faq: tx(ui.search.groups.faq),
+      page: tx(ui.search.groups.pages),
+    },
+  },
+};
+---
+
+<Base lang={lang} title={tx(P.title)} description={tx(P.intro)}>
+  <section class="s-hero">
+    <div class="wrap">
+      <Breadcrumbs lang={lang} items={[{ label: tx(P.title) }]} />
+      <h1 class="h1 rule s-title">{tx(P.title)}</h1>
+      <p class="lead">{tx(P.intro)}</p>
+      <form class="s-form" role="search" action={url(lang, '/search/')} method="get" data-s-form>
+        <label for="s-q" class="sr-only">{tx(ui.search.label)}</label>
+        <span class="s-field">
+          <Icon name="search" size={22} />
+          <input
+            id="s-q"
+            class="s-input"
+            type="search"
+            name="q"
+            autocomplete="off"
+            spellcheck="false"
+            enterkeyhint="search"
+            placeholder={tx(ui.search.placeholder)}
+            data-s-input
+          />
+        </span>
+        <button class="btn" type="submit">{tx(T.submit)}</button>
+      </form>
+      <p class="s-status" aria-live="polite" data-s-status></p>
+    </div>
+  </section>
+
+  <section class="s-results-wrap" aria-labelledby="s-status-h" data-s-results-wrap hidden>
+    <div class="wrap">
+      <h2 class="sr-only" id="s-status-h" data-s-results-h>{tx(P.title)}</h2>
+      <div class="s-results" data-s-results></div>
+    </div>
+  </section>
+
+  <section class="section-tight s-empty" aria-labelledby="s-suggest-title" data-s-empty>
+    <div class="wrap s-empty-grid">
+      <div class="s-suggest">
+        <h2 id="s-suggest-title" class="h3">{tx(ui.search.suggestions)}</h2>
+        <ul class="s-chips">
+          {
+            P.suggestions.map((s) => (
+              <li>
+                <a class="s-chip" href={`${url(lang, '/search/')}?q=${encodeURIComponent(t(s, lang))}`} data-s-suggest={t(s, lang)}>
+                  <Icon name="search" size={14} />
+                  {t(s, lang)}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <noscript><p class="muted small s-noscript">{tx(T.noscript)}</p></noscript>
+        <div class="s-help">
+          <h3 class="s-help-title">{tx(T.help)}</h3>
+          <p class="muted">{tx(T.helpText)}</p>
+          <div class="btn-row">
+            <a class="btn" href={url(lang, '/contact/#inquiry')}>
+              {tx(ui.actions.requestQuote)}
+              <Icon name="arrow-right" class="arrow" />
+            </a>
+            <a class="btn btn-viber" href={site.viberUrl}><Icon name="viber" /> Viber</a>
+            <a class="btn btn-ghost num" href={`tel:${site.phones[0].e164}`}><Icon name="phone" /> {site.phones[0].display}</a>
+          </div>
+        </div>
+      </div>
+      <nav class="s-browse" aria-labelledby="s-browse-title">
+        <h2 id="s-browse-title" class="h3">{tx(T.browse)}</h2>
+        <div class="s-browse-cols">
+          {
+            cats.map((c) => (
+              <div>
+                <a class="s-browse-cat" href={categoryUrl(lang, c.id)}>
+                  {t(c.name, lang)}
+                  <Icon name="arrow-right" size={16} />
+                </a>
+                <ul>
+                  {byCat(c.id).map((p) => (
+                    <li>
+                      <a href={productUrl(lang, p.category, p.id)}>{t(p.name, lang)}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          }
+        </div>
+      </nav>
+    </div>
+  </section>
+  <script type="application/json" data-s-config set:html={JSON.stringify(config)} />
+</Base>
+
+<style>
+  .s-hero {
+    padding-block: clamp(2rem, 1.5rem + 2vw, 3.5rem) clamp(2rem, 1.5rem + 2vw, 3rem);
+  }
+  .s-title {
+    margin-top: clamp(1.5rem, 1rem + 2vw, 3rem);
+    margin-bottom: var(--s-4);
+  }
+  .s-form {
+    display: flex;
+    gap: var(--s-3);
+    max-width: 860px;
+    margin-top: var(--s-6);
+  }
+  .s-field {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+  }
+  .s-field :global(svg) {
+    position: absolute;
+    left: 1.1rem;
+    color: var(--steel);
+    pointer-events: none;
+  }
+  .s-input {
+    width: 100%;
+    min-height: 60px;
+    padding: 0 1rem 0 3.2rem;
+    border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+    border-radius: var(--radius);
+    background: var(--paper);
+    font-size: var(--step-1);
+  }
+  .s-input:hover {
+    border-color: color-mix(in srgb, var(--ink) 50%, transparent);
+  }
+  .s-input:focus {
+    outline: none;
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--yellow) 70%, transparent);
+  }
+  .s-form .btn {
+    min-height: 60px;
+  }
+  .s-status {
+    margin-top: var(--s-4);
+    color: var(--muted);
+    font-size: var(--step--1);
+    min-height: 1.6em;
+  }
+  @media (max-width: 520px) {
+    .s-form {
+      flex-direction: column;
+    }
+  }
+
+  .s-results-wrap {
+    padding-bottom: clamp(3rem, 2rem + 3vw, 5rem);
+  }
+  .s-results :global(.s-group + .s-group) {
+    margin-top: var(--s-8);
+  }
+  .s-results :global(.s-group-h) {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-3);
+    padding-bottom: var(--s-3);
+    border-bottom: 1px solid var(--ink);
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 300;
+  }
+  .s-results :global(.s-group-n) {
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .s-results :global(.s-list) {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .s-results :global(.s-item) {
+    border-bottom: 1px solid var(--hair);
+  }
+  .s-results :global(.s-item a) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--s-5);
+    padding: var(--s-4) 0;
+    text-decoration: none;
+  }
+  .s-results :global(.s-item a:hover .s-item-t) {
+    text-decoration: underline;
+    text-decoration-color: var(--yellow-deep);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.2em;
+  }
+  .s-results :global(.s-thumb) {
+    width: 128px;
+    height: 96px;
+    object-fit: cover;
+    background: var(--graphite);
+  }
+  .s-results :global(.s-item-t) {
+    display: block;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: 1.25;
+  }
+  .s-results :global(.s-item-s) {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: var(--step--1);
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .s-results :global(.s-item-d) {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--muted);
+    max-width: 75ch;
+    font-size: var(--step--1);
+  }
+  .s-results :global(.s-item-go) {
+    color: var(--steel);
+  }
+  .s-results :global(mark) {
+    background: color-mix(in srgb, var(--yellow) 55%, transparent);
+    color: inherit;
+    padding: 0 1px;
+  }
+  @media (max-width: 600px) {
+    .s-results :global(.s-item a) {
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: var(--s-4);
+    }
+    .s-results :global(.s-thumb) {
+      width: 84px;
+      height: 64px;
+    }
+    .s-results :global(.s-item-go) {
+      display: none;
+    }
+  }
+
+  .s-empty {
+    background: var(--mist);
+  }
+  .s-empty-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: var(--s-7) var(--s-8);
+  }
+  .s-suggest {
+    display: grid;
+    gap: var(--s-5);
+    align-content: start;
+  }
+  .s-chips {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+  }
+  .s-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+    border-radius: var(--radius);
+    background: var(--paper);
+    font-size: var(--step--1);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .s-chip:hover {
+    border-color: var(--ink);
+  }
+  .s-chip :global(svg) {
+    color: var(--steel);
+  }
+  .s-help {
+    margin-top: var(--s-5);
+    padding-top: var(--s-5);
+    border-top: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+    display: grid;
+    gap: var(--s-3);
+  }
+  .s-help-title {
+    font-size: var(--step-1);
+    font-weight: 400;
+  }
+  .s-browse {
+    display: grid;
+    gap: var(--s-5);
+    align-content: start;
+  }
+  .s-browse-cols {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-6) var(--s-5);
+  }
+  .s-browse-cat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2);
+    min-height: 44px;
+    padding-bottom: var(--s-2);
+    border-bottom: 1px solid var(--ink);
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    text-decoration: none;
+  }
+  .s-browse ul {
+    list-style: none;
+    margin: 0;
+    padding: var(--s-2) 0 0;
+  }
+  .s-browse li a {
+    display: block;
+    padding: 0.45rem 0;
+    color: var(--steel);
+    text-decoration: none;
+    font-size: var(--step--1);
+  }
+  .s-browse li a:hover,
+  .s-browse-cat:hover {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--yellow-deep);
+    text-decoration-thickness: 2px;
+  }
+  @media (max-width: 900px) {
+    .s-empty-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  @media (max-width: 480px) {
+    .s-browse-cols {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
+
+<script>
+  import { loadIndex, search, groupHits, highlight, snippet, escapeHtml, type Prepared } from '../../../lib/search';
+
+  interface Cfg {
+    index: string;
+    s: {
+      resultsFor: string;
+      noResults: string;
+      count: string;
+      one: string;
+      loading: string;
+      error: string;
+      groups: Record<string, string>;
+    };
+  }
+  const cfg = JSON.parse(document.querySelector('[data-s-config]')?.textContent || '{}') as Cfg;
+  const input = document.querySelector<HTMLInputElement>('[data-s-input]')!;
+  const form = document.querySelector<HTMLFormElement>('[data-s-form]')!;
+  const status = document.querySelector<HTMLElement>('[data-s-status]')!;
+  const wrap = document.querySelector<HTMLElement>('[data-s-results-wrap]')!;
+  const results = document.querySelector<HTMLElement>('[data-s-results]')!;
+  const heading = document.querySelector<HTMLElement>('[data-s-results-h]')!;
+  const empty = document.querySelector<HTMLElement>('[data-s-empty]')!;
+  const ARROW =
+    '<svg class="s-item-go" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="m13 6 6 6-6 6"/></svg>';
+
+  let prepared: Prepared[] | null = null;
+  let timer = 0;
+
+  function render(q: string) {
+    if (!q) {
+      wrap.hidden = true;
+      empty.hidden = false;
+      status.textContent = '';
+      return;
+    }
+    if (!prepared) {
+      status.textContent = cfg.s.loading;
+      return;
+    }
+    const hits = search(prepared, q);
+    const groups = groupHits(hits);
+    const head = cfg.s.resultsFor.replace('{query}', q);
+    heading.textContent = head;
+    if (!hits.length) {
+      wrap.hidden = true;
+      empty.hidden = false;
+      status.textContent = cfg.s.noResults.replace('{query}', q);
+      return;
+    }
+    const shown = groups.reduce((n, g) => n + g.hits.length, 0);
+    status.textContent = `${head} · ${shown === 1 ? cfg.s.one : cfg.s.count.replace('{count}', String(shown))}`;
+    results.innerHTML = groups
+      .map(
+        (g) =>
+          `<section class="s-group" aria-labelledby="s-g-${g.type}"><h3 class="s-group-h" id="s-g-${g.type}">${escapeHtml(cfg.s.groups[g.type])} <span class="s-group-n num">${g.hits.length}</span></h3><ul class="s-list">${g.hits
+            .map((h) => {
+              const d = h.doc;
+              const lead = d.img ? `<img class="s-thumb" src="${escapeHtml(d.img)}" alt="" width="128" height="96" loading="lazy" decoding="async">` : '';
+              const desc = d.type === 'faq' ? snippet(d.text, q, 220) : d.text;
+              const sub = d.type === 'faq' || d.type === 'product' || d.type === 'category' ? d.sub : '';
+              return `<li class="s-item"><a href="${escapeHtml(d.url)}">${lead}<span${lead ? '' : ' style="grid-column:1 / 3"'}><span class="s-item-t">${highlight(d.title, q)}</span>${sub ? `<span class="s-item-s">${highlight(sub, q)}</span>` : ''}${desc ? `<span class="s-item-d">${highlight(desc, q)}</span>` : ''}</span>${ARROW}</a></li>`;
+            })
+            .join('')}</ul></section>`,
+      )
+      .join('');
+    wrap.hidden = false;
+    empty.hidden = true;
+  }
+
+  function update(push: boolean) {
+    const q = input.value.trim();
+    const u = new URL(window.location.href);
+    if (q) u.searchParams.set('q', q);
+    else u.searchParams.delete('q');
+    if (push) history.replaceState(null, '', u);
+    render(q);
+  }
+
+  const initial = new URLSearchParams(window.location.search).get('q') ?? '';
+  input.value = initial;
+  if (initial) status.textContent = cfg.s.loading;
+  loadIndex(cfg.index)
+    .then((p) => {
+      prepared = p;
+      render(input.value.trim());
+    })
+    .catch(() => {
+      status.textContent = cfg.s.error;
+    });
+
+  input.addEventListener('input', () => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => update(true), 120);
+  });
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    update(true);
+  });
+  document.querySelectorAll<HTMLAnchorElement>('[data-s-suggest]').forEach((a) =>
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      input.value = a.dataset.sSuggest || '';
+      update(true);
+      input.focus();
+    }),
+  );
+  if (!initial) {
+    // focus the field on an empty search page (desktop only, to avoid popping the keyboard on phones)
+    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) input.focus({ preventScroll: true });
+  }
+</script>
