@@ -75,7 +75,7 @@ export const houseHotspots: Hotspot[] = [
   {
     x: 30.3,
     y: 9.9,
-    label: { bg: 'Автоматична пергола с подвижен стъклен покрив', en: 'Automated pergola with a sliding glass roof' },
+    label: { bg: 'Автоматична пергола с подвижен стъклен покрив', en: 'Automated pergola with a retractable glass roof' },
     productId: 'automatic-glass-roof',
     categoryId: 'bioclimatic-pergolas',
   },

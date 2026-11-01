@@ -18,6 +18,8 @@ const P = pages.search;
 
 const T = {
   submit: { bg: 'Търси', en: 'Search' },
+  /** phones: the full placeholder would be cut off */
+  placeholderShort: { bg: 'Търсете продукт', en: 'Search products' },
   browse: { bg: 'Или разгледайте продуктите', en: 'Or browse the products' },
   help: { bg: 'Не намирате това, което търсите?', en: 'Can’t find what you are looking for?' },
   helpText: {
@@ -52,10 +54,10 @@ const config = {
 ---
 
 <Base lang={lang} title={tx(P.title)} description={tx(P.intro)}>
-  <section class="s-hero">
+  <section class="page-hero s-hero">
     <div class="wrap">
       <Breadcrumbs lang={lang} items={[{ label: tx(P.title) }]} />
-      <h1 class="h1 rule s-title">{tx(P.title)}</h1>
+      <h1 class="rule s-title">{tx(P.title)}</h1>
       <p class="lead">{tx(P.intro)}</p>
       <form class="s-form" role="search" action={url(lang, '/search/')} method="get" data-s-form>
         <label for="s-q" class="sr-only">{tx(ui.search.label)}</label>
@@ -70,6 +72,7 @@ const config = {
             spellcheck="false"
             enterkeyhint="search"
             placeholder={tx(ui.search.placeholder)}
+            data-ph-short={tx(T.placeholderShort)}
             data-s-input
           />
         </span>
@@ -144,11 +147,7 @@ const config = {
 </Base>
 
 <style>
-  .s-hero {
-    padding-block: clamp(2rem, 1.5rem + 2vw, 3.5rem) clamp(2rem, 1.5rem + 2vw, 3rem);
-  }
   .s-title {
-    margin-top: clamp(1.5rem, 1rem + 2vw, 3rem);
     margin-bottom: var(--s-4);
   }
   .s-form {
@@ -426,6 +425,13 @@ const config = {
 
   let prepared: Prepared[] | null = null;
   let timer = 0;
+
+  // the full placeholder is cut off on phones: swap in the short one there
+  const phLong = input.placeholder;
+  const phMq = window.matchMedia('(max-width: 640px)');
+  const setPlaceholder = () => (input.placeholder = phMq.matches ? input.dataset.phShort || phLong : phLong);
+  setPlaceholder();
+  phMq.addEventListener?.('change', setPlaceholder);
 
   function render(q: string) {
     if (!q) {

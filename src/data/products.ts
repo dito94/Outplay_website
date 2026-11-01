@@ -106,8 +106,8 @@ export const products: Product[] = [
         heading: { bg: 'Геометрия на светлината', en: 'The geometry of light' },
         paragraphs: [
           {
-            bg: 'Едномоторната система Balance е създадена за ценителите на перфектната атмосфера. Благодарение на прецизната ротация на ламелите контролирате слънчевия поток с лекота.',
-            en: 'Balance is the single-motor system for people who care about atmosphere. Precise louvre rotation puts the flow of sunlight under your control.',
+            bg: 'Едномоторната система Balance дава пълен контрол над светлината. Благодарение на прецизната ротация на ламелите управлявате слънчевия поток с лекота.',
+            en: 'Balance is the single-motor system that gives you full control over the light. Precise louvre rotation puts the flow of sunlight in your hands.',
           },
           {
             bg: 'Настройте ъгъла така, че да се наслаждавате на естествена вентилация и нежна игра на светлини и сенки, докато оставате защитени от преките лъчи. Идеалното решение за прохладен и балансиран кът за почивка.',
@@ -120,7 +120,7 @@ export const products: Product[] = [
         ],
       },
       {
-        heading: { bg: 'Интелигентна естетика и безкомпромисно качество', en: 'Intelligent design, uncompromising quality' },
+        heading: { bg: 'Ламели от 0° до 120° с едно натискане', en: 'Louvres from 0° to 120° at the touch of a button' },
         paragraphs: [
           {
             bg: 'Представете си пространство, което се адаптира към деня, вместо Вие към него. Алуминиевите перголи с автоматичен покрив от ламели превръщат терасата, градината или търговския обект в комфортна зона за почивка и срещи през всички сезони.',
@@ -224,7 +224,7 @@ export const products: Product[] = [
         ],
       },
       {
-        heading: { bg: 'Интелигентна естетика и безкомпромисно качество', en: 'Intelligent design, uncompromising quality' },
+        heading: { bg: 'Покрив, който изчезва за секунди', en: 'A roof that disappears in seconds' },
         paragraphs: [
           {
             bg: 'Алуминиевите перголи с автоматичен покрив от ламели превръщат терасата, градината или търговския обект в комфортна зона през всички сезони. Изработени от висококачествен алуминий, те Ви дават пълна власт над климата под покрива.',
@@ -890,7 +890,7 @@ export const products: Product[] = [
     },
     sections: [
       {
-        heading: { bg: 'Съвременна елегантност и технологичен авангард', en: 'Contemporary elegance, advanced engineering' },
+        heading: { bg: 'Стъклена стена, която се движи с бутон', en: 'A glass wall that moves at the touch of a button' },
         paragraphs: [
           {
             bg: 'Системите за вертикално отваряне тип „гилотина“ трансформират пространството визуално и практически, като съчетават привлекателна визия, енергийна ефективност и удобство. Благодарение на интелигентния си механизъм те са предпочитано решение за обекти с различен мащаб и предназначение.',
@@ -1040,7 +1040,7 @@ export const products: Product[] = [
         heading: { bg: 'Интелигентно управление за безкомпромисна хигиена', en: 'Touchless control for better hygiene' },
         paragraphs: [
           {
-            bg: 'Освен стандартната автоматизация предлагаме решения за безконтактно управление. Сензорът Magic Switch, базиран на радарна технология, отваря вратата с леко движение на ръката пред устройството, без физически допир. За среди, изискващи максимална стерилност, или при потоци с натоварени ръце може да се интегрира и дискретен крачен бутон.',
+            bg: 'Освен стандартната автоматизация предлагаме решения за безконтактно управление. Сензорът Magic Switch, базиран на радарна технология, отваря вратата с леко движение на ръката пред устройството, без физически допир. За среди, изискващи максимална стерилност, или когато хората минават с пълни ръце може да се интегрира и дискретен крачен бутон.',
             en: 'Beyond standard automation, we offer touchless control. The Magic Switch sensor uses radar technology to open the door with a simple wave of the hand, with no physical contact. Where sterility matters most, or where people pass with their hands full, a discreet foot button can be added.',
           },
           {

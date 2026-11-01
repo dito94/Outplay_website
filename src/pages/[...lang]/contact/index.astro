@@ -20,7 +20,9 @@ const T = {
   metaTitle: { bg: 'Контакти и запитване за оферта', en: 'Contact and quote request' },
   direct: { bg: 'Директна връзка', en: 'Get in touch' },
   viberNote: { bg: 'Пишете ни по всяко време – изпратете и снимки на мястото.', en: 'Message us any time, and send photos of the space too.' },
-  mapFallback: { bg: 'Картата не се зарежда?', en: 'Map not loading?' },
+  toForm: { bg: 'Направете запитване', en: 'Request a quote' },
+  showMap: { bg: 'Покажи картата', en: 'Show the map' },
+  mapNote: { bg: 'Картата се зарежда от Google Maps при натискане.', en: 'The map loads from Google Maps when you click.' },
   nextIntro: {
     bg: 'След запитването работим в три стъпки, без ангажимент от Ваша страна до окончателната оферта.',
     en: 'After your request we work in three steps, with no commitment from you until the final quote.',
@@ -57,101 +59,98 @@ const jsonLd = {
 ---
 
 <Base lang={lang} title={t(T.metaTitle, lang)} description={t(P.intro, lang)} jsonLd={jsonLd}>
-  <section class="c-hero">
+  <section class="page-hero c-hero">
     <div class="wrap">
       <Breadcrumbs lang={lang} items={[{ label: t(P.title, lang) }]} />
       <div class="c-hero-grid">
-        <h1 class="h1 rule">{t(P.title, lang)}</h1>
-        <p class="lead">{t(P.intro, lang)}</p>
+        <h1 class="rule">{t(P.title, lang)}</h1>
+        <div class="c-hero-side">
+          <p class="lead">{t(P.intro, lang)}</p>
+          <a class="btn c-hero-cta" href="#inquiry">
+            {t(T.toForm, lang)}
+            <Icon name="arrow-right" />
+          </a>
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="c-info" aria-labelledby="c-direct-title">
-    <div class="wrap c-info-grid">
-      <div class="c-details">
-        <h2 id="c-direct-title" class="h3">{t(T.direct, lang)}</h2>
-        <dl class="c-list">
-          <div class="c-row">
-            <dt>{t(ui.contact.phones, lang)}</dt>
-            <dd>
-              <ul class="c-phones">
-                {
-                  site.phones.map((p) => (
-                    <li>
-                      <a class="c-big num" href={`tel:${p.e164}`} aria-label={t(ui.a11y.callLink, lang).replace('{phone}', p.display)}>
-                        {p.display}
-                      </a>
-                      <CopyButton text={p.display} lang={lang} />
-                    </li>
-                  ))
-                }
-              </ul>
-            </dd>
-          </div>
-          <div class="c-row">
-            <dt>{t(ui.contact.email, lang)}</dt>
-            <dd>
-              <p class="c-inline">
+  <!-- Desktop: details | map, then the form. Phones: details, form, map (the form comes before the map). -->
+  <div class="wrap c-body">
+    <section class="c-details" aria-labelledby="c-direct-title">
+      <h2 id="c-direct-title" class="h3">{t(T.direct, lang)}</h2>
+      <dl class="c-list">
+        <div class="c-row">
+          <dt>{t(ui.contact.phones, lang)}</dt>
+          <dd>
+            <ul class="c-phones">
+              {
+                site.phones.map((p) => (
+                  <li>
+                    <a class="c-big num" href={`tel:${p.e164}`} aria-label={t(ui.a11y.callLink, lang).replace('{phone}', p.display)}>
+                      {p.display}
+                    </a>
+                    <CopyButton text={p.display} lang={lang} />
+                  </li>
+                ))
+              }
+            </ul>
+          </dd>
+        </div>
+        <div class="c-row">
+          <dt>{t(ui.contact.email, lang)}</dt>
+          <dd>
+            <p class="c-inline">
               <a class="c-mid" href={`mailto:${site.email}`}>{site.email}</a>
               <CopyButton text={site.email} lang={lang} />
-              </p>
-            </dd>
-          </div>
-          <div class="c-row">
-            <dt>{t(ui.contact.viber, lang)}</dt>
-            <dd class="c-viber">
-              <a class="btn btn-viber" href={site.viberUrl}>
-                <Icon name="viber" />
-                {t(ui.actions.viber, lang)}
-              </a>
-              <span class="num c-viber-num">{site.phones[0].display}</span>
-              <p class="muted small">{t(T.viberNote, lang)}</p>
-            </dd>
-          </div>
-          <div class="c-row">
-            <dt>{t(ui.contact.address, lang)}</dt>
-            <dd>
-              <p class="c-inline c-address">
-                <span>{address}</span>
-                <CopyButton text={address} lang={lang} />
-              </p>
-              <a class="link-arrow" href={site.mapsUrl} target="_blank" rel="noopener">
-                {t(ui.actions.openMap, lang)}
-                <Icon name="external" size={16} />
-                <span class="sr-only">({t(ui.a11y.newWindow, lang)})</span>
-              </a>
-            </dd>
-          </div>
-        </dl>
-      </div>
-
-      <figure class="c-map" aria-labelledby="c-map-title">
-        <div class="c-map-frame">
-          <div class="c-map-fallback" data-map-facade>
-            <Icon name="pin" size={34} />
-            <p class="c-map-addr">{address}</p>
-            <button type="button" class="btn btn-dark btn-sm" data-map-load data-src={mapSrc} data-title={`${t(P.mapTitle, lang)}: ${address}`}>
-              {lang === 'bg' ? 'Покажи картата' : 'Show the map'}
-            </button>
-            <p class="c-map-note small">{lang === 'bg' ? 'Картата се зарежда от Google Maps при натискане.' : 'The map loads from Google Maps when you click.'}</p>
-          </div>
+            </p>
+          </dd>
         </div>
-        <figcaption class="c-map-cap">
-          <span id="c-map-title" class="c-map-title">{t(P.mapTitle, lang)}</span>
-          <span class="muted small">
-            {t(T.mapFallback, lang)}
-            <a href={site.mapsUrl} target="_blank" rel="noopener">
-              {t(ui.actions.openMap, lang)}<span class="sr-only"> ({t(ui.a11y.newWindow, lang)})</span>
+        <div class="c-row">
+          <dt>{t(ui.contact.viber, lang)}</dt>
+          <dd class="c-viber">
+            <a class="btn btn-viber" href={site.viberUrl}>
+              <Icon name="viber" />
+              {t(ui.actions.viber, lang)}
             </a>
-          </span>
-        </figcaption>
-      </figure>
-    </div>
-  </section>
+            <span class="num c-viber-num">{site.phones[0].display}</span>
+            <p class="muted small">{t(T.viberNote, lang)}</p>
+          </dd>
+        </div>
+        <div class="c-row">
+          <dt>{t(ui.contact.address, lang)}</dt>
+          <dd>
+            <p class="c-inline c-address">
+              <span>{address}</span>
+              <CopyButton text={address} lang={lang} />
+            </p>
+            <a class="link-arrow" href={site.mapsUrl} target="_blank" rel="noopener">
+              {t(ui.actions.openMap, lang)}
+              <Icon name="external" size={16} />
+              <span class="sr-only">({t(ui.a11y.newWindow, lang)})</span>
+            </a>
+          </dd>
+        </div>
+      </dl>
+    </section>
 
-  <section class="section mist c-inquiry" id="inquiry" aria-labelledby="inquiry-title">
-    <div class="wrap">
+    <figure class="c-map" aria-labelledby="c-map-title">
+      <div class="c-map-frame">
+        <div class="c-map-fallback" data-map-facade>
+          <Icon name="pin" size={34} />
+          <p class="c-map-addr">{address}</p>
+          <button type="button" class="btn btn-dark btn-sm" data-map-load data-src={mapSrc} data-title={`${t(P.mapTitle, lang)}: ${address}`}>
+            {t(T.showMap, lang)}
+          </button>
+          <p class="c-map-note small">{t(T.mapNote, lang)}</p>
+        </div>
+      </div>
+      <figcaption class="c-map-cap">
+        <span id="c-map-title" class="c-map-title">{t(P.mapTitle, lang)}</span>
+      </figcaption>
+    </figure>
+
+    <section class="mist c-inquiry" id="inquiry" aria-labelledby="inquiry-title">
       <SectionHead id="inquiry-title" title={t(P.formTitle, lang)} intro={t(pages.inquiry.intro, lang)} />
       <div class="c-form-grid">
         <InquiryForm lang={lang} id="inquiry-form" />
@@ -185,20 +184,28 @@ const jsonLd = {
           </div>
         </section>
       </div>
-    </div>
-  </section>
+    </section>
+  </div>
 </Base>
 
 <style>
-  .c-hero {
-    padding-block: clamp(2rem, 1.5rem + 2vw, 3.5rem) clamp(2.5rem, 2rem + 3vw, 4.5rem);
-  }
+  /* Hero (breadcrumb offset and H1 size come from the shared .page-hero) */
   .c-hero-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: var(--s-5) var(--s-8);
     align-items: end;
-    margin-top: clamp(1.5rem, 1rem + 2vw, 3rem);
+  }
+  .c-hero-side {
+    display: grid;
+    gap: var(--s-5);
+    justify-items: start;
+  }
+  .c-hero-cta :global(svg) {
+    transform: rotate(90deg);
+  }
+  .c-hero-cta:hover :global(svg) {
+    transform: rotate(90deg) translateX(3px);
   }
   @media (max-width: 860px) {
     .c-hero-grid {
@@ -206,17 +213,17 @@ const jsonLd = {
     }
   }
 
-  /* Details + map */
-  .c-info {
-    padding-bottom: var(--section);
-  }
-  .c-info-grid {
+  /* Body: details | map, then the form band. Phones: details, form, map. */
+  .c-body {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-    gap: var(--s-7) var(--s-8);
-    align-items: stretch;
+    grid-template-areas:
+      'details map'
+      'form form';
+    gap: var(--section) var(--s-8);
   }
   .c-details {
+    grid-area: details;
     display: grid;
     align-content: start;
     gap: var(--s-5);
@@ -314,6 +321,7 @@ const jsonLd = {
   }
 
   .c-map {
+    grid-area: map;
     margin: 0;
     display: grid;
     grid-template-rows: 1fr auto;
@@ -336,10 +344,6 @@ const jsonLd = {
     padding: var(--s-5);
     text-align: center;
     color: var(--steel);
-    background-image:
-      linear-gradient(color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 1px),
-      linear-gradient(90deg, color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 1px);
-    background-size: 32px 32px;
   }
   .c-map-addr {
     color: var(--ink);
@@ -364,23 +368,20 @@ const jsonLd = {
     filter: grayscale(0.2);
   }
   .c-map-cap {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--s-2) var(--s-5);
     padding-top: var(--s-3);
   }
   .c-map-title {
     font-family: var(--font-display);
     font-size: var(--step-1);
   }
-  .c-map-cap a {
-    font-weight: 600;
-  }
   @media (max-width: 1000px) {
-    .c-info-grid {
+    .c-body {
       grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        'details'
+        'form'
+        'map';
+      padding-bottom: var(--section);
     }
     .c-map {
       min-height: 0;
@@ -391,7 +392,13 @@ const jsonLd = {
     }
   }
 
-  /* Inquiry */
+  /* Inquiry: a light band inside .wrap, bled to the viewport edges */
+  .c-inquiry {
+    grid-area: form;
+    padding-block: var(--section);
+    box-shadow: 0 0 0 100vmax var(--mist);
+    clip-path: inset(0 -100vmax);
+  }
   .c-form-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 19rem);

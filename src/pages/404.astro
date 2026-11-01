@@ -1,6 +1,7 @@
 ---
-// Single static 404 (GitHub Pages serves dist/404.html for any missing path). The language cannot be known from the
-// route, so Bulgarian and English copy are shown side by side. All links are absolute (url() includes the base).
+// Single static 404 (GitHub Pages serves dist/404.html for any missing path). Both languages are in the HTML; an
+// inline script picks one from the requested path (/en/ → English, otherwise Bulgarian) before first paint.
+// All links are absolute (url() includes the base).
 import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
 import type { Lang } from '../data/types';
@@ -13,60 +14,64 @@ const T = {
   search: { bg: 'Търсене в сайта', en: 'Search the site' },
   products: { bg: 'Продукти', en: 'Products' },
   contact: { bg: 'Контакти', en: 'Contact' },
-  gallery: { bg: 'Проекти и галерия', en: 'Projects and gallery' },
+  gallery: { bg: 'Галерия и проекти', en: 'Gallery & projects' },
 };
-const cols: { lang: Lang; heading: 'h1' | 'h2' }[] = [
-  { lang: 'bg', heading: 'h1' },
-  { lang: 'en', heading: 'h2' },
-];
+const langs: Lang[] = ['bg', 'en'];
 const linksFor = (l: Lang) => [
   { href: url(l, '/'), label: t(ui.actions.goHome, l) },
   { href: url(l, '/products/'), label: t(T.products, l) },
   { href: url(l, '/projects/'), label: t(T.gallery, l) },
   { href: url(l, '/contact/'), label: t(T.contact, l) },
 ];
+const titleOf = (l: Lang) => `${t(nf.title, l)} · OUTPLAY`;
 ---
 
-<Base lang="bg" title={`${t(nf.title, 'bg')} · ${t(nf.title, 'en')}`} description={`${t(nf.intro, 'bg')} ${t(nf.intro, 'en')}`}>
+<Base lang="bg" title={t(nf.title, 'bg')} description={t(nf.intro, 'bg')}>
   <section class="nf night" aria-labelledby="nf-title">
     <div class="wrap nf-inner">
-      <div class="nf-top">
-        <p class="nf-code num" aria-hidden="true">404</p>
-        <button type="button" class="btn nf-search" data-search-open>
-          <Icon name="search" size={18} />
-          <span>{t(T.search, 'bg')}</span>
-          <span class="nf-sep" aria-hidden="true">/</span>
-          <span lang="en">{t(T.search, 'en')}</span>
-        </button>
-      </div>
-      <div class="nf-cols">
+      <p class="nf-code num" aria-hidden="true">404</p>
+      <div class="nf-body">
+        <h1 id="nf-title" class="nf-title rule">
+          {langs.map((l) => (
+            <span lang={l} data-nf={l} hidden={l !== 'bg'}>
+              {t(nf.title, l)}
+            </span>
+          ))}
+        </h1>
         {
-          cols.map((c) => {
-            const H = c.heading;
-            return (
-              <div class="nf-col" lang={c.lang}>
-                <H id={c.lang === 'bg' ? 'nf-title' : undefined} class="nf-title">
-                  {t(nf.title, c.lang)}
-                </H>
-                <p class="nf-text">{t(nf.intro, c.lang)}</p>
-                <ul class="nf-links">
-                  {linksFor(c.lang).map((l) => (
-                    <li>
-                      <a href={l.href} hreflang={c.lang}>
-                        <span>{l.label}</span>
-                        <Icon name="arrow-right" size={18} />
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })
+          langs.map((l) => (
+            <div class="nf-copy" lang={l} data-nf={l} hidden={l !== 'bg'}>
+              <p class="nf-text">{t(nf.intro, l)}</p>
+              <ul class="nf-links">
+                {linksFor(l).map((link) => (
+                  <li>
+                    <a href={link.href} hreflang={l}>
+                      <span>{link.label}</span>
+                      <Icon name="arrow-right" size={18} />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              {/* The search palette on this page is Bulgarian, so English links to the English search page */}
+              <a class="btn nf-search" href={url(l, '/search/')} data-search-open={l === 'bg' ? '' : undefined}>
+                <Icon name="search" size={18} />
+                <span>{t(T.search, l)}</span>
+              </a>
+            </div>
+          ))
         }
       </div>
     </div>
-    <span class="nf-stripes" aria-hidden="true"></span>
   </section>
+  <script is:inline define:vars={{ titles: { bg: titleOf('bg'), en: titleOf('en') } }}>
+    // Runs right after the copy is parsed (before first paint): pick the language from the requested path, BG default.
+    const lang = /\/en(\/|$)/.test(location.pathname) ? 'en' : 'bg';
+    document.querySelectorAll('[data-nf]').forEach((el) => {
+      el.hidden = el.getAttribute('data-nf') !== lang;
+    });
+    document.documentElement.lang = lang;
+    document.title = titles[lang];
+  </script>
 </Base>
 
 <script is:inline define:vars={{ homes: { bg: url('bg', '/'), en: url('en', '/') } }}>
@@ -80,46 +85,34 @@ const linksFor = (l: Lang) => [
 
 <style>
   .nf {
-    position: relative;
-    overflow: hidden;
-    isolation: isolate;
     min-height: calc(100svh - var(--header-h));
     display: grid;
     align-items: center;
   }
   .nf-inner {
-    position: relative;
-    z-index: 1;
     display: grid;
-    gap: clamp(2rem, 1.5rem + 2vw, 3.5rem);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: var(--s-7) clamp(3rem, 1rem + 6vw, 8rem);
+    align-items: start;
     padding-block: clamp(3rem, 2rem + 4vw, 6rem);
   }
   .nf-code {
     font-family: var(--font-display);
     font-weight: 300;
-    font-size: clamp(6rem, 3rem + 14vw, 15rem);
-    line-height: 0.82;
+    font-size: clamp(6rem, 3rem + 12vw, 14rem);
+    line-height: 0.8;
     letter-spacing: -0.04em;
     color: var(--yellow);
   }
-  .nf-cols {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0;
-    padding-top: var(--s-6);
-    border-top: 1px solid var(--hair);
-  }
-  .nf-col {
+  .nf-body,
+  .nf-copy {
     display: grid;
     align-content: start;
-    gap: var(--s-4);
+    justify-items: start;
+    gap: var(--s-5);
   }
-  .nf-col:first-child {
-    padding-right: clamp(2rem, 1rem + 4vw, 5rem);
-  }
-  .nf-col + .nf-col {
-    padding-left: clamp(2rem, 1rem + 4vw, 5rem);
-    border-left: 1px solid var(--hair);
+  .nf-copy[hidden] {
+    display: none;
   }
   .nf-title {
     font-size: var(--step-3);
@@ -127,19 +120,17 @@ const linksFor = (l: Lang) => [
     line-height: 1.1;
     color: #fff;
   }
-  .nf-col + .nf-col .nf-title {
-    color: var(--fg);
-  }
   .nf-text {
     color: var(--muted);
     max-width: 46ch;
   }
   .nf-links {
     list-style: none;
-    margin: var(--s-3) 0 0;
+    margin: var(--s-2) 0 0;
     padding: 0;
-    border-top: 1px solid var(--hair);
+    width: 100%;
     max-width: 30rem;
+    border-top: 1px solid var(--hair);
   }
   .nf-links li {
     border-bottom: 1px solid var(--hair);
@@ -167,49 +158,13 @@ const linksFor = (l: Lang) => [
   .nf-links a:hover :global(svg) {
     transform: translateX(3px);
   }
-  .nf-top {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: var(--s-6);
-  }
   .nf-search {
-    white-space: normal;
-    text-align: left;
+    margin-top: var(--s-3);
   }
-  .nf-sep {
-    opacity: 0.45;
-  }
-  /* The logo's louvre stripes, oversized and faint */
-  .nf-stripes {
-    position: absolute;
-    right: -6%;
-    top: -10%;
-    width: 44%;
-    height: 56%;
-    background: repeating-linear-gradient(100deg, rgba(255, 255, 255, 0.035) 0 10px, transparent 10px 30px);
-    transform: skewX(-8deg);
-    pointer-events: none;
-    z-index: 0;
-  }
-  @media (max-width: 760px) {
-    .nf-cols {
+  @media (max-width: 860px) {
+    .nf-inner {
       grid-template-columns: minmax(0, 1fr);
-    }
-    .nf-col:first-child {
-      padding-right: 0;
-      padding-bottom: var(--s-7);
-    }
-    .nf-col + .nf-col {
-      padding-left: 0;
-      border-left: 0;
-      padding-top: var(--s-6);
-      border-top: 1px solid var(--hair);
-    }
-    .nf-stripes {
-      width: 70%;
-      height: 40%;
+      gap: var(--s-6);
     }
   }
 </style>

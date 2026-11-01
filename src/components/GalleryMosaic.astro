@@ -1,6 +1,8 @@
 ---
 // Projects gallery: category filter (real buttons with aria-pressed), a mixed-span mosaic that always fills complete
 // rows, "show more" paging and lightbox links. Without JS every image is shown and the filter is hidden.
+// Lightbox group = every image in the current category: tiles hidden by paging keep their data-lightbox link, tiles
+// outside the category get data-lb-off on their link (the Lightbox skips those).
 // Include <Lightbox lang={lang} /> once on the page.
 import type { GalleryItem, Lang } from '../data/types';
 import { categories } from '../data/categories';
@@ -449,6 +451,8 @@ const sizesJson = JSON.stringify({ SZ3, SZ2 });
       tiles.forEach((el) => {
         const i = visible.indexOf(el);
         el.classList.remove('gm-in');
+        // The lightbox browses every image in the current filter (including tiles not yet paged in) and skips the rest
+        el.querySelector('[data-lightbox]')?.toggleAttribute('data-lb-off', !matching.includes(el));
         if (i < 0) {
           el.hidden = true;
           delete el.dataset.l3;

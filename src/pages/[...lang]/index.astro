@@ -26,7 +26,7 @@ const lang = getLang(Astro.params.lang);
 const home = pages.home;
 
 const C = {
-  metaTitle: { bg: 'OUTPLAY — биоклиматични перголи, стъклени системи и слънцезащита', en: 'OUTPLAY — bioclimatic pergolas, glass systems and sun protection' },
+  metaTitle: { bg: 'OUTPLAY – биоклиматични перголи, стъклени системи и слънцезащита', en: 'OUTPLAY – bioclimatic pergolas, glass systems and sun protection' },
   explore: { bg: 'Разгледайте продуктите', en: 'Explore the products' },
   quote: { bg: 'Направете запитване', en: 'Request a quote' },
   climateLink: { bg: 'Серии Balance и Infinity', en: 'Balance and Infinity series' },
@@ -99,7 +99,7 @@ const jsonLd = {
       <div class="mosaic">
         {
           cats.map((c, i) => (
-            <article class={`tile tile-${i + 1}`} data-reveal>
+            <article class={`tile tile-${i + 1}`}>
               <div class="media tile-media">
                 <Img
                   src={`categories/${c.id}.jpg`}
@@ -148,7 +148,7 @@ const jsonLd = {
     pair && (
       <section class="section" aria-labelledby="ba-title">
         <div class="wrap ba-grid">
-          <div class="ba-copy" data-reveal>
+          <div class="ba-copy">
             <h2 id="ba-title" class="h2 rule">
               {t(home.beforeAfter.title, lang)}
             </h2>
@@ -170,7 +170,7 @@ const jsonLd = {
       <ol class="steps">
         {
           home.process.steps.map((s, i) => (
-            <li class="step" data-reveal>
+            <li class="step">
               <span class="step-n num">{String(i + 1).padStart(2, '0')}</span>
               <h3 class="step-title">{t(s.title, lang)}</h3>
               <p class="muted small">{t(s.text, lang)}</p>
@@ -189,11 +189,11 @@ const jsonLd = {
           <SectionHead id="refs-title" title={t(home.references.title, lang)} intro={t(home.references.intro, lang)} />
           <ul class="refs">
             {references.map((r) => (
-              <li class="ref" data-reveal>
+              <li class="ref">
                 <div class="media ref-media">
                   <Img src={r.image} lang={lang} sizes="(min-width: 900px) 33vw, 50vw" widths={[480, 768, 1080]} />
                 </div>
-                <p class="ref-name">{r.name}</p>
+                <p class="ref-name">{lang === 'en' && r.nameEn ? r.nameEn : r.name}</p>
                 <p class="muted small">{t(r.type, lang)}</p>
               </li>
             ))}
@@ -214,7 +214,7 @@ const jsonLd = {
   <!-- FAQ teaser -->
   <section class="section mist" aria-labelledby="faq-title">
     <div class="wrap faq-grid">
-      <div class="faq-copy" data-reveal>
+      <div class="faq-copy">
         <h2 id="faq-title" class="h2 rule">{t(home.faq.title, lang)}</h2>
         <p class="lead">{t(home.faq.intro, lang)}</p>
         <a class="link-arrow" href={url(lang, '/faq/')}>{t(C.faqLink, lang)} <Icon name="arrow-right" size={16} /></a>
@@ -328,7 +328,7 @@ const jsonLd = {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(10, 10, 8, 0.78) 0%, rgba(10, 10, 8, 0.2) 45%, rgba(10, 10, 8, 0) 70%);
+    background: linear-gradient(to top, rgba(10, 10, 8, 0.88) 0%, rgba(10, 10, 8, 0.55) 40%, rgba(10, 10, 8, 0.12) 72%, rgba(10, 10, 8, 0) 100%);
     transition: background-color 0.3s var(--ease);
   }
   .tile:hover .tile-media::after {
@@ -342,7 +342,7 @@ const jsonLd = {
   }
   .tile-title {
     font-size: var(--step-3);
-    font-weight: 300;
+    font-weight: 400;
   }
   .tile-2 .tile-title,
   .tile-3 .tile-title {
@@ -465,6 +465,9 @@ const jsonLd = {
       grid-template-columns: minmax(0, 1fr);
       row-gap: var(--s-6);
     }
+    .step p {
+      font-size: var(--step-0);
+    }
   }
 
   /* References */
@@ -512,7 +515,10 @@ const jsonLd = {
   }
   @media (max-width: 520px) {
     .refs {
-      grid-template-columns: minmax(0, 1fr);
+      gap: var(--s-5) var(--s-3);
+    }
+    .ref-name {
+      font-size: var(--step-0);
     }
   }
 

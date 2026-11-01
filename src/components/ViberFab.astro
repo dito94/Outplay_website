@@ -58,8 +58,30 @@ const T = {
     z-index: 60;
     transition: transform 0.3s var(--ease);
   }
+  .viber {
+    transition:
+      transform 0.3s var(--ease),
+      opacity 0.25s var(--ease),
+      visibility 0.25s;
+  }
+  .viber.is-away,
   :global(body.has-sticky-cta) .viber {
-    bottom: calc(max(20px, env(safe-area-inset-bottom, 0px)) + 76px);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(12px);
+    pointer-events: none;
+  }
+  @media (hover: none) {
+    .fab {
+      width: 56px;
+      height: 56px;
+      padding: 0;
+      justify-content: center;
+      gap: 0;
+    }
+    .fab-label {
+      display: none;
+    }
   }
   .fab {
     display: inline-flex;
@@ -71,7 +93,7 @@ const T = {
     background: var(--viber);
     color: #fff;
     text-decoration: none;
-    box-shadow: 0 10px 30px -8px rgba(106, 85, 232, 0.55);
+    box-shadow: 0 10px 24px -10px rgba(10, 10, 8, 0.45);
     transition:
       background-color 0.2s var(--ease),
       box-shadow 0.2s var(--ease);
@@ -155,7 +177,11 @@ const T = {
     font-size: var(--step--1);
     color: var(--steel);
   }
+  .pop-hint a {
+    white-space: nowrap;
+  }
   .pop-num {
+    white-space: nowrap;
     display: flex;
     align-items: center;
     gap: var(--s-2);
@@ -200,4 +226,31 @@ const T = {
   document.addEventListener('click', (e) => {
     if (pop && !pop.hidden && root && !root.contains(e.target as Node)) set(false);
   });
+
+  // Step aside where it would cover other calls to action or form fields.
+  if (root) {
+    const zones = new Set<Element>();
+    const watch = document.querySelectorAll('.cta-band, .site-footer, #inquiry, [data-fab-avoid]');
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => (e.isIntersecting ? zones.add(e.target) : zones.delete(e.target)));
+        update();
+      },
+      { rootMargin: '0px 0px -10% 0px' },
+    );
+    let typing = false;
+    const update = () => {
+      const away = (zones.size > 0 || typing) && (pop?.hidden ?? true);
+      root.classList.toggle('is-away', away);
+    };
+    watch.forEach((el) => io.observe(el));
+    document.addEventListener('focusin', (e) => {
+      typing = (e.target as HTMLElement).matches?.('input:not([type=range]):not([type=checkbox]):not([type=radio]), textarea, select') ?? false;
+      update();
+    });
+    document.addEventListener('focusout', () => {
+      typing = false;
+      window.setTimeout(update, 50);
+    });
+  }
 </script>

@@ -111,8 +111,8 @@ const SLATS = 12;
       background: linear-gradient(to bottom, #3a3f44 0%, #23262a 46%, #121315 100%);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
       transform-origin: 50% 50%;
-      animation: louvre-open 1.15s var(--ease) forwards;
-      animation-delay: calc(180ms + var(--i) * 55ms);
+      animation: louvre-open 0.9s var(--ease) forwards;
+      animation-delay: calc(60ms + var(--i) * 40ms);
       will-change: transform, opacity;
     }
     @keyframes louvre-open {
@@ -128,30 +128,22 @@ const SLATS = 12;
         opacity: 0;
       }
     }
-    .hero-media :global(.hero-img) {
-      animation: hero-settle 2.2s var(--ease) both;
-    }
-    @keyframes hero-settle {
-      from {
-        transform: scale(1.06);
-      }
-    }
     .hero-content > * {
-      animation: hero-rise 0.9s var(--ease) both;
+      animation: hero-rise 0.7s var(--ease) both;
     }
     .hero-title {
-      animation-delay: 0.75s !important;
+      animation-delay: 0.45s !important;
     }
     .hero-lead {
-      animation-delay: 0.9s !important;
+      animation-delay: 0.55s !important;
     }
     .hero-ctas {
-      animation-delay: 1.02s !important;
+      animation-delay: 0.65s !important;
     }
     @keyframes hero-rise {
       from {
         opacity: 0;
-        transform: translateY(22px);
+        transform: translateY(14px);
       }
     }
   }

@@ -146,5 +146,7 @@ export interface ReferenceProject {
   id: string;
   image: string;
   name: string; // as printed (brand/project name)
+  /** Latin spelling for the English site when the name is in Cyrillic */
+  nameEn?: string;
   type: L; // e.g. "Жилищен комплекс" / "Residential complex"
 }

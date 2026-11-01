@@ -3,6 +3,8 @@
 // The first card grows only when that balances the grid:
 //   3 columns: n % 3 === 2 → spans 2 columns;  n % 3 === 1 → spans the full row as a horizontal feature.
 //   2 columns: n odd → spans the full row as a horizontal feature.
+// Cards in one row share the image height and title size; their "View product" links line up at the bottom.
+// `compact`: on phones (≤ 600px) the cards become an index list (112px thumbnail, name + tagline).
 import type { Lang, Product } from '../data/types';
 import ProductCard from './ProductCard.astro';
 
@@ -10,23 +12,26 @@ interface Props {
   lang: Lang;
   products: Product[];
   headingLevel?: 'h2' | 'h3';
+  /** phones: compact row list instead of full-width cards */
+  compact?: boolean;
   class?: string;
 }
-const { lang, products: items, headingLevel = 'h3', class: cls } = Astro.props;
+const { lang, products: items, headingLevel = 'h3', compact = false, class: cls } = Astro.props;
 const n = items.length;
 const lead3 = n % 3 === 2 ? 'span2' : n % 3 === 1 ? 'full' : 'none';
 const lead2 = n % 2 === 1 ? 'full' : 'none';
 const hasLead = lead3 !== 'none' || lead2 !== 'none';
 
+const phone = compact ? '(min-width: 601px) 100vw, 112px' : '100vw';
 const SIZES = {
-  normal: '(min-width: 1440px) 440px, (min-width: 1100px) 31vw, (min-width: 700px) 47vw, 100vw',
-  span2: '(min-width: 1440px) 890px, (min-width: 1100px) 63vw, (min-width: 700px) 56vw, 100vw',
-  full: '(min-width: 1440px) 780px, (min-width: 1100px) 56vw, (min-width: 700px) 56vw, 100vw',
+  normal: `(min-width: 1440px) 440px, (min-width: 1100px) 31vw, (min-width: 700px) 47vw, ${phone}`,
+  span2: `(min-width: 1440px) 890px, (min-width: 1100px) 63vw, (min-width: 700px) 56vw, ${phone}`,
+  full: `(min-width: 1440px) 780px, (min-width: 1100px) 56vw, (min-width: 700px) 56vw, ${phone}`,
 };
 const leadSizes = lead3 === 'span2' ? SIZES.span2 : lead3 === 'full' ? SIZES.full : lead2 === 'full' ? SIZES.full : SIZES.normal;
 ---
 
-<div class:list={['pgrid', cls]} data-lead3={lead3} data-lead2={lead2}>
+<div class:list={['pgrid', { compact }, cls]} data-lead3={lead3} data-lead2={lead2}>
   {
     items.map((p, i) => (
       <div class="pg-item">
@@ -61,23 +66,14 @@ const leadSizes = lead3 === 'span2' ? SIZES.span2 : lead3 === 'full' ? SIZES.ful
     .pgrid[data-lead3='span2'] > .pg-item:first-child {
       grid-column: span 2;
     }
-    .pgrid[data-lead3='span2'] > .pg-item:first-child :global(.pcard .pcard-media) {
-      aspect-ratio: 2 / 1;
-    }
-    .pgrid[data-lead3='span2'] > .pg-item:first-child :global(.pcard-title) {
-      font-size: var(--step-3);
-      font-weight: 300;
+    /* Lead row (2-column lead + 1 card): one shared photo height, same title size, so the photos and
+       the titles start and end on the same lines */
+    .pgrid[data-lead3='span2'] > .pg-item:nth-child(-n + 2) :global(.pcard .pcard-media) {
+      aspect-ratio: auto;
+      height: clamp(260px, 28vw, 420px);
     }
     .pgrid[data-lead3='full'] > .pg-item:first-child {
       grid-column: 1 / -1;
-    }
-    /* The card next to a 2-column lead grows its photo so both cards end on one line */
-    .pgrid[data-lead3='span2'] > .pg-item:nth-child(2) :global(.pcard) {
-      grid-template-rows: minmax(0, 1fr) auto;
-    }
-    .pgrid[data-lead3='span2'] > .pg-item:nth-child(2) :global(.pcard .pcard-media) {
-      aspect-ratio: auto;
-      min-height: 220px;
     }
   }
   @media (max-width: 1099px) {
@@ -93,6 +89,46 @@ const leadSizes = lead3 === 'span2' ? SIZES.span2 : lead3 === 'full' ? SIZES.ful
     .pgrid {
       grid-template-columns: minmax(0, 1fr);
       gap: var(--s-7);
+    }
+  }
+
+  /* Compact index list on phones: thumbnail left, name + tagline right, hairlines between rows */
+  @media (max-width: 600px) {
+    .pgrid.compact {
+      gap: 0;
+      border-top: 1px solid var(--hair);
+    }
+    .pgrid.compact > .pg-item {
+      border-bottom: 1px solid var(--hair);
+    }
+    .pgrid.compact > .pg-item :global(.pcard) {
+      grid-template-columns: 112px minmax(0, 1fr);
+      grid-template-rows: none;
+      align-items: center;
+      gap: var(--s-4);
+      padding-block: var(--s-4);
+    }
+    .pgrid.compact > .pg-item :global(.pcard .pcard-media) {
+      aspect-ratio: 4 / 3;
+    }
+    .pgrid.compact > .pg-item :global(.pcard-body) {
+      height: auto;
+      gap: var(--s-1);
+    }
+    .pgrid.compact > .pg-item :global(.pcard-title) {
+      font-size: var(--step-1);
+      line-height: 1.2;
+    }
+    .pgrid.compact > .pg-item :global(.pcard-tag) {
+      font-size: var(--step--1);
+      line-height: 1.4;
+    }
+    .pgrid.compact > .pg-item :global(.pcard-sum),
+    .pgrid.compact > .pg-item :global(.pcard-more) {
+      display: none;
+    }
+    .pgrid.compact > .pg-item :global(.pcard:focus-within) {
+      outline-offset: 2px;
     }
   }
 

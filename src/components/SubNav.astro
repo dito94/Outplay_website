@@ -1,6 +1,7 @@
 ---
-// In-page section navigation for product pages. Sticky under the header from 900px up, a horizontally
-// scrollable strip on phones. The current section is highlighted on scroll (IntersectionObserver):
+// In-page section navigation for product pages. Sticky under the header at every width (a horizontally
+// scrollable strip on phones). It follows the header: `--header-offset` (set by the header script) is 0px
+// while the header is hidden on scroll-down and the header height while it is shown. The current section is highlighted on scroll (IntersectionObserver):
 // any element with data-sn-section="<item id>" counts towards that item.
 import type { Lang } from '../data/types';
 import Icon from './Icon.astro';
@@ -50,7 +51,7 @@ const label = lang === 'bg' ? 'Съдържание на страницата' :
 <style>
   .subnav {
     position: sticky;
-    top: var(--header-h);
+    top: var(--header-offset, var(--header-h));
     z-index: 40;
     background: var(--paper);
     border-top: 1px solid var(--line);
@@ -135,11 +136,12 @@ const label = lang === 'bg' ? 'Съдържание на страницата' :
       display: none;
     }
   }
-  @media (max-width: 900px) {
+  @media (prefers-reduced-motion: no-preference) {
     .subnav {
-      position: relative;
-      top: auto;
+      transition: top 0.3s var(--ease);
     }
+  }
+  @media (max-width: 900px) {
     .sn-inner {
       padding-inline: 0;
       min-height: 52px;
@@ -196,8 +198,7 @@ const label = lang === 'bg' ? 'Съдържание на страницата' :
     const observe = () => {
       io?.disconnect();
       const header = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 72;
-      const sticky = getComputedStyle(nav).position === 'sticky';
-      const line = Math.round(header + (sticky ? nav.offsetHeight : 0) + 24);
+      const line = Math.round(header + nav.offsetHeight + 24);
       const bottom = Math.max(0, window.innerHeight - line - 1);
       io = new IntersectionObserver(
         (entries) => {

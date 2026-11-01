@@ -34,7 +34,7 @@ export const categories: Category[] = [
       },
       {
         id: 'fixed',
-        name: { bg: 'Неавтоматизирани (стационарни) покривни перголи', en: 'Fixed-roof pergolas' },
+        name: { bg: 'Стационарни перголи', en: 'Fixed-roof pergolas' },
         description: {
           bg: 'Прозрачен стъклен покрив или плътен покрив от термопанели върху обща алуминиева основа със скрито водоотвеждане. Без движещи се части – тихи и надеждни през десетилетията.',
           en: 'A clear glass roof or a solid insulated-panel roof on a shared aluminium frame with hidden drainage. With no moving parts, they stay silent and reliable for decades.',

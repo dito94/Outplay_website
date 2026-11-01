@@ -1,7 +1,9 @@
 ---
-// Video facade.
-// - YouTube URLs (youtube.com / youtu.be): poster + play button; the youtube-nocookie iframe loads only on click.
-// - Any other URL (e.g. the catalogue's outplay.bg/video page): poster card that opens the page in a new tab.
+// Video.
+// - YouTube URLs (youtube.com / youtu.be): poster (or a dark plate when there is no poster) + play button;
+//   the youtube-nocookie iframe loads only on click.
+// - Any other URL (e.g. the catalogue's generic outplay.bg/video page): a compact, honest link row
+//   ("Video on outplay.bg ↗") that opens the page in a new tab. No poster, no play button.
 import type { Lang } from '../data/types';
 import Img from './Img.astro';
 import Icon from './Icon.astro';
@@ -10,9 +12,9 @@ interface Props {
   lang: Lang;
   url: string;
   title: string;
-  /** poster image path relative to src/assets/img */
+  /** poster image path relative to src/assets/img (YouTube only; omitted = dark plate) */
   poster?: string;
-  /** print the title over the poster (external-link variant); turn off when the page shows it nearby */
+  /** print the title in the link row (external-link variant); turn off when the page shows it nearby */
   showTitle?: boolean;
   id?: string;
 }
@@ -45,7 +47,7 @@ const host = (() => {
 const embed = yt ? `https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&rel=0&modestbranding=1&playsinline=1` : undefined;
 const T = {
   play: { bg: 'Пусни видеото', en: 'Play video' },
-  watchOn: { bg: `Гледайте видео на ${host}`, en: `Watch the video on ${host}` },
+  videoOn: { bg: `Видео на ${host}`, en: `Video on ${host}` },
   youtube: { bg: 'Отвори в YouTube', en: 'Open on YouTube' },
   newWindow: { bg: 'отваря се в нов прозорец', en: 'opens in a new window' },
 };
@@ -54,9 +56,9 @@ const T = {
 {
   embed ? (
     <figure class="vid" data-video data-embed={embed} data-title={title} id={id}>
-      <div class="vid-frame media" data-video-frame>
-        <Img src={poster} lang={lang} alt="" sizes="(min-width: 1440px) 900px, (min-width: 900px) 64vw, 100vw" />
-        <span class="vid-scrim" aria-hidden="true" />
+      <div class:list={['vid-frame', 'media', { 'no-poster': !poster }]} data-video-frame>
+        {poster && <Img src={poster} lang={lang} alt="" sizes="(min-width: 1440px) 900px, (min-width: 900px) 64vw, 100vw" />}
+        {poster && <span class="vid-scrim" aria-hidden="true" />}
         <button type="button" class="vid-play" data-video-play aria-label={`${T.play[lang]}: ${title}`}>
           <span class="vid-disc" aria-hidden="true">
             <Icon name="play" size={26} />
@@ -76,25 +78,14 @@ const T = {
       </figcaption>
     </figure>
   ) : (
-    <a class="vid vid-link" href={url} target="_blank" rel="noopener" id={id}>
-      <span class="vid-frame media">
-        <Img src={poster} lang={lang} alt="" sizes="(min-width: 1440px) 900px, (min-width: 900px) 64vw, 100vw" />
-        <span class="vid-scrim" aria-hidden="true" />
-        <span class="vid-play" aria-hidden="true">
-          <span class="vid-disc">
-            <Icon name="play" size={26} />
-          </span>
-        </span>
-        <span class="vid-over">
-          {showTitle ? <span class="vid-title">{title}</span> : <span class="sr-only">{title}</span>}
-          <span class="vid-go">
-            {T.watchOn[lang]}
-            <Icon name="external" size={16} />
-          </span>
-        </span>
-      </span>
-      <span class="sr-only">({T.newWindow[lang]})</span>
-    </a>
+    <p class="vid-row" id={id}>
+      {showTitle && <span class="vid-row-title">{title}</span>}
+      <a class="vid-row-link" href={url} target="_blank" rel="noopener">
+        <span>{T.videoOn[lang]}</span>
+        <Icon name="external" size={16} />
+        <span class="sr-only">{showTitle ? `(${T.newWindow[lang]})` : `(${title}, ${T.newWindow[lang]})`}</span>
+      </a>
+    </p>
   )
 }
 
@@ -104,10 +95,38 @@ const T = {
     gap: var(--s-3);
     margin: 0;
   }
-  .vid-link {
-    display: block;
-    text-decoration: none;
-    color: #fff;
+  /* External link row */
+  .vid-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2) var(--s-6);
+    margin: 0;
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--hair);
+  }
+  .vid-row-title {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: 1.3;
+  }
+  .vid-row-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 44px;
+    font-size: var(--step--1);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--fg);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.3em;
+  }
+  .vid-row-link:hover {
+    text-decoration-color: var(--yellow);
+    text-decoration-thickness: 2px;
   }
   .vid-frame {
     display: block;
@@ -170,51 +189,19 @@ const T = {
     font-weight: 600;
     letter-spacing: 0.02em;
   }
-  .vid-play:hover .vid-disc,
-  .vid-link:hover .vid-disc {
+  .vid-play:hover .vid-disc {
     transform: scale(1.06);
     background: #fff;
   }
   .vid-play:focus-visible {
     outline: none;
   }
-  .vid-play:focus-visible .vid-disc,
-  .vid-link:focus-visible .vid-disc {
+  .vid-play:focus-visible .vid-disc {
     outline: 3px solid #fff;
     outline-offset: 4px;
   }
-  .vid-link:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 4px;
-  }
-  .vid-over {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: var(--s-2) var(--s-5);
-    padding: clamp(1rem, 0.6rem + 1.6vw, 2rem);
-  }
-  .vid-title {
-    font-family: var(--font-display);
-    font-size: var(--step-2);
-    font-weight: 300;
-    line-height: 1.15;
-    max-width: 24ch;
-  }
-  .vid-go {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding-bottom: 2px;
-    border-bottom: 1px solid currentColor;
-    font-size: var(--step--1);
-    font-weight: 600;
-    letter-spacing: 0.02em;
+  .vid-frame.no-poster {
+    background: var(--ink-2);
   }
   .vid-cap {
     display: flex;
@@ -234,15 +221,6 @@ const T = {
   .vid.is-playing .vid-scrim,
   .vid.is-playing .vid-play {
     display: none;
-  }
-  @media (max-width: 600px) {
-    .vid-title {
-      font-size: var(--step-1);
-    }
-    .vid-link .vid-play {
-      align-content: start;
-      padding-top: 18%;
-    }
   }
 </style>
 

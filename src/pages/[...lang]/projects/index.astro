@@ -26,6 +26,7 @@ const page = pages.gallery;
 const home = pages.home;
 
 const T = {
+  title: { bg: 'Галерия и проекти', en: 'Gallery & projects' },
   metaDescription: {
     bg: 'Реализирани обекти и визуализации на биоклиматични перголи, стъклени системи, ZIP завеси, тенти и ветрозащита от OUTPLAY, София.',
     en: 'Completed projects and visualisations of OUTPLAY bioclimatic pergolas, glass systems, ZIP screens, awnings and windbreaks, Sofia.',
@@ -61,33 +62,31 @@ const jump = [
 ].filter(Boolean) as { href: string; label: string; n: number }[];
 ---
 
-<Base lang={lang} title={t(page.title, lang)} description={t(T.metaDescription, lang)} ogImage="products/balance/hero.jpg">
-  <section class="ph" aria-labelledby="page-title">
+<Base lang={lang} title={t(T.title, lang)} description={t(T.metaDescription, lang)} ogImage="products/balance/hero.jpg">
+  <section class="page-hero ph" aria-labelledby="page-title">
     <div class="wrap">
-      <Breadcrumbs lang={lang} items={[{ label: t(page.title, lang) }]} />
+      <Breadcrumbs lang={lang} items={[{ label: t(T.title, lang) }]} />
       <div class="ph-grid">
-        <h1 id="page-title" class="h1 rule">{t(page.title, lang)}</h1>
-        <div class="ph-side">
-          <p class="lead">{t(page.intro, lang)}</p>
-          {
-            jump.length > 1 && (
-              <nav class="ph-jump" aria-label={t(T.onPage, lang)}>
-                <ul>
-                  {jump.map((j) => (
-                    <li>
-                      <a href={j.href}>
-                        <span>{j.label}</span>
-                        <span class="ph-n num">{j.n}</span>
-                        <Icon name="arrow-right" size={16} />
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            )
-          }
-        </div>
+        <h1 id="page-title" class="rule">{t(T.title, lang)}</h1>
+        <p class="lead">{t(page.intro, lang)}</p>
       </div>
+      {
+        jump.length > 1 && (
+          <nav class="ph-jump" aria-label={t(T.onPage, lang)}>
+            <ul>
+              {jump.map((j) => (
+                <li>
+                  <a href={j.href}>
+                    <span>{j.label}</span>
+                    <span class="ph-n num">{j.n}</span>
+                    <Icon name="arrow-right" size={16} />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )
+      }
     </div>
   </section>
 
@@ -96,13 +95,14 @@ const jump = [
       <section class="section ba-sec" id="before-after" aria-labelledby="ba-title">
         <div class="wrap">
           <div class="ba-top">
-            <div class="ba-copy" data-reveal>
-              <div class="ba-intro">
-                <h2 id="ba-title" class="h2 rule">
-                  {t(home.beforeAfter.title, lang)}
-                </h2>
-                <p class="lead">{t(home.beforeAfter.intro, lang)}</p>
-              </div>
+            <h2 id="ba-title" class="h2 rule ba-head">
+              {t(home.beforeAfter.title, lang)}
+            </h2>
+            <div class="ba-slot ba-lead" style={`--r:${ratio(lead, 1.4, 1.9)}`}>
+              <BeforeAfter lang={lang} pair={lead} sizes="(min-width: 1440px) 880px, (min-width: 901px) 62vw, 94vw" />
+            </div>
+            <div class="ba-copy">
+              <p class="lead">{t(home.beforeAfter.intro, lang)}</p>
               <div class="ba-ask">
                 <p class="ba-ask-title">{t(T.askTitle, lang)}</p>
                 <p class="muted small">{t(T.askText, lang)}</p>
@@ -110,9 +110,6 @@ const jump = [
                   {t(ui.actions.requestQuote, lang)} <Icon name="arrow-right" size={16} />
                 </a>
               </div>
-            </div>
-            <div class="ba-slot" style={`--r:${ratio(lead, 1.2, 1.9)};--rm:${ratio(lead, 1.1, 1.6)}`}>
-              <BeforeAfter lang={lang} pair={lead} sizes="(min-width: 1440px) 880px, (min-width: 901px) 62vw, 94vw" />
             </div>
           </div>
           {rest.length > 0 && (
@@ -122,7 +119,7 @@ const jump = [
                 return (
                   <div
                     class:list={['ba-slot', { 'ba-span': span }]}
-                    style={span ? `--r:${ratio(p, 2.2, 2.6)};--rm:${ratio(p, 1.2, 1.6)}` : '--r:1.3333;--rm:1.3333'}
+                    style={span ? `--r:${ratio(p, 2.2, 2.6)}` : '--r:1.3333'}
                     data-reveal
                   >
                     <BeforeAfter
@@ -167,7 +164,7 @@ const jump = [
                     widths={[480, 768]}
                   />
                 </div>
-                <h3 class="ref-name">{r.name}</h3>
+                <h3 class="ref-name">{lang === 'en' && r.nameEn ? r.nameEn : r.name}</h3>
                 <p class="ref-type small">{t(r.type, lang)}</p>
               </li>
             ))}
@@ -197,40 +194,39 @@ const jump = [
 </Base>
 
 <style>
-  /* Page head */
+  /* Page head: compact, so the first before/after shows on the first screen (spacing from the shared .page-hero) */
   .ph {
-    padding-top: clamp(1.25rem, 0.8rem + 1.5vw, 2rem);
-    padding-bottom: clamp(2.5rem, 1.8rem + 3vw, 4.5rem);
-    border-bottom: 1px solid var(--hair);
+    padding-bottom: 0;
   }
   .ph-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-    gap: var(--s-6) var(--s-8);
+    gap: var(--s-5) var(--s-8);
     align-items: end;
-    margin-top: clamp(2rem, 1.2rem + 3vw, 4rem);
-  }
-  .ph-side {
-    display: grid;
-    gap: var(--s-6);
+    padding-bottom: clamp(2rem, 1.5rem + 2vw, 3rem);
   }
   .ph-jump ul {
     list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
-    flex-wrap: wrap;
-    gap: 0 var(--s-6);
+    flex-wrap: nowrap;
+    gap: 0 var(--s-7);
     border-top: 1px solid var(--hair);
+    border-bottom: 1px solid var(--hair);
+  }
+  .ph-jump li {
+    flex: none;
   }
   .ph-jump a {
     display: inline-flex;
     align-items: center;
     gap: 0.55rem;
-    min-height: 48px;
+    min-height: 52px;
     font-size: var(--step--1);
     font-weight: 600;
     text-decoration: none;
+    white-space: nowrap;
   }
   .ph-jump a:hover span:first-child {
     text-decoration: underline;
@@ -251,26 +247,41 @@ const jump = [
       grid-template-columns: minmax(0, 1fr);
     }
   }
+  /* Phones: the sections follow straight away, so the jump row is dropped */
+  @media (max-width: 720px) {
+    .ph-jump {
+      display: none;
+    }
+    .ph {
+      border-bottom: 1px solid var(--hair);
+    }
+  }
 
-  /* Before / after */
+  /* Before / after: heading and copy on the left, the large pair on the right; on phones heading, pair, copy */
   .ba-sec {
-    padding-top: clamp(3rem, 2rem + 4vw, 6rem);
+    padding-top: clamp(2.5rem, 1.5rem + 3vw, 4.5rem);
   }
   .ba-top {
     display: grid;
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr);
-    gap: var(--s-6) var(--s-8);
-    align-items: stretch;
+    grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.6fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      'head pair'
+      'copy pair';
+    gap: var(--s-5) var(--s-8);
+    align-items: start;
+  }
+  .ba-head {
+    grid-area: head;
+  }
+  .ba-lead {
+    grid-area: pair;
   }
   .ba-copy {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: var(--s-7);
-  }
-  .ba-intro {
+    grid-area: copy;
     display: grid;
-    gap: var(--s-5);
+    gap: var(--s-7);
+    align-content: start;
   }
   .ba-ask {
     display: grid;
@@ -291,6 +302,15 @@ const jump = [
   .ba-slot :global(.ba-stage) {
     aspect-ratio: var(--r);
   }
+  /* Same caption layout for every pair: title, then the description underneath */
+  .ba-slot :global(.ba-cap) {
+    display: grid;
+    gap: var(--s-1);
+    justify-content: start;
+  }
+  .ba-slot :global(.ba-cap .muted) {
+    max-width: 72ch;
+  }
   .ba-rest {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -303,18 +323,19 @@ const jump = [
   @media (max-width: 900px) {
     .ba-top {
       grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: none;
+      grid-template-areas: 'head' 'pair' 'copy';
+      gap: var(--s-5);
     }
     .ba-copy {
-      display: grid;
       gap: var(--s-6);
-    }
-    .ba-ask {
-      order: 2;
+      margin-top: var(--s-3);
     }
   }
+  /* Phones: square frames, so the slider is tall enough to compare comfortably */
   @media (max-width: 700px) {
     .ba-slot :global(.ba-stage) {
-      aspect-ratio: var(--rm);
+      aspect-ratio: var(--rm, 1);
     }
     .ba-rest {
       grid-template-columns: minmax(0, 1fr);

@@ -5,7 +5,7 @@
 import type { Lang, OptionGroup } from '../data/types';
 import { products } from '../data/products';
 import { categories } from '../data/categories';
-import { inquiryFamilies, inquiryCommon, inquiryTextFields, productOptionDefaults } from '../data/inquiry';
+import { inquiryFamilies, inquiryCommon, inquiryTextFields, productOptionDefaults, productInquiry } from '../data/inquiry';
 import { ui } from '../data/ui';
 import { pages } from '../data/pages';
 import { site } from '../data/site';
@@ -34,20 +34,27 @@ const T = {
   step3: { bg: 'Контакти', en: 'Contact details' },
   progress: { bg: 'Стъпки на запитването', en: 'Request steps' },
   productHint: {
-    bg: 'Не сте сигурни? Изберете най-близкия продукт и опишете идеята си в следващата стъпка.',
+    bg: 'Не сте сигурни? Изберете най‑близкия продукт и опишете идеята си в следващата стъпка.',
     en: 'Not sure? Pick the closest product and describe your idea in the next step.',
   },
   multi: { bg: 'изберете колкото желаете', en: 'choose any' },
+  more: { bg: 'Още детайли', en: 'More details' },
+  moreOptional: { bg: '(по желание)', en: '(optional)' },
+  consent: {
+    bg: 'Съгласявам се OUTPLAY да използва данните ми, за да отговори на запитването.',
+    en: 'I agree that OUTPLAY may use my details to reply to this request.',
+  },
   dropMain: { bg: 'Плъзнете снимки тук или', en: 'Drag photos here or' },
   dropPick: { bg: 'изберете файлове', en: 'choose files' },
+  dropTouch: { bg: 'Добавете снимки от телефона', en: 'Add photos from your phone' },
   dropFormats: { bg: 'JPG, PNG или WEBP · до {n} снимки', en: 'JPG, PNG or WEBP · up to {n} photos' },
   photosLocal: {
     bg: 'Снимките остават във Вашия браузър – в демо версията не се качват никъде.',
     en: 'Photos stay in your browser; in this demo they are not uploaded anywhere.',
   },
   removePhoto: { bg: 'Премахни снимката {name}', en: 'Remove photo {name}' },
-  tooMany: { bg: 'Може да добавите до {n} снимки.', en: 'You can add up to {n} photos.' },
-  tooLarge: { bg: 'Файлът {name} е по-голям от {n} MB.', en: '{name} is larger than {n} MB.' },
+  tooMany: { bg: 'Можете да добавите до {n} снимки.', en: 'You can add up to {n} photos.' },
+  tooLarge: { bg: 'Файлът {name} е по‑голям от {n} MB.', en: '{name} is larger than {n} MB.' },
   privacyLink: { bg: 'Как използваме данните Ви', en: 'How we use your details' },
   privacyText: {
     bg: 'Използваме името, телефона и имейла Ви само за да отговорим на това запитване и да подготвим оферта. В тази демо версия данните остават единствено във Вашия браузър и не се изпращат никъде.',
@@ -67,7 +74,7 @@ const T = {
     en: 'Sending the request online needs JavaScript. You can call us, message us on Viber or email:',
   },
   storageFailed: {
-    bg: 'Не успяхме да запазим запитването в този браузър – съхранението на данни може да е изключено. Обобщението по-долу е пълно: копирайте го или ни се обадете.',
+    bg: 'Не успяхме да запазим запитването в този браузър – съхранението на данни може да е изключено. Обобщението по‑долу е пълно: копирайте го или ни се обадете.',
     en: 'We could not save the request in this browser; site storage may be turned off. The summary below is complete: copy it or give us a call.',
   },
   copySummary: { bg: 'Копирай обобщението', en: 'Copy summary' },
@@ -107,6 +114,17 @@ const preset = (preselected && productOptionDefaults[preselected.id]) || {};
 const cats = [...categories].sort((a, b) => a.order - b.order);
 const byCat = (cid: string) => products.filter((p) => p.category === cid).sort((a, b) => a.order - b.order);
 const families = Object.values(inquiryFamilies);
+/** Dimension sets: one per family plus per-product overrides (e.g. roof ZIP drawn in plan) */
+const dimSets = [
+  ...families.map((f) => ({ key: f.family as string, preview: f.preview, dimensions: f.dimensions })),
+  ...Object.entries(productInquiry).flatMap(([pid, o]) => {
+    const fam = products.find((p) => p.id === pid)?.family;
+    if (!fam) return [];
+    const f = inquiryFamilies[fam];
+    return [{ key: pid, preview: o.preview ?? f.preview, dimensions: o.dimensions ?? f.dimensions }];
+  }),
+];
+const initialDimKey = preselected && productInquiry[preselected.id] ? preselected.id : initialFamily;
 
 function isChecked(g: OptionGroup, choice: string, family: string): boolean {
   const v = family === initialFamily && preset[g.id] !== undefined ? preset[g.id] : g.default;
@@ -121,6 +139,7 @@ const config = {
   maxFiles: MAX_FILES,
   maxMb: MAX_MB,
   defaults: productOptionDefaults,
+  dimSets: Object.keys(productInquiry),
   products: Object.fromEntries(
     products.map((p) => [
       p.id,
@@ -155,6 +174,9 @@ const config = {
     secDims: tx(T.secDims),
     secOptions: tx(inquiryCommon.optionsTitle),
     secProject: tx(inquiryCommon.projectTitle),
+    step1: tx(T.step1),
+    step2: tx(T.step2),
+    step3: tx(T.step3),
     secPhotos: tx(T.secPhotos),
     secMessage: tx(T.secMessage),
     secContact: tx(T.secContact),
@@ -167,6 +189,11 @@ const config = {
 const success = pages.inquiry.success;
 const nextSteps = success.next;
 const projectGroups = inquiryCommon.projectGroups;
+/** Current "more details" values shown on the collapsed summary row (JS keeps it in sync) */
+const projectDefaults = projectGroups
+  .map((g) => t(g.choices.find((c) => c.id === g.default)?.label, lang))
+  .filter(Boolean)
+  .join(' · ');
 const channel = inquiryCommon.contactChannel;
 const optional = tx(ui.form.hints.optional);
 ---
@@ -180,7 +207,8 @@ const optional = tx(ui.form.hints.optional);
 >
   <script type="application/json" data-iq-config set:html={JSON.stringify(config)} />
 
-  <ol class="iq-progress" aria-label={tx(T.progress)} data-iq-progress>
+  <div class="iq-progress-wrap" data-iq-progress>
+  <ol class="iq-progress" aria-label={tx(T.progress)}>
     {
       [T.step1, T.step2, T.step3].map((s, i) => (
         <li class:list={['iq-pi', { 'is-current': i === 0 }]} data-pi={i + 1}>
@@ -203,6 +231,12 @@ const optional = tx(ui.form.hints.optional);
       ))
     }
   </ol>
+  <p class="iq-progress-now" aria-hidden="true" data-iq-progress-now>
+    <span class="num" data-iq-progress-n>{t(ui.inquiry.stepOf, lang).replace('{n}', '1').replace('{total}', '3')}</span>
+    <span aria-hidden="true">·</span>
+    <span class="iq-progress-l" data-iq-progress-l>{tx(T.step1)}</span>
+  </p>
+  </div>
 
   <form class="iq-card iq-form" novalidate data-iq-form autocomplete="on">
     <p class="iq-draft" data-iq-draft hidden>
@@ -293,17 +327,17 @@ const optional = tx(ui.form.hints.optional);
 
         <div class="iq-s1-dims">
           {
-            families.map((f) => (
+            dimSets.map((f) => (
               <fieldset
                 class="iq-dims"
-                data-family-block={f.family}
+                data-dims-block={f.key}
                 data-preview={f.preview}
-                hidden={f.family !== initialFamily}
-                disabled={f.family !== initialFamily}
+                hidden={f.key !== initialDimKey}
+                disabled={f.key !== initialDimKey}
               >
                 <legend class="iq-legend">{tx(inquiryCommon.dimensionsTitle)}</legend>
                 {f.dimensions.map((d) => {
-                  const inputId = fid(`${f.family}-${d.id}`);
+                  const inputId = fid(`${f.key}-${d.id}`);
                   const hintId = `${inputId}-hint`;
                   const label = t(d.label, lang);
                   const pct = ((d.default - d.min) / (d.max - d.min)) * 100;
@@ -317,7 +351,7 @@ const optional = tx(ui.form.hints.optional);
                         <input
                           class="input num iq-num-input"
                           id={inputId}
-                          name={`dim.${f.family}.${d.id}`}
+                          name={`dim.${f.key}.${d.id}`}
                           type="text"
                           inputmode="numeric"
                           autocomplete="off"
@@ -343,7 +377,7 @@ const optional = tx(ui.form.hints.optional);
                           <input
                             class="input num iq-num-input"
                             id={inputId}
-                            name={`dim.${f.family}.${d.id}`}
+                            name={`dim.${f.key}.${d.id}`}
                             type="text"
                             inputmode="decimal"
                             autocomplete="off"
@@ -395,7 +429,6 @@ const optional = tx(ui.form.hints.optional);
 
       <div class="iq-s2">
         <div class="iq-block">
-          <h4 class="iq-sub">{tx(inquiryCommon.optionsTitle)}</h4>
           {
             families.map((f) => (
               <div class="iq-opts" data-family-block={f.family} hidden={f.family !== initialFamily}>
@@ -444,23 +477,35 @@ const optional = tx(ui.form.hints.optional);
           }
         </div>
 
-        <div class="iq-block" data-iq-project>
-          <h4 class="iq-sub">{tx(inquiryCommon.projectTitle)}</h4>
-          {
-            projectGroups.map((g) => (
-              <fieldset class="iq-group" data-group={g.id} data-type={g.type} data-label={t(g.label, lang)}>
-                <legend class="iq-legend-v">{t(g.label, lang)}</legend>
-                <div class="chips">
-                  {g.choices.map((c) => (
-                    <label class="chip">
-                      <input type="radio" name={`proj.${g.id}`} value={c.id} checked={g.default === c.id} />
-                      <span>{t(c.label, lang)}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            ))
-          }
+        <div class="iq-block iq-more-block">
+          <details class="iq-more" data-iq-project>
+            <summary class="iq-more-sum">
+              <span class="iq-more-text">
+                <span class="iq-more-t">
+                  {tx(T.more)} <span class="iq-opt">{tx(T.moreOptional)}</span>
+                </span>
+                <span class="iq-more-v" data-iq-more-v>{projectDefaults}</span>
+              </span>
+              <span class="iq-more-ico" aria-hidden="true"><Icon name="chevron-down" size={20} /></span>
+            </summary>
+            <div class="iq-more-body">
+              {
+                projectGroups.map((g) => (
+                  <fieldset class="iq-group" data-group={g.id} data-type={g.type} data-label={t(g.label, lang)}>
+                    <legend class="iq-legend-v">{t(g.label, lang)}</legend>
+                    <div class="chips">
+                      {g.choices.map((c) => (
+                        <label class="chip">
+                          <input type="radio" name={`proj.${g.id}`} value={c.id} checked={g.default === c.id} />
+                          <span>{t(c.label, lang)}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                ))
+              }
+            </div>
+          </details>
         </div>
 
         <div class="iq-block iq-photos">
@@ -478,8 +523,11 @@ const optional = tx(ui.form.hints.optional);
               data-iq-file
             />
             <Icon name="upload" size={26} />
-            <span class="iq-drop-main">
+            <span class="iq-drop-main iq-drop-fine">
               {tx(T.dropMain)} <span class="iq-drop-pick">{tx(T.dropPick)}</span>
+            </span>
+            <span class="iq-drop-main iq-drop-coarse">
+              <span class="iq-drop-pick">{tx(T.dropTouch)}</span>
             </span>
             <span class="iq-drop-sub">{tx(T.dropFormats).replace('{n}', String(MAX_FILES))}</span>
           </label>
@@ -581,7 +629,7 @@ const optional = tx(ui.form.hints.optional);
           <div class="iq-consent iq-full">
             <label class="iq-check" for={fid('consent')}>
               <input type="checkbox" id={fid('consent')} name="consent" required aria-required="true" data-iq-consent />
-              <span>{tx(ui.form.labels.consent)}</span>
+              <span>{tx(T.consent)}</span>
             </label>
             <p class="error iq-consent-err" id={fid('consent-err')}></p>
             <details class="iq-privacy">
@@ -787,13 +835,40 @@ const optional = tx(ui.form.hints.optional);
   }
 
   /* Progress */
+  .iq-progress-wrap {
+    margin: 0 0 var(--s-4);
+  }
   .iq-progress {
     list-style: none;
-    margin: 0 0 var(--s-4);
+    margin: 0;
     padding: 0;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--s-2);
+  }
+  .iq-progress-now {
+    display: none;
+  }
+  /* Narrow forms (phones, embedded): numbered circles plus one line "Step 2 of 3 · Configuration" */
+  @container iq (max-width: 520px) {
+    .iq-pi-btn {
+      min-height: 48px;
+    }
+    .iq-pi-l {
+      display: none;
+    }
+    .iq-progress-now {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0 0.45em;
+      margin-top: var(--s-1);
+      font-size: var(--step--1);
+      color: var(--muted);
+    }
+    .iq-progress-l {
+      color: var(--fg);
+      font-weight: 600;
+    }
   }
   .iq-pi {
     position: relative;
@@ -867,7 +942,7 @@ const optional = tx(ui.form.hints.optional);
     text-decoration: underline;
     text-underline-offset: 0.25em;
   }
-  html:not(.js) .iq-progress,
+  html:not(.js) .iq-progress-wrap,
   html:not(.js) .iq-nav {
     display: none;
   }
@@ -1131,11 +1206,13 @@ const optional = tx(ui.form.hints.optional);
     position: relative;
     border: 1px solid var(--line);
     background-color: var(--mist);
-    background-image:
-      linear-gradient(color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px),
-      linear-gradient(90deg, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px);
-    background-size: 24px 24px;
-    background-position: -1px -1px;
+  }
+  .iq-svg {
+    transition: opacity 0.2s var(--ease);
+  }
+  /* A dimension is being edited or out of range: the sketch shows the last valid size, dimmed */
+  .iq-preview.is-stale .iq-svg {
+    opacity: 0.35;
   }
   html:not(.js) .iq-preview {
     display: none;
@@ -1296,6 +1373,63 @@ const optional = tx(ui.form.hints.optional);
     display: grid;
     gap: var(--s-4);
   }
+  /* "More details (optional)": property type, place and timeline folded behind one row */
+  .iq-block.iq-more-block {
+    padding-top: 0;
+    border-top: 0;
+  }
+  .iq-more-sum {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+    min-height: 64px;
+    padding: var(--s-3) var(--s-4);
+    border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+    border-radius: var(--radius);
+    background: var(--paper);
+    list-style: none;
+    cursor: pointer;
+    transition: border-color 0.15s var(--ease);
+  }
+  .iq-more-sum::-webkit-details-marker {
+    display: none;
+  }
+  .iq-more-sum:hover {
+    border-color: var(--ink);
+  }
+  .iq-more-text {
+    display: grid;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+  .iq-more-t {
+    font-size: var(--step--1);
+    font-weight: 600;
+  }
+  .iq-more-v {
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+  .iq-more[open] .iq-more-v {
+    display: none;
+  }
+  .iq-more-ico {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    transition: transform 0.2s var(--ease);
+  }
+  .iq-more[open] .iq-more-ico {
+    transform: rotate(180deg);
+  }
+  .iq-more-body {
+    display: grid;
+    gap: var(--s-5);
+    padding: var(--s-5) 0 0;
+  }
   @container iq (min-width: 640px) {
     .iq-texts {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1335,6 +1469,18 @@ const optional = tx(ui.form.hints.optional);
   }
   .iq-drop-main {
     font-weight: 500;
+  }
+  .iq-drop-coarse {
+    display: none;
+  }
+  /* Touch devices have nothing to drag: name the action instead */
+  @media (pointer: coarse) {
+    .iq-drop-fine {
+      display: none;
+    }
+    .iq-drop-coarse {
+      display: inline;
+    }
   }
   .iq-drop-pick {
     text-decoration: underline;
@@ -1569,15 +1715,6 @@ const optional = tx(ui.form.hints.optional);
     .iq-back {
       padding-inline: 1rem;
     }
-    .iq-pi-l {
-      display: none;
-    }
-    .iq-pi.is-current .iq-pi-l {
-      display: inline;
-    }
-    .iq-pi.is-current {
-      grid-column: span 1;
-    }
   }
   .iq-demo-hint {
     margin-top: var(--s-3);
@@ -1765,6 +1902,8 @@ const optional = tx(ui.form.hints.optional);
     maxFiles: number;
     maxMb: number;
     defaults: Record<string, Record<string, string | string[]>>;
+    /** product ids with their own dimension set (otherwise the family's) */
+    dimSets: string[];
     products: Record<string, ProductCfg>;
     s: Record<string, string>;
   }
@@ -1849,6 +1988,11 @@ const optional = tx(ui.form.hints.optional);
     const changeBtn = $<HTMLButtonElement>('[data-iq-change]');
     const fixedName = $('[data-iq-fixed-name]');
     const board = $('[data-iq-board]')!;
+    const previewEl = $('[data-iq-preview]')!;
+    const progressN = $('[data-iq-progress-n]');
+    const progressL = $('[data-iq-progress-l]');
+    const moreEl = $<HTMLDetailsElement>('[data-iq-project]')!;
+    const moreValue = $('[data-iq-more-v]');
     const svg = $<SVGSVGElement>('[data-iq-svg]')!;
     const areaEl = $('[data-iq-area]')!;
     const areaDetail = $('[data-iq-area-detail]')!;
@@ -1864,6 +2008,9 @@ const optional = tx(ui.form.hints.optional);
 
     let step = 1;
     let family = root.dataset.family || 'pergola';
+    /** key of the visible dimension set: the family, or a product with its own set (roof ZIP) */
+    const keyFor = (pid: string | null, fam: string) => (pid && cfg.dimSets.includes(pid) ? pid : fam);
+    let dimKey = keyFor(root.dataset.product || null, family);
     let productId: string | null = null;
     let files: { file: File; url: string }[] = [];
     let saveTimer = 0;
@@ -1873,9 +2020,8 @@ const optional = tx(ui.form.hints.optional);
 
     // ---------------------------------------------------------------- dimensions registry
     const dims: Record<string, Dim[]> = {};
-    $$('[data-family-block][data-preview]').forEach((block) => {
-      const fam = block.dataset.familyBlock!;
-      dims[fam] = $$('[data-dim]', block).map((el) => {
+    $$('[data-dims-block]').forEach((block) => {
+      dims[block.dataset.dimsBlock!] = $$('[data-dim]', block).map((el) => {
         const input = $<HTMLInputElement>('[data-dim-input]', el)!;
         const d: Dim = {
           el,
@@ -1893,8 +2039,8 @@ const optional = tx(ui.form.hints.optional);
         return d;
       });
     });
-    const activeDims = () => dims[family] ?? [];
-    const dimsBlock = () => $(`[data-family-block="${family}"][data-preview]`)!;
+    const activeDims = () => dims[dimKey] ?? [];
+    const dimsBlock = () => $(`[data-dims-block="${dimKey}"]`)!;
     const optsBlock = () => $(`.iq-opts[data-family-block="${family}"]`)!;
 
     // ---------------------------------------------------------------- errors
@@ -1967,14 +2113,15 @@ const optional = tx(ui.form.hints.optional);
       .flat()
       .forEach((d) => {
         d.range?.addEventListener('input', () => setDim(d, Number(d.range!.value)));
+        // While typing, a valid value redraws at once; an empty or out-of-range one dims the sketch
+        // (draw() marks it stale) until it is fixed. Nothing is clamped silently.
         d.input.addEventListener('input', () => {
-          const v = parseNum(d.input.value);
-          if (!Number.isNaN(v) && v >= d.min && v <= d.max) {
-            d.last = v;
+          if (!dimError(d)) {
+            d.last = parseNum(d.input.value);
             syncRange(d);
-            draw();
           }
           if (d.input.getAttribute('aria-invalid') === 'true') validateDim(d);
+          draw();
         });
         d.input.addEventListener('change', () => {
           if (validateDim(d)) d.input.value = fmtN(d.last);
@@ -1997,15 +2144,17 @@ const optional = tx(ui.form.hints.optional);
       });
 
     // ---------------------------------------------------------------- product + family
-    function setFamily(fam: string) {
+    function setFamily(fam: string, key: string = fam) {
       family = fam;
+      dimKey = key;
       root.dataset.family = fam;
-      $$('[data-family-block]').forEach((block) => {
-        const on = block.dataset.familyBlock === fam;
+      const toggle = (block: HTMLElement, on: boolean) => {
         block.hidden = !on;
         if (block instanceof HTMLFieldSetElement) block.disabled = !on;
         $$<HTMLFieldSetElement | Control>('fieldset, input, select, textarea', block).forEach((c) => (c.disabled = !on));
-      });
+      };
+      $$('[data-family-block]').forEach((b) => toggle(b, b.dataset.familyBlock === fam));
+      $$('[data-dims-block]').forEach((b) => toggle(b, b.dataset.dimsBlock === key));
     }
     function applyPreset(id: string) {
       const preset = cfg.defaults[id];
@@ -2019,7 +2168,8 @@ const optional = tx(ui.form.hints.optional);
       productId = id && cfg.products[id] ? id : null;
       if (select.value !== (productId ?? '')) select.value = productId ?? '';
       const fam = productId ? cfg.products[productId].family : family;
-      if (fam !== family) setFamily(fam);
+      const key = keyFor(productId, fam);
+      if (fam !== family || key !== dimKey) setFamily(fam, key);
       if (productId && applyDefaults) applyPreset(productId);
       if (fixedName && productId) fixedName.textContent = cfg.products[productId].name;
       if (productId) setError(select, '');
@@ -2045,8 +2195,11 @@ const optional = tx(ui.form.hints.optional);
       const preview = block.dataset.preview === 'plan' ? 'plan' : 'elevation';
       const ds = Object.fromEntries(activeDims().map((d) => [d.id, d]));
       const hd = ds.width ?? ds.length;
-      const vd = preview === 'plan' ? ds.depth : ds.height;
+      const vd = preview === 'plan' ? (ds.depth ?? ds.height) : ds.height;
       if (!hd || !vd) return;
+      // any active dimension empty or out of range → keep the last valid sketch, dimmed, and no area
+      const stale = activeDims().some((d) => !!dimError(d));
+      previewEl.classList.toggle('is-stale', stale);
       const a = hd.last;
       const b = vd.last;
       const units = ds.units ? Math.round(ds.units.last) : 1;
@@ -2092,7 +2245,7 @@ const optional = tx(ui.form.hints.optional);
       let rightPad = 22;
       if (preview === 'plan') {
         const mount = opt('mounting');
-        const wallTop = family === 'awning' ? opt('mounting') !== 'ceiling' : mount === 'wall';
+        const wallTop = family === 'awning' ? opt('mounting') !== 'ceiling' : family === 'pergola' && mount === 'wall';
         const ceiling = family === 'awning' && opt('mounting') === 'ceiling';
         const sideWalls = family === 'pergola' && mount === 'between-walls';
         if (wallTop || ceiling) {
@@ -2127,6 +2280,19 @@ const optional = tx(ui.form.hints.optional);
             corners.push([x0, y0], [x0 + rw - ps, y0], [x0, y0 + rh - ps], [x0 + rw - ps, y0 + rh - ps]);
           else if (mount === 'wall') corners.push([x0, y0 + rh - ps], [x0 + rw - ps, y0 + rh - ps]);
           corners.forEach(([x, y]) => (out += rect(x, y, ps, ps, 'f-post')));
+        } else if (family === 'zip') {
+          // roof ZIP from above: cassette at the top, fabric running along the roof between two side guides
+          const ch = clamp(0.14 * s, 7, 16);
+          const fabric = opt('fabric');
+          out += rect(x0 + 3, y0 + ch, rw - 6, rh - ch - 4, `f-fabric${fabric === 'blackout' ? ' dark' : ''}`);
+          if (fabric !== 'blackout') out += rect(x0 + 3, y0 + ch, rw - 6, rh - ch - 4, '', ` fill="url(#${P}-dots)"`);
+          out += rect(x0, y0, 3, rh, 'f-frame') + rect(x0 + rw - 3, y0, 3, rh, 'f-frame');
+          out += rect(x0 + 3, y0 + rh - 4, rw - 6, 4, 'f-frame') + rect(x0 - 3, y0, rw + 6, ch, 'f-frame');
+          // direction of travel
+          const cx = x0 + rw / 2;
+          const ay1 = y0 + ch + 8;
+          const ay2 = Math.max(ay1 + 10, y0 + ch + Math.min(46, (rh - ch) * 0.45));
+          if (rh - ch > 34) out += `<path class="arrow-ln" d="M${r(cx)} ${r(ay1)}V${r(ay2)}m-4 -5l4 5l4 -5"/>`;
         } else {
           // awning: cassette at the façade, fabric runs outwards, front profile
           for (let x = x0 + Math.max(10, 0.5 * s); x < x0 + rw - 1; x += Math.max(10, 0.5 * s)) out += line(x, y0 + 5, x, y0 + rh - 3, 'ln');
@@ -2212,8 +2378,12 @@ const optional = tx(ui.form.hints.optional);
       // Area readout
       const area = a * b;
       const totalArea = area * units;
-      areaEl.textContent = nf1.format(totalArea);
-      areaDetail.textContent = units > 1 ? `${nf1.format(area)} ${S.m2} × ${units}` : '';
+      areaEl.textContent = stale ? '—' : nf1.format(totalArea);
+      areaDetail.textContent = !stale && units > 1 ? `${nf1.format(area)} ${S.m2} × ${units}` : '';
+      if (stale) {
+        window.clearTimeout(areaTimer);
+        return;
+      }
       const desc = `${view}: ${hLabel}, ${vd.short} ${m(b)}${units > 1 ? `, ${units} ${S.pcs}` : ''}. ${S.area} ${S.approx} ${nf1.format(totalArea)} ${S.m2}`;
       svg.setAttribute('aria-label', desc);
       window.clearTimeout(areaTimer);
@@ -2397,6 +2567,8 @@ const optional = tx(ui.form.hints.optional);
       submitBtn.hidden = n !== total;
       if (demoHint) demoHint.hidden = n !== total;
       stepText.textContent = fill(S.stepOf, { n, total });
+      if (progressN) progressN.textContent = fill(S.stepOf, { n, total });
+      if (progressL) progressL.textContent = S[`step${n}`] ?? '';
       if (n === total) renderSummary(summaryEl, false);
       if (n === 1) redraw();
       if (focus) {
@@ -2423,7 +2595,9 @@ const optional = tx(ui.form.hints.optional);
     $$<HTMLButtonElement>('[data-goto]', progress).forEach((b) => b.addEventListener('click', () => goTo(Number(b.dataset.goto))));
     summaryEl.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-edit]');
-      if (b) goTo(Number(b.dataset.edit));
+      if (!b) return;
+      if (b.dataset.open === 'project') moreEl.open = true;
+      goTo(Number(b.dataset.edit));
     });
 
     // Enter in a text field moves on instead of submitting early
@@ -2492,8 +2666,8 @@ const optional = tx(ui.form.hints.optional);
 
     function renderSummary(target: HTMLElement, withContact: boolean) {
       const c = collect();
-      const sec = (title: string, body: string, edit?: number) =>
-        `<div class="iq-sum-sec"><dt>${esc(title)}</dt><dd>${body}</dd>${edit ? `<button type="button" class="iq-textbtn" data-edit="${edit}">${esc(S.edit)}<span class="sr-only">: ${esc(title)}</span></button>` : ''}</div>`;
+      const sec = (title: string, body: string, edit?: number, open = '') =>
+        `<div class="iq-sum-sec"><dt>${esc(title)}</dt><dd>${body}</dd>${edit ? `<button type="button" class="iq-textbtn" data-edit="${edit}"${open ? ` data-open="${open}"` : ''}>${esc(S.edit)}<span class="sr-only">: ${esc(title)}</span></button>` : ''}</div>`;
       const list = (rows: [string, string][]) =>
         `<ul class="iq-sum-list">${rows.map(([k, v]) => `<li><span class="iq-sum-k">${esc(k)}:</span> ${esc(v)}</li>`).join('')}</ul>`;
       let html = '<dl class="iq-sum">';
@@ -2508,7 +2682,7 @@ const optional = tx(ui.form.hints.optional);
         ...c.texts.map((x) => [x.label, x.value] as [string, string]),
       ];
       html += sec(S.secOptions, list(optRows), withContact ? undefined : 2);
-      html += sec(S.secProject, list(c.projectGroups.map((g) => [g.label, groupText(g)])), withContact ? undefined : 2);
+      html += sec(S.secProject, list(c.projectGroups.map((g) => [g.label, groupText(g)])), withContact ? undefined : 2, 'project');
       if (c.files.length) html += sec(`${S.secPhotos} (${c.files.length})`, esc(c.files.join(', ')), withContact ? undefined : 2);
       if (c.message) html += sec(S.secMessage, esc(c.message), withContact ? undefined : 2);
       if (withContact) {
@@ -2560,7 +2734,8 @@ const optional = tx(ui.form.hints.optional);
       }
       Object.values(dims)
         .flat()
-        .forEach((d) => validateDim(d, false));
+        .forEach((d) => validateDim(d, !!dimError(d)));
+      syncMore();
     }
     function saveDraft() {
       if (submitted) return;
@@ -2578,8 +2753,17 @@ const optional = tx(ui.form.hints.optional);
     form.addEventListener('change', (e) => {
       const el = e.target as HTMLElement;
       if (el.matches('input[name^="opt."]')) draw();
+      if (el.matches('input[name^="proj."]')) syncMore();
       scheduleSave();
     });
+    /** Collapsed "more details" row lists the current choices */
+    function syncMore() {
+      if (!moreValue) return;
+      moreValue.textContent = $$<HTMLInputElement>('input[name^="proj."]:checked', moreEl)
+        .map((i) => i.nextElementSibling?.textContent?.replace(/\s+/g, ' ').trim() || '')
+        .filter(Boolean)
+        .join(' · ');
+    }
 
     // ---------------------------------------------------------------- submit + success
     form.addEventListener('submit', (e) => {
@@ -2656,6 +2840,7 @@ const optional = tx(ui.form.hints.optional);
       setProduct(pre ?? (select.value || null), true);
       if (!productId) setFamily(root.dataset.initialFamily || family);
       updateRequired();
+      syncMore();
       draftNote.hidden = true;
       submitted = false;
     }
@@ -2691,7 +2876,7 @@ const optional = tx(ui.form.hints.optional);
         // same product (or none preselected): continue exactly where the visitor left off
         before = JSON.stringify(serialize());
         const id = pre ?? (draft.productId && cfg.products[draft.productId] ? draft.productId : null);
-        if (id) setFamily(cfg.products[id].family);
+        if (id) setFamily(cfg.products[id].family, keyFor(id, cfg.products[id].family));
         restore(draft.values);
         setProduct(id, false);
       } else {
@@ -2704,7 +2889,7 @@ const optional = tx(ui.form.hints.optional);
     } else {
       setProduct(pre, true);
     }
-    setFamily(family);
+    setFamily(family, dimKey);
     updateRequired();
     show(1, false);
     root.classList.add('is-ready');

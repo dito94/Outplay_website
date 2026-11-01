@@ -11,7 +11,7 @@ export default defineConfig({
   trailingSlash: 'always',
   // Keep HTML-aware whitespace handling (Astro 7 defaults to JSX rules, which can drop spaces in running text)
   compressHTML: true,
-  build: { format: 'directory', inlineStylesheets: 'auto' },
+  build: { format: 'directory', inlineStylesheets: 'always' },
   prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
   devToolbar: { enabled: false },
   ...(agent ? { outDir: `${scratch}/build-${agent}`, cacheDir: `./node_modules/.astro-${agent}` } : {}),

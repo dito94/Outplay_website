@@ -1,4 +1,4 @@
-import type { InquiryFamily, InquiryFamilyDef, L, OptionGroup } from './types';
+import type { DimensionField, InquiryFamily, InquiryFamilyDef, L, OptionGroup } from './types';
 
 // Inquiry form definitions. Dimension min/max are INPUT ranges for approximate sizes the visitor
 // types in (kept generous on purpose); they are not product limits. The catalogue publishes no
@@ -122,7 +122,7 @@ export const inquiryFamilies: Record<InquiryFamily, InquiryFamilyDef> = {
       {
         id: 'width',
         label: { bg: 'Ширина', en: 'Width' },
-        hint: { bg: 'По протежение на фасадата или по-дългата страна', en: 'Along the façade or the longer side' },
+        hint: { bg: 'По протежение на фасадата или по‑дългата страна', en: 'Along the façade or the longer side' },
         unit: 'm',
         min: 1,
         max: 30,
@@ -560,4 +560,44 @@ export const productOptionDefaults: Record<string, Record<string, string | strin
   harmonia: { systemType: 'folding' },
   'vertical-zip': { zipType: 'vertical' },
   'roof-zip': { zipType: 'roof' },
+};
+
+/**
+ * Per-product overrides of the family form. Roof ZIP is a horizontal screen, so it is drawn in plan
+ * (width × projection) instead of the vertical front view used for the rest of the ZIP family.
+ * Dimension ids stay those of the family (the projection is stored as `height`, the family's
+ * "height / length along the roof"), so saved requests read the same in the admin.
+ */
+export interface ProductInquiryOverride {
+  preview?: InquiryFamilyDef['preview'];
+  dimensions?: DimensionField[];
+}
+const zipUnits = inquiryFamilies.zip.dimensions.find((d) => d.id === 'units')!;
+export const productInquiry: Record<string, ProductInquiryOverride> = {
+  'roof-zip': {
+    preview: 'plan',
+    dimensions: [
+      {
+        id: 'width',
+        label: { bg: 'Ширина', en: 'Width' },
+        hint: { bg: 'Ширина на покрива или на една завеса', en: 'Width of the roof or of one screen' },
+        unit: 'm',
+        min: 0.5,
+        max: 12,
+        step: 0.05,
+        default: 3.5,
+      },
+      {
+        id: 'height',
+        label: { bg: 'Излаз', en: 'Projection' },
+        hint: { bg: 'Докъде се разпъва завесата по покрива', en: 'How far the screen runs along the roof' },
+        unit: 'm',
+        min: 0.5,
+        max: 8,
+        step: 0.05,
+        default: 3,
+      },
+      zipUnits,
+    ],
+  },
 };

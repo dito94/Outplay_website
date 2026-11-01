@@ -25,7 +25,7 @@ const L = {
   search: { bg: 'Търсене', en: 'Search' },
   openMenu: { bg: 'Отвори менюто', en: 'Open menu' },
   closeMenu: { bg: 'Затвори менюто', en: 'Close menu' },
-  home: { bg: 'OUTPLAY — начало', en: 'OUTPLAY — home' },
+  home: { bg: 'OUTPLAY – начало', en: 'OUTPLAY – home' },
   lang: { bg: 'Език', en: 'Language' },
   callUs: { bg: 'Обадете се', en: 'Call us' },
   systems: { bg: 'системи', en: 'systems' },
@@ -40,6 +40,9 @@ const nav = [
   { href: url(lang, '/contact/'), label: L.contact, match: '/contact/' },
 ];
 const isProducts = route.startsWith('/products/');
+// On a product page the quote buttons jump to that product's own inquiry form
+const isProductPage = /^\/products\/[^/]+\/[^/]+\/$/.test(route);
+const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
 ---
 
 <header class="site-header" data-variant={variant} data-header>
@@ -78,7 +81,6 @@ const isProducts = route.startsWith('/products/');
     <div class="tools">
       <button class="icon-btn search-btn" type="button" data-search-open aria-label={t(L.search, lang)}>
         <Icon name="search" size={20} />
-        <kbd class="kbd" aria-hidden="true">⌘K</kbd>
       </button>
       <div class="lang" role="group" aria-label={t(L.lang, lang)}>
         <a href={switchLangUrl(Astro.url.pathname, 'bg')} hreflang="bg" lang="bg" aria-current={lang === 'bg' ? 'true' : undefined}
@@ -89,7 +91,7 @@ const isProducts = route.startsWith('/products/');
           >EN</a
         >
       </div>
-      <a class="btn btn-sm cta" href={url(lang, '/contact/#inquiry')}>{t(L.inquiry, lang)}</a>
+      <a class="btn btn-sm cta" href={quoteHref}>{t(L.inquiry, lang)}</a>
       <button class="icon-btn burger" type="button" aria-expanded="false" aria-controls="drawer" data-drawer-open>
         <Icon name="menu" size={24} />
         <span class="sr-only">{t(L.openMenu, lang)}</span>
@@ -130,7 +132,7 @@ const isProducts = route.startsWith('/products/');
   </div>
 </header>
 
-<div class="drawer night" id="drawer" hidden data-drawer>
+<div class="drawer night" id="drawer" hidden data-drawer role="dialog" aria-modal="true" aria-label={lang === 'bg' ? 'Меню' : 'Menu'}>
   <div class="drawer-head wrap">
     <a href={url(lang, '/')} class="brand" aria-label={t(L.home, lang)}><Logo tone="light" /></a>
     <button class="icon-btn" type="button" data-drawer-close>
@@ -147,7 +149,7 @@ const isProducts = route.startsWith('/products/');
       {
         cats.map((c, i) => (
           <li>
-            <details open={i === 0}>
+            <details name="drawer-cat">
               <summary>
                 {t(c.name, lang)}
                 <Icon name="plus" size={20} />
@@ -179,13 +181,13 @@ const isProducts = route.startsWith('/products/');
       }
     </ul>
     <div class="drawer-actions">
-      <a class="btn" href={url(lang, '/contact/#inquiry')}>{t(L.inquiry, lang)} <Icon name="arrow-right" class="arrow" /></a>
+      <a class="btn" href={quoteHref} data-drawer-link>{t(L.inquiry, lang)} <Icon name="arrow-right" class="arrow" /></a>
       <a class="btn btn-viber" href="viber://chat?number=%2B359879811259"><Icon name="viber" /> Viber</a>
       <a class="btn btn-ghost" href="tel:+359879811259"><Icon name="phone" /> 087 981 12 59</a>
     </div>
     <div class="drawer-lang">
-      <a href={switchLangUrl(Astro.url.pathname, 'bg')} aria-current={lang === 'bg' ? 'true' : undefined}>Български</a>
-      <a href={switchLangUrl(Astro.url.pathname, 'en')} aria-current={lang === 'en' ? 'true' : undefined}>English</a>
+      <a href={switchLangUrl(Astro.url.pathname, 'bg')} lang="bg" hreflang="bg" aria-current={lang === 'bg' ? 'true' : undefined}>Български</a>
+      <a href={switchLangUrl(Astro.url.pathname, 'en')} lang="en" hreflang="en" aria-current={lang === 'en' ? 'true' : undefined}>English</a>
     </div>
   </nav>
 </div>
@@ -195,13 +197,24 @@ const isProducts = route.startsWith('/products/');
     position: sticky;
     top: 0;
     z-index: 50;
+    transform: translateY(0);
     background: var(--paper);
     color: var(--ink);
     border-bottom: 1px solid var(--line);
     transition:
       background-color 0.3s var(--ease),
       color 0.3s var(--ease),
-      border-color 0.3s var(--ease);
+      border-color 0.3s var(--ease),
+      transform 0.3s var(--ease);
+  }
+  .site-header.is-hidden {
+    transform: translateY(-100%);
+  }
+  :global(:root) {
+    --header-offset: var(--header-h);
+  }
+  :global(html.header-hidden) {
+    --header-offset: 0px;
   }
   :global(html[data-header='overlay']) .site-header {
     position: fixed;
@@ -229,11 +242,11 @@ const isProducts = route.startsWith('/products/');
   .brand {
     display: inline-flex;
     align-items: center;
-    height: 44px;
+    height: 50px;
     flex: none;
   }
   .brand :global(.logo) {
-    height: 44px;
+    height: 50px;
   }
   .brand :global(.logo-on-dark) {
     display: none !important;
@@ -312,15 +325,6 @@ const isProducts = route.startsWith('/products/');
   }
   .icon-btn:hover {
     background: color-mix(in srgb, currentColor 8%, transparent);
-  }
-  .kbd {
-    font-family: var(--font-body);
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 2px 5px;
-    border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
-    border-radius: 3px;
-    opacity: 0.75;
   }
   .lang {
     display: flex;
@@ -551,8 +555,7 @@ const isProducts = route.startsWith('/products/');
 
   @media (max-width: 1080px) {
     .primary,
-    .lang,
-    .kbd {
+    .lang {
       display: none;
     }
     .burger {
@@ -582,10 +585,6 @@ const isProducts = route.startsWith('/products/');
 
 <script>
   const header = document.querySelector<HTMLElement>('header.site-header');
-  // Show the right shortcut for the platform
-  if (!/Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent)) {
-    document.querySelectorAll<HTMLElement>('.kbd').forEach((k) => (k.textContent = 'Ctrl K'));
-  }
   if (header) {
     // Solid header after scrolling past the hero top
     const onScroll = () => header.classList.toggle('is-solid', window.scrollY > 40);
@@ -604,7 +603,39 @@ const isProducts = route.startsWith('/products/');
       mega.hidden = !open;
       header.classList.toggle('mega-open', open);
     };
-    toggle?.addEventListener('click', () => setMega(toggle.getAttribute('aria-expanded') !== 'true'));
+    toggle?.addEventListener('click', (e) => {
+      const open = toggle.getAttribute('aria-expanded') !== 'true';
+      setMega(open);
+      // opened from the keyboard: move focus into the panel
+      if (open && (e as MouseEvent).detail === 0) mega?.querySelector<HTMLElement>('a')?.focus();
+    });
+    header.addEventListener('focusout', (e) => {
+      const next = (e as FocusEvent).relatedTarget as Node | null;
+      if (toggle?.getAttribute('aria-expanded') === 'true' && next && !header.contains(next)) setMega(false);
+    });
+
+    // Phones: hide the header while scrolling down, bring it back on scroll up
+    const small = window.matchMedia('(max-width: 900px)');
+    let lastY = window.scrollY;
+    const onDir = () => {
+      const y = window.scrollY;
+      const drawerOpen = !document.querySelector<HTMLElement>('[data-drawer]')?.hidden;
+      const hide = small.matches && y > 160 && y > lastY + 4 && !drawerOpen;
+      const show = y < lastY - 4 || y <= 160 || !small.matches;
+      if (hide) {
+        header.classList.add('is-hidden');
+        document.documentElement.classList.add('header-hidden');
+      } else if (show) {
+        header.classList.remove('is-hidden');
+        document.documentElement.classList.remove('header-hidden');
+      }
+      lastY = y;
+    };
+    window.addEventListener('scroll', onDir, { passive: true });
+    header.addEventListener('focusin', () => {
+      header.classList.remove('is-hidden');
+      document.documentElement.classList.remove('header-hidden');
+    });
     const fine = window.matchMedia('(hover: hover) and (pointer: fine)');
     if (fine.matches && toggle && mega) {
       const open = () => {
@@ -661,4 +692,6 @@ const isProducts = route.startsWith('/products/');
     }
   });
   drawer?.querySelectorAll('[data-search-open]').forEach((b) => b.addEventListener('click', () => setDrawer(false)));
+  // in-page anchors (e.g. #inquiry on product pages) close the drawer first
+  drawer?.querySelectorAll<HTMLAnchorElement>('a[href^="#"]').forEach((a) => a.addEventListener('click', () => setDrawer(false)));
 </script>

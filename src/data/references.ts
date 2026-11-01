@@ -30,6 +30,7 @@ export const references: ReferenceProject[] = [
     id: 'shtastlivetsa',
     image: 'references/shtastlivetsa.jpg',
     name: 'Щастливеца',
+    nameEn: 'Shtastlivetsa',
     type: { bg: 'Ресторант', en: 'Restaurant' },
   },
   {

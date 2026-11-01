@@ -18,7 +18,7 @@ const modes = [
     label: { bg: 'Дъжд и сняг', en: 'Rain & snow' },
     text: {
       bg: 'При 0° ламелите се затварят плътно. Водата се събира в интегрираните улуци и се отвежда скрито през колоните.',
-      en: 'At 0° the lamellas close tightly. Rainwater runs into the integrated gutters and drains invisibly through the posts.',
+      en: 'At 0° the louvres close tightly. Rainwater runs into the integrated gutters and drains invisibly through the posts.',
     },
   },
   {
@@ -28,7 +28,7 @@ const modes = [
     label: { bg: 'Сянка', en: 'Shade' },
     text: {
       bg: 'Леко отворени ламели спират преките лъчи и пропускат мека, разсеяна светлина.',
-      en: 'Slightly open lamellas block direct sun and let in soft, diffused light.',
+      en: 'Slightly open louvres block direct sun and let in soft, diffused light.',
     },
   },
   {
@@ -48,17 +48,17 @@ const modes = [
     label: { bg: 'Вентилация', en: 'Ventilation' },
     text: {
       bg: 'При 90° топлият въздух излиза свободно между ламелите и пространството остава прохладно.',
-      en: 'At 90° warm air escapes freely between the lamellas and the space stays cool.',
+      en: 'At 90° warm air escapes freely between the louvres and the space stays cool.',
     },
   },
   {
     id: 'open',
     angle: 120,
     icon: 'sun',
-    label: { bg: '120°', en: '120°' },
+    label: { bg: 'Максимално отворени', en: 'Fully open' },
     text: {
       bg: 'Максималният ъгъл на ротация. Ламелите се завъртат отвъд вертикала, за да пропуснат повече светлина.',
-      en: 'The maximum rotation. The lamellas turn past vertical to let more light through.',
+      en: 'The maximum rotation. The louvres turn past vertical to let more light through.',
     },
   },
   {
@@ -69,20 +69,20 @@ const modes = [
     label: { bg: 'Открито небе', en: 'Open sky' },
     text: {
       bg: 'Само при Infinity: втори мотор прибира ламелите в единия край и покривът изчезва за секунди.',
-      en: 'Infinity only: a second motor stacks the lamellas at one end and the roof disappears in seconds.',
+      en: 'Infinity only: a second motor stacks the louvres at one end and the roof disappears in seconds.',
     },
   },
 ];
 const start = series === 'infinity' ? 'sky' : 'light';
 const startMode = modes.find((m) => m.id === start)!;
 const L = {
-  angle: { bg: 'Ъгъл на ламелите', en: 'Lamella angle' },
+  angle: { bg: 'Ъгъл на ламелите', en: 'Louvre angle' },
   modes: { bg: 'Изберете условия', en: 'Choose the conditions' },
   balance: { bg: 'Balance · 1 мотор · 0–120°', en: 'Balance · 1 motor · 0–120°' },
   infinity: { bg: 'Infinity · 2 мотора · 0–120° + прибиране', en: 'Infinity · 2 motors · 0–120° + retract' },
   figure: {
     bg: 'Схема в разрез на покрив с алуминиеви ламели',
-    en: 'Cross-section diagram of an aluminium lamella roof',
+    en: 'Cross-section diagram of an aluminium louvre roof',
   },
 };
 const N = 10;
@@ -165,7 +165,6 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
         <!-- sun + rays -->
         <g class="fx-sun">
           <circle cx="120" cy="58" r="26" fill="#f9c823"></circle>
-          <circle cx="120" cy="58" r="40" fill="none" stroke="#f9c823" stroke-opacity="0.25" stroke-width="2"></circle>
         </g>
         <g class="fx-rays">
           {
@@ -231,14 +230,6 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
       <!-- floor -->
       <rect x="0" y="404" width="800" height="36" fill="#17181a"></rect>
       <rect x="0" y="404" width="800" height="1" fill="#3a3d41"></rect>
-      <!-- people for scale: lounge -->
-      <g fill="#2b2f33">
-        <rect x="300" y="372" width="200" height="22" rx="4"></rect>
-        <rect x="300" y="352" width="26" height="42" rx="4"></rect>
-        <rect x="474" y="352" width="26" height="42" rx="4"></rect>
-        <rect x="560" y="378" width="70" height="8" rx="2"></rect>
-        <rect x="592" y="386" width="6" height="18"></rect>
-      </g>
     </svg>
   </figure>
 </div>
@@ -290,7 +281,8 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
     color: var(--ink);
   }
   .lam-mode-inf::after {
-    content: ' ∞';
+    content: ' · Infinity';
+    font-weight: 400;
     opacity: 0.7;
   }
   [data-series='balance'] .lam-mode-inf {

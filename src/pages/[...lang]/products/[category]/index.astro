@@ -4,7 +4,6 @@ import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
 import SectionHead from '../../../../components/SectionHead.astro';
 import Img from '../../../../components/Img.astro';
 import Icon from '../../../../components/Icon.astro';
-import LamellaDemo from '../../../../components/LamellaDemo.astro';
 import CtaBand from '../../../../components/CtaBand.astro';
 import ProductGrid from '../../../../components/ProductGrid.astro';
 import type { Category, Product } from '../../../../data/types';
@@ -32,13 +31,8 @@ const lang = getLang(Astro.params.lang);
 const T = {
   products: { bg: 'Продукти', en: 'Products' },
   quote: { bg: 'Направете запитване', en: 'Request a quote' },
-  lamTitle: { bg: 'Ламели, които следват деня', en: 'Louvres that follow the day' },
-  lamIntro: {
-    bg: 'Balance завърта ламелите от 0° до 120°, а Infinity може и да ги прибере в края на конструкцията. Изберете условия или плъзнете скалата.',
-    en: 'Balance turns its louvres from 0° to 120°; Infinity can also stack them at one end of the structure. Pick the conditions or drag the slider.',
-  },
-  lamLink: { bg: 'Серия Balance', en: 'Balance series' },
-  lamLink2: { bg: 'Серия Infinity', en: 'Infinity series' },
+  more: { bg: 'Прочетете повече', en: 'Read more' },
+  less: { bg: 'Покажи по-малко', en: 'Show less' },
   inCat: { bg: 'продукта в категорията', en: 'products in this category' },
   inCatOne: { bg: 'продукт в категорията', en: 'product in this category' },
 };
@@ -65,7 +59,7 @@ const others = categories.filter((c) => c.id !== category.id).sort((a, b) => a.o
 const [introLead, ...introRest] = category.intro;
 const options = pages.home.options;
 
-// Alternate grey / white after the intro; the lamella band is always night
+// Alternate grey / white after the intro
 let grey = true;
 const nextBand = () => {
   const b = grey ? 'mist' : '';
@@ -108,11 +102,25 @@ const othersBand = nextBand();
     </div>
   </section>
 
-  <!-- Intro -->
+  <!-- Intro (phones: the paragraphs after the lead fold behind "Read more" so the products come sooner) -->
   <section class="section c-intro">
-    <div class="wrap c-intro-grid">
-      <p class="c-intro-lead" data-reveal>{t(introLead, lang)}</p>
-      <div class="c-intro-rest" data-reveal>
+    <div class="wrap c-intro-grid" data-intro>
+      <div class="c-intro-head" data-reveal>
+        <p class="c-intro-lead">{t(introLead, lang)}</p>
+        <button
+          type="button"
+          class="c-more"
+          aria-expanded="false"
+          aria-controls="c-intro-rest"
+          data-intro-toggle
+          data-more={t(T.more, lang)}
+          data-less={t(T.less, lang)}
+        >
+          <span data-intro-label>{t(T.more, lang)}</span>
+          <Icon name="chevron-down" size={18} />
+        </button>
+      </div>
+      <div class="c-intro-rest" id="c-intro-rest" data-reveal>
         <div class="prose">
           {introRest.map((p) => <p>{t(p, lang)}</p>)}
         </div>
@@ -134,26 +142,6 @@ const othersBand = nextBand();
         </div>
       </section>
     ))
-  }
-
-  {
-    isBio && (
-      <section class="section night" aria-labelledby="lam-title">
-        <div class="wrap">
-          <SectionHead id="lam-title" title={t(T.lamTitle, lang)} intro={t(T.lamIntro, lang)}>
-            <p class="lam-links">
-              <a class="link-arrow" href={productUrl(lang, 'bioclimatic-pergolas', 'balance')}>
-                {t(T.lamLink, lang)} <Icon name="arrow-right" size={16} />
-              </a>
-              <a class="link-arrow" href={productUrl(lang, 'bioclimatic-pergolas', 'infinity')}>
-                {t(T.lamLink2, lang)} <Icon name="arrow-right" size={16} />
-              </a>
-            </p>
-          </SectionHead>
-          <LamellaDemo lang={lang} series="both" id="cat-lamella" />
-        </div>
-      </section>
-    )
   }
 
   {
@@ -207,6 +195,20 @@ const othersBand = nextBand();
 
   <CtaBand lang={lang} />
 </Base>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-intro]').forEach((root) => {
+    const btn = root.querySelector<HTMLButtonElement>('[data-intro-toggle]');
+    const label = root.querySelector<HTMLElement>('[data-intro-label]');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const open = btn.getAttribute('aria-expanded') !== 'true';
+      btn.setAttribute('aria-expanded', String(open));
+      root.classList.toggle('is-open', open);
+      if (label) label.textContent = (open ? btn.dataset.less : btn.dataset.more) ?? '';
+    });
+  });
+</script>
 
 <style>
   /* Hero */
@@ -309,8 +311,13 @@ const othersBand = nextBand();
     gap: var(--s-7) var(--s-5);
     align-items: start;
   }
-  .c-intro-lead {
+  .c-intro-head {
     grid-column: 1 / span 6;
+    display: grid;
+    gap: var(--s-5);
+    justify-items: start;
+  }
+  .c-intro-lead {
     font-family: var(--font-display);
     font-weight: 300;
     font-size: var(--step-2);
@@ -341,21 +348,53 @@ const othersBand = nextBand();
     font-size: var(--step-3);
     line-height: 1;
   }
+  .c-more {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--fg);
+    font-size: var(--step--1);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.3em;
+  }
+  .c-more:hover {
+    text-decoration-color: var(--yellow);
+    text-decoration-thickness: 2px;
+  }
+  .c-more :global(svg) {
+    transition: transform 0.25s var(--ease);
+  }
+  .c-more[aria-expanded='true'] :global(svg) {
+    transform: rotate(180deg);
+  }
   @media (max-width: 900px) {
-    .c-intro-lead,
+    .c-intro-head,
     .c-intro-rest {
       grid-column: 1 / -1;
     }
     .c-intro-lead {
       font-size: var(--step-1);
     }
-  }
-
-  /* Lamella links */
-  .lam-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s-3) var(--s-6);
+    .c-intro {
+      padding-block: clamp(2.5rem, 2rem + 3vw, 4rem);
+    }
+    /* With JS: fold the rest of the intro behind the toggle (without JS everything stays visible) */
+    :global(html.js) .c-more {
+      display: inline-flex;
+    }
+    :global(html.js) .c-intro-grid:not(.is-open) .c-intro-rest {
+      display: none;
+    }
+    :global(html.js) .c-intro-grid:not(.is-open) {
+      row-gap: 0;
+    }
   }
 
   /* Integrated options: a compact typographic list */
@@ -417,7 +456,7 @@ const othersBand = nextBand();
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(10, 10, 8, 0.8) 0%, rgba(10, 10, 8, 0.25) 50%, rgba(10, 10, 8, 0.05) 75%);
+    background: linear-gradient(to top, rgba(10, 10, 8, 0.85) 0%, rgba(10, 10, 8, 0.35) 55%, rgba(10, 10, 8, 0.1) 100%);
     transition: background-color 0.3s var(--ease);
   }
   .other:hover .other-media::after {
@@ -430,7 +469,7 @@ const othersBand = nextBand();
   }
   .other-title {
     font-size: var(--step-2);
-    font-weight: 300;
+    font-weight: 400;
   }
   .other-link {
     text-decoration: none;

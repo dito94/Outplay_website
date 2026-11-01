@@ -9,7 +9,6 @@ import HotspotScene from '../../../../components/HotspotScene.astro';
 import LamellaDemo from '../../../../components/LamellaDemo.astro';
 import Lightbox from '../../../../components/Lightbox.astro';
 import InquiryForm from '../../../../components/InquiryForm.astro';
-import CtaBand from '../../../../components/CtaBand.astro';
 import SpecPlate from '../../../../components/SpecPlate.astro';
 import SubNav from '../../../../components/SubNav.astro';
 import ProductGallery from '../../../../components/ProductGallery.astro';
@@ -59,10 +58,6 @@ const T = {
     bg: 'Основните елементи на конструкцията, събрани на една схема.',
     en: 'The main elements of the structure on one drawing.',
   },
-  videoText: {
-    bg: 'Видеото се отваря на outplay.bg в нов прозорец.',
-    en: 'The video opens on outplay.bg in a new window.',
-  },
   lamTitle: { bg: 'Светлина, сянка и въздух', en: 'Light, shade and air' },
   lamBalance: {
     bg: 'Един мотор завърта ламелите от 0° до 120°. Изберете условия или плъзнете скалата, за да видите как реагира покривът.',
@@ -82,7 +77,6 @@ const T = {
   },
   talk: { bg: 'Предпочитате да говорим?', en: 'Prefer to talk?' },
   viber: { bg: 'Пишете ни във Viber', en: 'Message us on Viber' },
-  photo: { bg: 'снимка', en: 'photo' },
 };
 
 const name = t(product.name, lang);
@@ -93,31 +87,53 @@ const ratioOf = (p: string | undefined) => {
   return m ? m.width / m.height : 1.5;
 };
 
-// Editorial rows: pair sections with gallery photos (landscape first), never the hero again.
-const rowPool = [...gallery].sort((a, b) => Number(ratioOf(b) >= 1.1) - Number(ratioOf(a) >= 1.1));
+// Every photo appears once per page: the hero stays in the hero, each editorial row gets its own photo and
+// the gallery shows only what is left. A gallery needs at least 3 photos; when the rows would leave fewer,
+// rows give photos back so the gallery keeps 3 (only if at least 4 exist), otherwise the gallery is dropped.
+const landscape = (p: string) => ratioOf(p) >= 1.1;
+const sectionCount = product.sections.length;
+const maxRows = Math.min(sectionCount, gallery.length);
+const rowCount = gallery.length - maxRows >= 3 ? maxRows : gallery.length >= 4 ? gallery.length - 3 : maxRows;
+// Rows prefer landscape photos (stable order); everything else is left for the gallery.
+const rowImages = [...gallery].sort((a, b) => Number(landscape(b)) - Number(landscape(a))).slice(0, rowCount);
+const leftover = gallery.filter((p) => !rowImages.includes(p));
+const galleryImages = leftover.length >= 3 ? leftover : [];
+const unusedImages = galleryImages.length ? [] : leftover;
+// Spread the row photos evenly over the sections, always starting with the first one.
+const imageAt = new Map<number, string>();
+rowImages.forEach((src, k) => imageAt.set(Math.round((k * sectionCount) / rowImages.length), src));
+
 let imageRow = 0;
 const norm = (v: string) => v.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 const taglineKey = norm(t(product.tagline, lang));
+const LEAD_MAX = 200;
 const rows = product.sections.map((s, i) => {
-  const image = rowPool[i];
+  const image = imageAt.get(i);
   const flip = image ? imageRow++ % 2 === 1 : false;
   const ratio = image ? Math.min(1.6, Math.max(0.95, ratioOf(image))) : 1;
-  // The hero already shows the tagline; when the first section repeats it, open with a lead paragraph instead.
+  // The hero already shows the tagline; when the first section repeats it, open without a visible heading.
   const intro = i === 0 && norm(t(s.heading, lang)) === taglineKey;
-  return { ...s, image, flip, ratio, intro };
+  // Only a short opening paragraph is set as a display-type lead; long ones stay body text.
+  const lead = intro && t(s.paragraphs[0], lang).length <= LEAD_MAX;
+  return { ...s, image, flip, ratio, intro, lead };
 });
-const usedInRows = new Set(rows.map((r) => r.image).filter(Boolean));
-const galleryImages = [hero, ...gallery].filter((p): p is string => !!p);
-const videoPoster = gallery.find((g) => !usedInRows.has(g) && ratioOf(g) >= 1.1) ?? gallery[gallery.length - 1] ?? hero;
 
 const hasTech = !!diagram;
 const techWithHotspots = hasTech && hotspots.length > 0;
 const featuresInTech = hasTech && !techWithHotspots;
 const lamellaSeries = product.id === 'balance' ? 'balance' : product.id === 'infinity' ? 'infinity' : undefined;
-const hasVideo = !!product.video?.url;
+const hasGallery = galleryImages.length > 0;
+
+// Video: a real YouTube link gets its own band with the click-to-load player (poster from an unused photo,
+// or a dark plate); any other link (the catalogue's generic outplay.bg/video page) is a compact link row
+// placed in the gallery, technology or specs band.
+const videoUrl = product.video?.url;
+const isYouTube = !!videoUrl && /(?:youtube(?:-nocookie)?\.com|youtu\.be)\//i.test(videoUrl);
+const videoPoster = isYouTube ? unusedImages.find(landscape) : undefined;
+const videoSpot = !videoUrl ? undefined : isYouTube ? 'band' : hasGallery ? 'gallery' : hasTech ? 'technology' : 'specs';
 
 // Alternate day / light-grey bands down the page; the lamella demo is always a night band.
-const order = ['overview', hasTech && 'technology', lamellaSeries && 'lamella', 'specs', galleryImages.length && 'gallery', 'inquiry', 'related'].filter(
+const order = ['overview', hasTech && 'technology', lamellaSeries && 'lamella', 'specs', hasGallery && 'gallery', 'inquiry', 'related'].filter(
   Boolean,
 ) as string[];
 const band: Record<string, string> = {};
@@ -136,7 +152,7 @@ const navItems = [
   { id: 'overview', label: t(T.navOverview, lang) },
   ...(hasTech ? [{ id: 'technology', label: t(T.navTech, lang) }] : []),
   { id: 'specs', label: t(T.navSpecs, lang) },
-  ...(galleryImages.length ? [{ id: 'gallery', label: t(T.navGallery, lang) }] : []),
+  ...(hasGallery ? [{ id: 'gallery', label: t(T.navGallery, lang) }] : []),
   { id: 'inquiry', label: t(T.navInquiry, lang) },
 ];
 
@@ -187,36 +203,37 @@ const jsonLd = {
           { label: name },
         ]}
       />
-      <div class="p-head">
+      <!-- Source order = phone order (title, photo, summary, CTA); from 901px the photo moves under the text -->
+      <div class:list={['p-top', { 'no-media': !heroMeta }]}>
         <div class="p-titles">
           <h1 id="p-title" class:list={['p-h1', { 'is-long': longName }]} data-pid={product.id} data-pfield="name">{name}</h1>
           <p class="p-full">{t(product.fullName, lang)}</p>
         </div>
+        {
+          heroMeta && (
+            <div class="p-hero-media">
+              <div class="media p-hero-img">
+                <Img
+                  src={hero}
+                  lang={lang}
+                  alt={altOf(hero, lang) || t(product.fullName, lang)}
+                  priority
+                  sizes="(min-width: 1440px) 1330px, calc(100vw - 2 * clamp(16px, 4vw, 56px))"
+                />
+              </div>
+            </div>
+          )
+        }
         <div class="p-intro">
           <p class="p-tagline" data-pid={product.id} data-pfield="tagline">{t(product.tagline, lang)}</p>
           <p class="lead p-sum" data-pid={product.id} data-pfield="summary">{t(product.summary, lang)}</p>
           <div class="btn-row p-ctas" data-sticky-cta-start>
             <a class="btn" href="#inquiry">{t(T.quote, lang)} <Icon name="arrow-right" class="arrow" /></a>
-            <a class="btn btn-viber" href={viber}><Icon name="viber" /> Viber</a>
-            <a class="p-phone num" href={`tel:${phone.e164}`}><Icon name="phone" size={18} /> {phone.display}</a>
+            <a class="btn btn-viber p-alt" href={viber}><Icon name="viber" /> Viber</a>
+            <a class="p-phone p-alt num" href={`tel:${phone.e164}`}><Icon name="phone" size={18} /> {phone.display}</a>
           </div>
         </div>
       </div>
-      {
-        heroMeta && (
-          <div class="p-hero-media bracket">
-            <div class="media p-hero-img">
-              <Img
-                src={hero}
-                lang={lang}
-                alt={altOf(hero, lang) || t(product.fullName, lang)}
-                priority
-                sizes="(min-width: 1440px) 1330px, calc(100vw - 2 * clamp(16px, 4vw, 56px))"
-              />
-            </div>
-          </div>
-        )
-      }
       <SpecPlate lang={lang} highlights={product.highlights} name={name} title={t(ui.product.highlights, lang)} id="p-plate" />
     </div>
   </section>
@@ -233,7 +250,7 @@ const jsonLd = {
             <article class:list={['row', { flip: r.flip }]} data-reveal>
               <div class="row-text">
                 {r.intro ? <h2 class="sr-only">{t(T.navOverview, lang)}</h2> : <h2 class="h2 rule">{t(r.heading, lang)}</h2>}
-                <div class:list={['prose', { 'has-lead': r.intro }]}>
+                <div class:list={['prose', { 'has-intro': r.intro, 'has-lead': r.lead }]}>
                   {r.paragraphs.map((p) => (
                     <p>{t(p, lang)}</p>
                   ))}
@@ -252,7 +269,7 @@ const jsonLd = {
           ) : (
             <article class="row-solo" data-reveal>
               {r.intro ? <h2 class="sr-only">{t(T.navOverview, lang)}</h2> : <h2 class="h2 rule">{t(r.heading, lang)}</h2>}
-              <div class:list={['prose', { 'has-lead': r.intro }]}>
+              <div class:list={['prose', { 'has-intro': r.intro, 'has-lead': r.lead }]}>
                 {r.paragraphs.map((p) => (
                   <p>{t(p, lang)}</p>
                 ))}
@@ -292,6 +309,11 @@ const jsonLd = {
               </div>
             )}
           </div>
+          {videoSpot === 'technology' && videoUrl && product.video && (
+            <div class="p-vlink">
+              <VideoEmbed lang={lang} url={videoUrl} title={t(product.video.title, lang)} id={`${product.id}-video`} />
+            </div>
+          )}
         </div>
       </section>
     )
@@ -367,7 +389,7 @@ const jsonLd = {
         product.options && product.options.length > 0 && (
           <div class="opts" data-reveal>
             <h2 class="h4 opts-title">{t(ui.product.options, lang)}</h2>
-            <ul class="tags">
+            <ul class="ticks opts-list">
               {product.options.map((o) => (
                 <li>{t(o, lang)}</li>
               ))}
@@ -375,36 +397,48 @@ const jsonLd = {
           </div>
         )
       }
+
+      {
+        videoSpot === 'specs' && videoUrl && product.video && (
+          <div class="p-vlink">
+            <VideoEmbed lang={lang} url={videoUrl} title={t(product.video.title, lang)} id={`${product.id}-video`} />
+          </div>
+        )
+      }
     </div>
   </section>
 
-  <!-- 8. Gallery -->
+  <!-- 8. Gallery (only photos not already shown above) -->
   {
-    galleryImages.length > 0 && (
+    hasGallery && (
       <section id="gallery" data-sn-section="gallery" class:list={['section', band.gallery]} aria-labelledby="gallery-title">
         <div class="wrap">
           <SectionHead id="gallery-title" title={t(ui.product.gallery, lang)} intro={fmt(t(T.galleryIntro, lang), { name })} />
           <ProductGallery lang={lang} images={galleryImages} group="product" name={name} />
+          {videoSpot === 'gallery' && videoUrl && product.video && (
+            <div class="p-vlink">
+              <VideoEmbed lang={lang} url={videoUrl} title={t(product.video.title, lang)} id={`${product.id}-video`} />
+            </div>
+          )}
         </div>
       </section>
     )
   }
 
-  <!-- 9. Video -->
+  <!-- 9. Video (real YouTube links only) -->
   {
-    hasVideo && product.video && (
-      <section class:list={['section', 'p-video', band.video, { joined: galleryImages.length > 0 }]} data-sn-section="gallery" aria-labelledby="video-title">
+    videoSpot === 'band' && videoUrl && product.video && (
+      <section class:list={['section', 'p-video', band.video, { joined: hasGallery }]} data-sn-section={hasGallery ? 'gallery' : 'specs'} aria-labelledby="video-title">
         <div class="wrap video-grid">
           <div class="video-copy" data-reveal>
             <h2 id="video-title" class="h2 rule">
               {t(ui.product.video, lang)}
             </h2>
             <p class="lead">{t(product.video.title, lang)}</p>
-            {!/youtu\.?be/.test(product.video.url) && <p class="small muted">{t(T.videoText, lang)}</p>}
           </div>
           <VideoEmbed
             lang={lang}
-            url={product.video.url}
+            url={videoUrl}
             title={t(product.video.title, lang)}
             poster={videoPoster}
             showTitle={false}
@@ -458,8 +492,7 @@ const jsonLd = {
     )
   }
 
-  <CtaBand lang={lang} productId={product.id} />
-  <Lightbox lang={lang} />
+  {hasGallery && <Lightbox lang={lang} />}
   <StickyCta lang={lang} href="#inquiry" />
 </Base>
 
@@ -469,22 +502,34 @@ const jsonLd = {
     padding-top: var(--s-5);
     padding-bottom: clamp(2.5rem, 1.5rem + 3vw, 4.5rem);
   }
-  .p-head {
+  .p-top {
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-    gap: var(--s-6) clamp(2rem, 1rem + 4vw, 6rem);
+    grid-template-areas:
+      'titles intro'
+      'media media';
+    gap: clamp(2.5rem, 1.5rem + 3vw, 4.5rem) clamp(2rem, 1rem + 4vw, 6rem);
     align-items: end;
     padding-top: clamp(2rem, 1.2rem + 3vw, 4.5rem);
-    padding-bottom: clamp(2.5rem, 1.5rem + 3vw, 4.5rem);
   }
   .p-titles {
+    grid-area: titles;
     display: grid;
     gap: var(--s-4);
     align-content: end;
   }
+  .p-intro {
+    grid-area: intro;
+    display: grid;
+    gap: var(--s-4);
+    justify-items: start;
+  }
+  .p-hero-media {
+    grid-area: media;
+  }
   .p-h1 {
     font-weight: 300;
-    font-size: clamp(3rem, 1.6rem + 6vw, 7rem);
+    font-size: clamp(3rem, 1.6rem + 6vw, 6rem);
     line-height: 0.98;
     letter-spacing: -0.03em;
   }
@@ -500,11 +545,6 @@ const jsonLd = {
     font-size: var(--step-0);
     padding-top: var(--s-4);
     border-top: 1px solid var(--hair);
-  }
-  .p-intro {
-    display: grid;
-    gap: var(--s-4);
-    justify-items: start;
   }
   .p-tagline {
     font-family: var(--font-display);
@@ -534,30 +574,52 @@ const jsonLd = {
   .p-phone:hover {
     text-decoration: underline;
   }
+
+  /* Hero photo: flush with the content grid; the brand bracket is drawn on the photo's own corners
+     (black L-brackets on top, yellow at the bottom) and never reaches into the gutter. */
   .p-hero-media {
-    --bracket-top: var(--ink);
-    margin-inline: 10px;
+    --bw: 8px;
+    --bl: clamp(40px, 2rem + 3vw, 88px);
+    position: relative;
   }
   .p-hero-media::before,
   .p-hero-media::after {
-    left: -10px;
-    right: -10px;
-    border-width: 10px;
-    height: 30%;
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-image:
+      linear-gradient(var(--bc), var(--bc)), linear-gradient(var(--bc), var(--bc)), linear-gradient(var(--bc), var(--bc)),
+      linear-gradient(var(--bc), var(--bc));
+    background-size:
+      var(--bl) var(--bw),
+      var(--bw) var(--bl),
+      var(--bl) var(--bw),
+      var(--bw) var(--bl);
   }
   .p-hero-media::before {
-    top: -10px;
-    border-bottom: 0;
+    --bc: var(--ink);
+    background-position:
+      left top,
+      left top,
+      right top,
+      right top;
   }
   .p-hero-media::after {
-    bottom: -10px;
-    border-top: 0;
+    --bc: var(--yellow);
+    background-position:
+      left bottom,
+      left bottom,
+      right bottom,
+      right bottom;
   }
   .p-hero-img {
     aspect-ratio: 2 / 1;
   }
-  .p-hero-media + :global(.plate) {
-    margin-top: calc(10px + var(--s-6));
+  .p-top + :global(.plate) {
+    margin-top: var(--s-6);
   }
   @media (max-width: 1100px) {
     .p-hero-img {
@@ -565,34 +627,65 @@ const jsonLd = {
     }
   }
   @media (max-width: 900px) {
-    .p-head {
+    /* One column in source order: title, photo, summary + CTA */
+    .p-top {
       grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: none;
       align-items: start;
+      row-gap: var(--s-6);
+    }
+    .p-titles,
+    .p-intro,
+    .p-hero-media {
+      grid-area: auto;
     }
   }
   @media (max-width: 640px) {
+    .p-hero {
+      padding-top: var(--s-4);
+    }
+    .p-top {
+      padding-top: var(--s-5);
+      row-gap: var(--s-5);
+    }
+    /* The catalogue name repeats the H1 here; the page title and breadcrumb already carry it */
+    .p-full {
+      display: none;
+    }
     .p-hero-media {
-      margin-inline: 6px;
+      --bw: 6px;
+      --bl: 36px;
     }
-    .p-hero-media::before,
-    .p-hero-media::after {
-      left: -6px;
-      right: -6px;
-      border-width: 6px;
+    .p-hero-img {
+      aspect-ratio: 3 / 2;
     }
-    .p-hero-media::before {
-      top: -6px;
-      border-bottom: 0;
+    .p-intro {
+      gap: var(--s-3);
     }
-    .p-hero-media::after {
-      bottom: -6px;
-      border-top: 0;
+    .p-tagline {
+      font-size: var(--step-2);
+      line-height: 1.18;
     }
-    .p-hero-media + :global(.plate) {
-      margin-top: calc(8px + var(--s-5));
+    .p-sum {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      overflow: hidden;
+    }
+    .p-ctas {
+      margin-top: var(--s-2);
+      width: 100%;
     }
     .p-ctas .btn:first-child {
       flex: 1 1 100%;
+    }
+    /* Viber and phone live in the sticky action bar and the inquiry section on phones */
+    .p-alt {
+      display: none;
+    }
+    .p-top + :global(.plate) {
+      margin-top: var(--s-6);
     }
   }
 
@@ -602,7 +695,7 @@ const jsonLd = {
   }
   @media (max-width: 900px) {
     [data-sn-section] {
-      scroll-margin-top: 0;
+      scroll-margin-top: 40px;
     }
   }
 
@@ -641,17 +734,12 @@ const jsonLd = {
   .row-solo .prose p:first-child {
     color: var(--fg);
   }
-  .prose.has-lead p:first-child {
+  /* Opening row without a visible heading: the yellow rule sits above the text instead */
+  .prose.has-intro {
     position: relative;
     padding-top: 1.4rem;
-    margin-bottom: var(--s-5);
-    font-family: var(--font-display);
-    font-weight: 300;
-    font-size: var(--step-2);
-    line-height: 1.35;
-    color: var(--fg);
   }
-  .prose.has-lead p:first-child::before {
+  .prose.has-intro::before {
     content: '';
     position: absolute;
     left: 0;
@@ -659,6 +747,15 @@ const jsonLd = {
     width: 56px;
     height: 2px;
     background: var(--yellow);
+  }
+  /* A short opening paragraph (≤ 200 characters) is set as a display-type lead */
+  .prose.has-lead p:first-child {
+    margin-bottom: var(--s-5);
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: var(--step-2);
+    line-height: 1.35;
+    color: var(--fg);
   }
   .row-solo {
     display: grid;
@@ -796,24 +893,27 @@ const jsonLd = {
     font-family: var(--font-display);
     font-weight: 400;
   }
-  .tags {
-    list-style: none;
+  /* Options are information, not choices: a quiet ticked list in columns */
+  .opts-list {
     margin: 0;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s-2);
-  }
-  .tags li {
-    display: inline-flex;
-    align-items: center;
-    min-height: 40px;
-    padding: 0.45rem 0.95rem;
-    border: 1px solid color-mix(in srgb, var(--fg) 18%, transparent);
-    border-radius: var(--radius);
-    background: var(--bg);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+    gap: var(--s-3) var(--s-6);
     font-size: var(--step--1);
-    font-weight: 500;
+  }
+  .opts-list li {
+    line-height: 1.5;
+  }
+  .opts-list li::before {
+    top: 0.72em;
+  }
+
+  /* Compact external video link (the catalogue only links a generic video page) */
+  .p-vlink {
+    margin-top: var(--s-7);
+  }
+  .p-video + .p-vlink,
+  .opts + .p-vlink {
+    margin-top: var(--s-6);
   }
   @media (max-width: 1100px) {
     .conf-grid {

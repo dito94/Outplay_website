@@ -3,7 +3,6 @@ import Base from '../../../layouts/Base.astro';
 import Breadcrumbs from '../../../components/Breadcrumbs.astro';
 import FaqAccordion from '../../../components/FaqAccordion.astro';
 import CopyButton from '../../../components/CopyButton.astro';
-import CtaBand from '../../../components/CtaBand.astro';
 import Icon from '../../../components/Icon.astro';
 import { faq } from '../../../data/faq';
 import { pages } from '../../../data/pages';
@@ -23,7 +22,7 @@ const T = {
     en: 'Answers to common questions about bioclimatic pergolas, glass systems and ZIP screens: choosing, quotes, site visits, installation, care and warranty.',
   },
   searchLabel: { bg: 'Търсете във въпросите', en: 'Search the questions' },
-  searchPlaceholder: { bg: 'напр. фундамент или гаранция', en: 'e.g. foundation or warranty' },
+  searchPlaceholder: { bg: 'напр. гаранция', en: 'e.g. warranty' },
   searchHint: { bg: 'Търси във въпросите и отговорите.', en: 'Searches questions and answers.' },
   topics: { bg: 'Теми', en: 'Topics' },
   total: { bg: '{count} въпроса в {groups} теми', en: '{count} questions in {groups} topics' },
@@ -58,11 +57,11 @@ const jsonLd = {
 ---
 
 <Base lang={lang} title={t(page.title, lang)} description={t(T.metaDescription, lang)} jsonLd={jsonLd}>
-  <section class="ph" aria-labelledby="page-title">
+  <section class="page-hero ph" aria-labelledby="page-title">
     <div class="wrap">
       <Breadcrumbs lang={lang} items={[{ label: t(page.title, lang) }]} />
       <div class="ph-grid">
-        <h1 id="page-title" class="h1 rule">{t(page.title, lang)}</h1>
+        <h1 id="page-title" class="rule">{t(page.title, lang)}</h1>
         <p class="lead">{t(page.intro, lang)}</p>
       </div>
     </div>
@@ -210,15 +209,11 @@ const jsonLd = {
       </div>
     </div>
   </section>
-
-  <CtaBand lang={lang} />
 </Base>
 
 <style>
-  /* Page head */
+  /* Page head (spacing and H1 size from the shared .page-hero) */
   .ph {
-    padding-top: clamp(1.25rem, 0.8rem + 1.5vw, 2rem);
-    padding-bottom: clamp(2.5rem, 1.8rem + 3vw, 4.5rem);
     border-bottom: 1px solid var(--hair);
   }
   .ph-grid {
@@ -226,7 +221,6 @@ const jsonLd = {
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
     gap: var(--s-5) var(--s-8);
     align-items: end;
-    margin-top: clamp(2rem, 1.2rem + 3vw, 4rem);
   }
   @media (max-width: 860px) {
     .ph-grid {
@@ -260,6 +254,7 @@ const jsonLd = {
   .fs {
     display: none;
     gap: var(--s-2);
+    scroll-margin-top: calc(var(--header-h) + var(--s-4));
   }
   :global(html.js) .fs {
     display: grid;
@@ -741,6 +736,21 @@ const jsonLd = {
         input.value = '';
         run('', { now: true });
       }
+    });
+    // Phones: bring the search field to the top when it gets focus, so results show above the keyboard as you type
+    const narrow = window.matchMedia('(max-width: 900px)');
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let lift: number | undefined;
+    input.addEventListener('focus', () => {
+      if (!narrow.matches || !form) return;
+      window.clearTimeout(lift);
+      // wait for the on-screen keyboard to open, otherwise the browser's own scroll-into-view wins
+      lift = window.setTimeout(() => {
+        if (document.activeElement !== input) return;
+        const top = form.getBoundingClientRect().top;
+        const margin = parseFloat(getComputedStyle(form).scrollMarginTop) || 0;
+        if (Math.abs(top - margin) > 4) form.scrollIntoView({ block: 'start', behavior: reduced.matches ? 'auto' : 'smooth' });
+      }, 250);
     });
     form?.addEventListener('submit', (e) => {
       e.preventDefault();

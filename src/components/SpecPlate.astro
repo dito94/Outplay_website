@@ -1,6 +1,8 @@
 ---
 // Product highlights as an aluminium data plate: a riveted hairline panel, big light numerals with units,
 // labels underneath, hairline separators. 2–4 cells; on phones the cells become rows (value | label).
+// Only real figures are shown: a value must contain a digit and not be a bare "0" (so "RAL", "LED" or
+// "0 floor guides" stay in the copy, not on the plate). With fewer than 2 figures the plate is not rendered.
 import type { Highlight, Lang } from '../data/types';
 import { t } from '../lib/i18n';
 
@@ -13,12 +15,14 @@ interface Props {
   title: string;
   id?: string;
 }
-const { lang, highlights, name, title, id = 'spec-plate' } = Astro.props;
-const n = Math.max(1, Math.min(highlights.length, 4));
+const { lang, highlights: all, name, title, id = 'spec-plate' } = Astro.props;
+const isFigure = (v: string) => /\d/.test(v) && !/^\s*0\s*$/.test(v);
+const highlights = all.filter((h) => isFigure(h.value)).slice(0, 4);
+const n = Math.max(1, highlights.length);
 ---
 
 {
-  highlights.length > 0 && (
+  highlights.length >= 2 && (
     <section class="plate" aria-labelledby={`${id}-title`} style={`--n:${n}`}>
       <h2 id={`${id}-title`} class="sr-only">
         {title}

@@ -19,6 +19,9 @@ const T = {
   browse: { bg: 'Разгледайте', en: 'Browse' },
   error: { bg: 'Търсенето не успя да се зареди. Опитайте отново.', en: 'Search could not load. Please try again.' },
   results: { bg: 'Резултати от търсенето', en: 'Search results' },
+  /** phones: the full placeholder would be cut off */
+  placeholderShort: { bg: 'Търсете продукт', en: 'Search products' },
+  cancel: { bg: 'Отказ', en: 'Cancel' },
 };
 const cats = [...categories].sort((a, b) => a.order - b.order);
 const config = {
@@ -61,6 +64,7 @@ const config = {
         spellcheck="false"
         enterkeyhint="search"
         placeholder={tx(ui.search.placeholder)}
+        data-ph-short={tx(T.placeholderShort)}
         data-sp-input
       />
       <button type="button" class="sp-clear" data-sp-clear hidden aria-label={tx(ui.actions.clear)}>
@@ -68,8 +72,8 @@ const config = {
       </button>
       <button type="button" class="sp-close" data-sp-close>
         <span class="sp-esc" aria-hidden="true">Esc</span>
-        <span class="sp-close-m"><Icon name="close" size={22} /></span>
-        <span class="sr-only">{tx(ui.a11y.closeSearch)}</span>
+        <span class="sr-only sp-close-sr">{tx(ui.a11y.closeSearch)}</span>
+        <span class="sp-close-m">{tx(T.cancel)}</span>
       </button>
     </form>
 
@@ -406,11 +410,18 @@ const config = {
     .sp-bar {
       padding-left: var(--s-4);
     }
-    .sp-esc {
+    .sp-esc,
+    .sp-close-sr {
       display: none;
     }
     .sp-close-m {
-      display: inline-flex;
+      display: inline;
+    }
+    /* close becomes a text button so it can't be mistaken for the clear × next to it */
+    .sp-close {
+      padding: 0 var(--s-3);
+      font-size: var(--step--1);
+      font-weight: 600;
     }
     .sp-help {
       display: none;
@@ -465,6 +476,13 @@ const config = {
     const all = dialog.querySelector<HTMLAnchorElement>('[data-sp-all]')!;
     const clear = dialog.querySelector<HTMLButtonElement>('[data-sp-clear]')!;
     const status = dialog.querySelector<HTMLElement>('[data-sp-status]')!;
+    // the full placeholder is cut off on phones: swap in the short one there
+    const phLong = input.placeholder;
+    const phShort = input.dataset.phShort || phLong;
+    const phMq = window.matchMedia('(max-width: 640px)');
+    const setPlaceholder = () => (input.placeholder = phMq.matches ? phShort : phLong);
+    setPlaceholder();
+    phMq.addEventListener?.('change', setPlaceholder);
     const LIMIT: Record<string, number> = { product: 6, category: 4, faq: 4, page: 3 };
     const ICONS: Record<string, string> = {
       faq: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.5"/><path d="M12 16.8h.01"/></svg>',

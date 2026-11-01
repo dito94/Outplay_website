@@ -76,7 +76,10 @@ const T = {
     width: auto;
     height: auto;
     object-fit: contain;
-    touch-action: pan-y;
+  }
+  .lb-count {
+    flex: none;
+    white-space: nowrap;
   }
   .lb-cap {
     display: flex;
@@ -173,7 +176,8 @@ const T = {
       e.preventDefault();
       const group = a.dataset.lightbox;
       items = Array.from(document.querySelectorAll<HTMLAnchorElement>(`a[data-lightbox="${group}"]`)).filter(
-        (el) => el.offsetParent !== null || el === a,
+        // every item of the group except those switched off by a filter (data-lb-off), even if paged out of view
+        (el) => el === a || !el.closest('[data-lb-off]'),
       );
       opener = a;
       dlg.toggleAttribute('data-single', items.length < 2);
@@ -187,7 +191,7 @@ const T = {
     dlg.querySelector('[data-lb-close]')?.addEventListener('click', () => dlg.close());
     dlg.addEventListener('close', () => {
       document.body.style.overflow = '';
-      imgEl.removeAttribute('src');
+      imgEl.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
       opener?.focus();
     });
     dlg.addEventListener('click', (e) => {
@@ -196,13 +200,37 @@ const T = {
     dlg.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight') show(index + 1);
       if (e.key === 'ArrowLeft') show(index - 1);
+      if (e.key === 'Tab') {
+        // keep focus inside the viewer
+        const f = Array.from(dlg.querySelectorAll<HTMLElement>('button')).filter((b) => b.offsetParent !== null);
+        if (!f.length) return;
+        if (e.shiftKey && document.activeElement === f[0]) {
+          e.preventDefault();
+          f[f.length - 1].focus();
+        } else if (!e.shiftKey && document.activeElement === f[f.length - 1]) {
+          e.preventDefault();
+          f[0].focus();
+        }
+      }
     });
+    // swipe anywhere on the dark frame, not only on the photo
+    const frame = dlg.querySelector<HTMLElement>('.lb-frame') ?? imgEl;
     let x0: number | null = null;
-    imgEl.addEventListener('touchstart', (e) => (x0 = e.touches[0].clientX), { passive: true });
-    imgEl.addEventListener('touchend', (e) => {
+    let y0 = 0;
+    frame.addEventListener(
+      'touchstart',
+      (e) => {
+        if (e.touches.length !== 1) return (x0 = null);
+        x0 = e.touches[0].clientX;
+        y0 = e.touches[0].clientY;
+      },
+      { passive: true },
+    );
+    frame.addEventListener('touchend', (e) => {
       if (x0 === null) return;
       const dx = e.changedTouches[0].clientX - x0;
-      if (Math.abs(dx) > 40) show(index + (dx < 0 ? 1 : -1));
+      const dy = e.changedTouches[0].clientY - y0;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) show(index + (dx < 0 ? 1 : -1));
       x0 = null;
     });
   }

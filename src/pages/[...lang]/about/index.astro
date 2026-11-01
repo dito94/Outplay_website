@@ -24,15 +24,15 @@ const T = {
     en: 'OUTPLAY has 20 years of experience designing, manufacturing and installing bioclimatic pergolas, glass systems, glazing and façades. Sofia.',
   },
   storyTitle: { bg: 'За компанията', en: 'The company' },
-  years: { bg: 'години опит', en: 'years of experience' },
+  yearsLine: { bg: '20 години опит в София', en: '20 years of experience in Sofia' },
   yearsText: {
-    bg: 'в планирането, проектирането, производството и монтажа на архитектурни решения',
-    en: 'in planning, designing, manufacturing and installing architectural solutions',
+    bg: ' – в планирането, проектирането, производството и монтажа на архитектурни решения.',
+    en: ', planning, designing, manufacturing and installing architectural solutions.',
   },
   approachTitle: { bg: 'Нашият подход', en: 'Our approach' },
 };
 
-// Mission: the first sentence becomes the pull-quote, the rest follows as body copy
+// Mission: the first sentence is the section heading, the rest follows as body copy
 const missionText = t(about.mission.text, lang);
 const [missionLead, ...missionMore] = missionText.split(/(?<=\.)\s+/);
 const missionRest = missionMore.join(' ');
@@ -69,17 +69,13 @@ const [storyFirst, ...storyRest] = about.story;
         </div>
       </div>
       <div class="ab-story-side" data-reveal>
-        <div class="bracket ab-story-frame">
-          <div class="media ab-story-img">
-            <Img src="home/mood-01.jpg" lang={lang} sizes="(min-width: 1440px) 560px, (min-width: 901px) 40vw, 94vw" />
-          </div>
+        <div class="media ab-story-img">
+          <Img src="home/mood-01.jpg" lang={lang} sizes="(min-width: 1440px) 560px, (min-width: 901px) 40vw, 94vw" />
+          <span class="ab-corner ab-corner-top" aria-hidden="true"></span>
+          <span class="ab-corner ab-corner-bottom" aria-hidden="true"></span>
         </div>
         <p class="ab-years">
-          <span class="ab-years-n num">{site.experienceYears}</span>
-          <span class="ab-years-l">
-            <strong>{t(T.years, lang)}</strong>
-            <span>{t(T.yearsText, lang)}</span>
-          </span>
+          <strong>{t(T.yearsLine, lang)}</strong>{t(T.yearsText, lang)}
         </p>
       </div>
     </div>
@@ -109,10 +105,7 @@ const [storyFirst, ...storyRest] = about.story;
   <!-- Mission -->
   <section class="section night ab-mission" aria-labelledby="mission-title">
     <div class="wrap">
-      <h2 id="mission-title" class="ab-mission-title rule">{t(about.mission.title, lang)}</h2>
-      <blockquote class="ab-quote" data-reveal>
-        <p>{missionLead}</p>
-      </blockquote>
+      <h2 id="mission-title" class="ab-statement rule" data-reveal>{missionLead}</h2>
       {missionRest && <p class="ab-mission-rest">{missionRest}</p>}
     </div>
   </section>
@@ -152,10 +145,10 @@ const [storyFirst, ...storyRest] = about.story;
   <section class="section" aria-labelledby="partners-title">
     <div class="wrap">
       <SectionHead id="partners-title" title={t(about.partners.title, lang)} intro={t(about.partners.intro, lang)} />
-      <ul class="pgrid" data-reveal>
+      <ul class="plist" data-reveal>
         {site.partners.map((p) => <li>{p}</li>)}
+        <li class="plist-more">{t(site.partnersMore, lang)}</li>
       </ul>
-      <p class="pmore small muted">{t(site.partnersMore, lang)}</p>
     </div>
   </section>
 
@@ -280,46 +273,47 @@ const [storyFirst, ...storyRest] = about.story;
   }
   .ab-story-side {
     display: grid;
-    gap: var(--s-7);
+    gap: var(--s-5);
     padding-top: var(--s-4);
   }
   .ab-story-img {
     aspect-ratio: 4 / 5;
   }
+  /* Brand device, kept inside the photo: thin black bracket top-left, yellow bracket bottom-right */
+  .ab-corner {
+    position: absolute;
+    width: clamp(28px, 2vw + 16px, 44px);
+    aspect-ratio: 1;
+    pointer-events: none;
+  }
+  .ab-corner-top {
+    top: var(--s-4);
+    left: var(--s-4);
+    border-top: 3px solid var(--ink);
+    border-left: 3px solid var(--ink);
+  }
+  .ab-corner-bottom {
+    right: var(--s-4);
+    bottom: var(--s-4);
+    border-right: 3px solid var(--yellow);
+    border-bottom: 3px solid var(--yellow);
+  }
   .ab-years {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--s-5);
-  }
-  .ab-years-n {
-    font-family: var(--font-display);
-    font-size: clamp(4rem, 3rem + 4vw, 7rem);
-    font-weight: 300;
-    line-height: 0.85;
-    letter-spacing: -0.03em;
-  }
-  .ab-years-l {
-    display: grid;
-    gap: var(--s-1);
-    padding-top: 0.3rem;
-    font-size: var(--step--1);
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--hair);
     color: var(--muted);
-    max-width: 28ch;
+    max-width: 46ch;
   }
-  .ab-years-l strong {
+  .ab-years strong {
     color: var(--fg);
     font-weight: 600;
-    font-size: var(--step-0);
   }
   @media (max-width: 900px) {
     .ab-story {
       grid-template-columns: minmax(0, 1fr);
     }
-    .ab-story-side {
-      padding-inline: 8px;
-    }
     .ab-story-img {
-      aspect-ratio: 1 / 1;
+      aspect-ratio: 3 / 2;
     }
   }
 
@@ -354,25 +348,15 @@ const [storyFirst, ...storyRest] = about.story;
     }
   }
 
-  /* Mission pull-quote */
-  .ab-mission-title {
-    font-size: var(--step-0);
-    font-family: var(--font-body);
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--muted);
-  }
-  .ab-quote {
-    margin: clamp(2rem, 1.5rem + 2vw, 3.5rem) 0 0;
-  }
-  .ab-quote p {
+  /* Mission: the first sentence is the heading */
+  .ab-statement {
     font-family: var(--font-display);
     font-weight: 300;
     font-size: clamp(1.9rem, 1.2rem + 3vw, 4rem);
     line-height: 1.14;
     letter-spacing: -0.012em;
     max-width: 24ch;
-    text-wrap: balance;
+    color: #fff;
   }
   .ab-mission-rest {
     max-width: 58ch;
@@ -446,43 +430,32 @@ const [storyFirst, ...storyRest] = about.story;
     max-width: none;
   }
 
-  /* Partners: a typographic wall */
-  .pgrid {
+  /* Partners: one calm typographic line */
+  .plist {
     list-style: none;
     margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: var(--s-6) 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-3) var(--s-6);
     border-top: 1px solid var(--hair);
-    border-left: 1px solid var(--hair);
-  }
-  .pgrid li {
-    display: grid;
-    place-items: center;
-    min-height: clamp(84px, 6vw + 40px, 128px);
-    padding: var(--s-4);
-    border-right: 1px solid var(--hair);
-    border-bottom: 1px solid var(--hair);
     font-family: var(--font-display);
     font-size: var(--step-1);
-    letter-spacing: 0.1em;
-    text-align: center;
-    color: var(--graphite);
+    letter-spacing: 0.08em;
+    color: var(--muted);
   }
-  .pmore {
-    margin-top: var(--s-4);
-    text-align: right;
+  .plist li {
+    white-space: nowrap;
   }
-  @media (max-width: 900px) {
-    .pgrid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
+  .plist-more {
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    letter-spacing: 0;
   }
   @media (max-width: 560px) {
-    .pgrid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .pgrid li {
+    .plist {
+      gap: var(--s-2) var(--s-5);
       font-size: var(--step-0);
       letter-spacing: 0.06em;
     }

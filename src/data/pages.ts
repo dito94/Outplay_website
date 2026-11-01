@@ -72,7 +72,7 @@ export const pages = {
     heroTitle: { bg: 'Пространства на открито за всеки сезон', en: 'Outdoor spaces for every season' },
     heroLead: {
       bg: 'Биоклиматични перголи, стъклени системи, ZIP завеси, тенти и ветрозащита. Проектираме, произвеждаме и монтираме с 20 години опит.',
-      en: 'Bioclimatic pergolas, glass systems, ZIP screens, awnings and windbreaks, designed, made and installed with 20 years of experience.',
+      en: 'Bioclimatic pergolas, glass systems, ZIP screens, awnings and windbreaks. We design, make and install them, with 20 years of experience.',
     },
     /** Alternative hero headlines for the client to choose from */
     heroTitleOptions: [
@@ -189,8 +189,8 @@ export const pages = {
     beforeAfter: {
       title: { bg: 'Преди и след', en: 'Before and after' },
       intro: {
-        bg: 'Плъзнете линията, за да сравните мястото преди и след монтажа.',
-        en: 'Drag the handle to compare the space before and after installation.',
+        bg: 'Плъзнете линията, за да видите как една и съща конструкция променя пространството.',
+        en: 'Drag the handle to see how the same structure changes the space.',
       },
     },
 

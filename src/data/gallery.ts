@@ -116,7 +116,7 @@ export const gallery: GalleryItem[] = [
     image: 'products/automatic-glass-roof/hero.jpg',
     category: 'bioclimatic-pergolas',
     productId: 'automatic-glass-roof',
-    caption: { bg: 'Двор на ресторант под подвижен стъклен покрив', en: 'Restaurant courtyard under a sliding glass roof' },
+    caption: { bg: 'Двор на ресторант под подвижен стъклен покрив', en: 'Restaurant courtyard under a retractable glass roof' },
   },
   {
     image: 'products/shell-awning/gallery-01.jpg',
