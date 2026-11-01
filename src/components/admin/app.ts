@@ -1293,7 +1293,7 @@ export function boot(): void {
       <header class="adm-vh">
         <div>
           <h2 id="adm-h-custom" tabindex="-1">${esc(title)}</h2>
-          <p class="adm-ed-state">${badge(S.newBadge, 'new')}<span data-cp-state>${esc(existing ? customStateText(existing) : S.cpAddedState)}</span></p>
+          <p class="adm-ed-state">${badge(S.newBadge, 'new')}<span data-cp-state>${esc(existing ? customStateText(existing) : S.cpNewState)}</span></p>
         </div>
         ${
           existing

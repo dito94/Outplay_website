@@ -318,6 +318,7 @@ export const T = {
     en: 'Added products appear in the listings, the menu and on their own page, but only in this browser.',
   },
   cpAddedState: { bg: 'Добавен продукт', en: 'Added product' },
+  cpNewState: { bg: 'Попълнете данните и запазете', en: 'Fill in the details and save' },
   chCustom: { bg: 'добавен продукт', en: 'added product' },
   statProductsAdded: { bg: 'в {n} категории, {k} добавени', en: 'in {n} categories, {k} added' },
 
