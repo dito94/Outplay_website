@@ -1,0 +1,209 @@
+---
+// Page-level lightbox. Include once per page: <Lightbox lang={lang} />
+// Any <a data-lightbox="group" href="FULL_IMAGE_URL" data-caption="…"> opens it; items in the same group
+// can be browsed with arrows / swipe. Use `lightboxSrc(path)` from src/lib/images.ts for the href.
+import type { Lang } from '../data/types';
+import Icon from './Icon.astro';
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const T = {
+  close: { bg: 'Затвори', en: 'Close' },
+  prev: { bg: 'Предишна снимка', en: 'Previous image' },
+  next: { bg: 'Следваща снимка', en: 'Next image' },
+  dialog: { bg: 'Преглед на снимка', en: 'Image viewer' },
+};
+---
+
+<dialog class="lb" aria-label={T.dialog[lang]} data-lb>
+  <div class="lb-frame">
+    <figure class="lb-fig">
+      <img class="lb-img" alt="" data-lb-img />
+      <figcaption class="lb-cap">
+        <span data-lb-cap></span>
+        <span class="lb-count num" data-lb-count></span>
+      </figcaption>
+    </figure>
+    <button class="lb-btn lb-prev" type="button" data-lb-prev aria-label={T.prev[lang]}><Icon name="chevron-left" size={28} /></button>
+    <button class="lb-btn lb-next" type="button" data-lb-next aria-label={T.next[lang]}><Icon name="chevron-right" size={28} /></button>
+    <button class="lb-btn lb-close" type="button" data-lb-close aria-label={T.close[lang]}><Icon name="close" size={26} /></button>
+  </div>
+</dialog>
+
+<style>
+  .lb {
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: rgba(10, 10, 8, 0.96);
+    color: #fff;
+  }
+  .lb::backdrop {
+    background: rgba(10, 10, 8, 0.96);
+  }
+  .lb[open] {
+    animation: lb-in 0.25s var(--ease);
+  }
+  @keyframes lb-in {
+    from {
+      opacity: 0;
+    }
+  }
+  .lb-frame {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    padding: max(56px, env(safe-area-inset-top, 0px)) max(72px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px))
+      max(72px, env(safe-area-inset-left, 0px));
+  }
+  .lb-fig {
+    display: grid;
+    gap: var(--s-3);
+    max-width: 100%;
+    max-height: 100%;
+    justify-items: center;
+  }
+  .lb-img {
+    max-width: 100%;
+    max-height: calc(100dvh - 140px);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    touch-action: pan-y;
+  }
+  .lb-cap {
+    display: flex;
+    gap: var(--s-5);
+    justify-content: space-between;
+    width: 100%;
+    font-size: var(--step--1);
+    color: rgba(255, 255, 255, 0.78);
+  }
+  .lb-btn {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+    background: rgba(10, 10, 8, 0.5);
+    color: #fff;
+    transition:
+      background-color 0.2s var(--ease),
+      border-color 0.2s var(--ease);
+  }
+  .lb-btn:hover {
+    background: var(--yellow);
+    border-color: var(--yellow);
+    color: var(--ink);
+  }
+  .lb-btn:focus-visible {
+    outline: 2px solid var(--yellow);
+    outline-offset: 3px;
+  }
+  .lb-prev {
+    left: max(12px, env(safe-area-inset-left, 0px));
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .lb-next {
+    right: max(12px, env(safe-area-inset-right, 0px));
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .lb-close {
+    top: max(12px, env(safe-area-inset-top, 0px));
+    right: max(12px, env(safe-area-inset-right, 0px));
+  }
+  .lb[data-single] .lb-prev,
+  .lb[data-single] .lb-next {
+    display: none;
+  }
+  @media (max-width: 640px) {
+    .lb-frame {
+      padding-inline: 12px;
+    }
+    .lb-prev,
+    .lb-next {
+      top: auto;
+      bottom: max(16px, env(safe-area-inset-bottom, 0px));
+      transform: none;
+    }
+    .lb-img {
+      max-height: calc(100dvh - 200px);
+    }
+  }
+</style>
+
+<script>
+  const dlg = document.querySelector<HTMLDialogElement>('[data-lb]');
+  if (dlg) {
+    const imgEl = dlg.querySelector<HTMLImageElement>('[data-lb-img]')!;
+    const capEl = dlg.querySelector<HTMLElement>('[data-lb-cap]')!;
+    const countEl = dlg.querySelector<HTMLElement>('[data-lb-count]')!;
+    let items: HTMLAnchorElement[] = [];
+    let index = 0;
+    let opener: HTMLElement | null = null;
+
+    const show = (i: number) => {
+      index = (i + items.length) % items.length;
+      const a = items[index];
+      imgEl.src = a.href;
+      imgEl.alt = a.querySelector('img')?.alt ?? a.dataset.caption ?? '';
+      capEl.textContent = a.dataset.caption ?? imgEl.alt;
+      countEl.textContent = items.length > 1 ? `${index + 1} / ${items.length}` : '';
+      // preload neighbours
+      [index + 1, index - 1].forEach((n) => {
+        const b = items[(n + items.length) % items.length];
+        if (b) new Image().src = b.href;
+      });
+    };
+
+    document.addEventListener('click', (e) => {
+      const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[data-lightbox]');
+      if (!a || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      e.preventDefault();
+      const group = a.dataset.lightbox;
+      items = Array.from(document.querySelectorAll<HTMLAnchorElement>(`a[data-lightbox="${group}"]`)).filter(
+        (el) => el.offsetParent !== null || el === a,
+      );
+      opener = a;
+      dlg.toggleAttribute('data-single', items.length < 2);
+      show(items.indexOf(a));
+      dlg.showModal();
+      document.body.style.overflow = 'hidden';
+    });
+
+    dlg.querySelector('[data-lb-prev]')?.addEventListener('click', () => show(index - 1));
+    dlg.querySelector('[data-lb-next]')?.addEventListener('click', () => show(index + 1));
+    dlg.querySelector('[data-lb-close]')?.addEventListener('click', () => dlg.close());
+    dlg.addEventListener('close', () => {
+      document.body.style.overflow = '';
+      imgEl.removeAttribute('src');
+      opener?.focus();
+    });
+    dlg.addEventListener('click', (e) => {
+      if (e.target === dlg || (e.target as HTMLElement).classList.contains('lb-frame')) dlg.close();
+    });
+    dlg.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') show(index + 1);
+      if (e.key === 'ArrowLeft') show(index - 1);
+    });
+    let x0: number | null = null;
+    imgEl.addEventListener('touchstart', (e) => (x0 = e.touches[0].clientX), { passive: true });
+    imgEl.addEventListener('touchend', (e) => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 40) show(index + (dx < 0 ? 1 : -1));
+      x0 = null;
+    });
+  }
+</script>

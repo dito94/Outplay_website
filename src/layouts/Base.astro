@@ -111,7 +111,7 @@ const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <script>
       // Reveal-on-scroll enhancement. Content is visible without JS; elements already in view never animate.
       const els = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
-      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches || navigator.webdriver === true;
       if (els.length && 'IntersectionObserver' in window && !reduce) {
         const vh = window.innerHeight;
         const below = els.filter((el) => el.getBoundingClientRect().top > vh * 0.92);

@@ -29,19 +29,9 @@ const C = {
   metaTitle: { bg: 'OUTPLAY — биоклиматични перголи, стъклени системи и слънцезащита', en: 'OUTPLAY — bioclimatic pergolas, glass systems and sun protection' },
   explore: { bg: 'Разгледайте продуктите', en: 'Explore the products' },
   quote: { bg: 'Направете запитване', en: 'Request a quote' },
-  whatTitle: { bg: 'Какво правим', en: 'What we do' },
-  catsTitle: { bg: 'Системи за всеки сезон', en: 'Systems for every season' },
-  products: { bg: 'продукта', en: 'products' },
-  product1: { bg: 'продукт', en: 'product' },
-  climateTitle: { bg: 'Покрив, който следва времето', en: 'A roof that follows the weather' },
   climateLink: { bg: 'Серии Balance и Infinity', en: 'Balance and Infinity series' },
-  baTitle: { bg: 'Преди и след', en: 'Before and after' },
   baLink: { bg: 'Още проекти и галерия', en: 'More projects and gallery' },
-  processTitle: { bg: 'От идея до монтаж', en: 'From idea to installation' },
-  refsTitle: { bg: 'Реализирани проекти', en: 'Completed projects' },
-  faqTitle: { bg: 'Често задавани въпроси', en: 'Frequently asked questions' },
   faqLink: { bg: 'Всички въпроси', en: 'All questions' },
-  partners: { bg: 'Системи на водещи производители', en: 'Systems from leading manufacturers' },
 };
 
 const cats = [...categories].sort((a, b) => a.order - b.order);
@@ -49,7 +39,6 @@ const countOf = (id: string) => products.filter((p) => p.category === id).length
 const productsOf = (id: string) => products.filter((p) => p.category === id).sort((a, b) => a.order - b.order);
 const pair = beforeAfter[0];
 const faqItems = faq.flatMap((g) => g.items).slice(0, 5);
-const process = home.process ?? pages.process;
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -61,15 +50,15 @@ const jsonLd = {
   email: site.email,
   address: {
     '@type': 'PostalAddress',
-    streetAddress: lang === 'bg' ? 'бул. „Никола Мушанов" 151' : '151 Nikola Mushanov Blvd',
-    addressLocality: lang === 'bg' ? 'София' : 'Sofia',
-    postalCode: '1330',
-    addressCountry: 'BG',
+    streetAddress: t(site.postalAddress.street, lang),
+    addressLocality: t(site.postalAddress.locality, lang),
+    postalCode: site.postalAddress.postalCode,
+    addressCountry: site.postalAddress.country,
   },
 };
 ---
 
-<Base lang={lang} title={t(C.metaTitle, lang)} description={t(home.heroLead, lang)} header="overlay" jsonLd={jsonLd}>
+<Base lang={lang} title={t(C.metaTitle, lang)} description={t(site.description, lang)} header="overlay" jsonLd={jsonLd}>
   <HomeHero
     lang={lang}
     image="home/hero.jpg"
@@ -80,7 +69,7 @@ const jsonLd = {
   />
 
   <!-- Category quick strip -->
-  <nav class="cat-strip night" aria-label={t(C.catsTitle, lang)}>
+  <nav class="cat-strip night" aria-label={t(home.categories.title, lang)}>
     <ul class="wrap">
       {
         cats.map((c) => (
@@ -98,7 +87,7 @@ const jsonLd = {
   <!-- What we do: interactive villa -->
   <section class="section" aria-labelledby="what-title">
     <div class="wrap">
-      <SectionHead id="what-title" title={t(C.whatTitle, lang)} intro={t(home.whatWeDo?.intro ?? home.whatWeDoIntro, lang)} />
+      <SectionHead id="what-title" title={t(home.whatWeDo.title, lang)} intro={t(home.whatWeDo.intro, lang)} />
       <HotspotScene lang={lang} id="villa" image="home/what-we-do.jpg" hotspots={houseHotspots} sizes="(min-width: 1440px) 1330px, 100vw" />
     </div>
   </section>
@@ -106,7 +95,7 @@ const jsonLd = {
   <!-- Categories mosaic -->
   <section class="section mist" aria-labelledby="cats-title">
     <div class="wrap">
-      <SectionHead id="cats-title" title={t(C.catsTitle, lang)} intro={t(home.categories?.intro ?? home.categoriesIntro, lang)} />
+      <SectionHead id="cats-title" title={t(home.categories.title, lang)} intro={t(home.categories.intro, lang)} />
       <div class="mosaic">
         {
           cats.map((c, i) => (
@@ -144,7 +133,7 @@ const jsonLd = {
   <!-- Climate control -->
   <section class="section night" aria-labelledby="climate-title">
     <div class="wrap">
-      <SectionHead id="climate-title" title={t(C.climateTitle, lang)} intro={t(home.adaptive?.intro ?? home.adaptiveIntro, lang)}>
+      <SectionHead id="climate-title" title={t(home.adaptive.title, lang)} intro={t(home.adaptive.intro, lang)}>
         <a class="link-arrow" href={productUrl(lang, 'bioclimatic-pergolas', 'balance')}>
           {t(C.climateLink, lang)}
           <Icon name="arrow-right" size={16} />
@@ -161,9 +150,9 @@ const jsonLd = {
         <div class="wrap ba-grid">
           <div class="ba-copy" data-reveal>
             <h2 id="ba-title" class="h2 rule">
-              {t(C.baTitle, lang)}
+              {t(home.beforeAfter.title, lang)}
             </h2>
-            <p class="lead">{t(home.beforeAfter?.intro ?? home.beforeAfterIntro, lang)}</p>
+            <p class="lead">{t(home.beforeAfter.intro, lang)}</p>
             <a class="link-arrow" href={url(lang, '/projects/')}>
               {t(C.baLink, lang)} <Icon name="arrow-right" size={16} />
             </a>
@@ -177,14 +166,14 @@ const jsonLd = {
   <!-- Process -->
   <section class="section mist" aria-labelledby="process-title">
     <div class="wrap">
-      <SectionHead id="process-title" title={t(C.processTitle, lang)} intro={t(home.processIntro ?? home.process?.intro, lang)} />
+      <SectionHead id="process-title" title={t(home.process.title, lang)} intro={t(home.process.intro, lang)} />
       <ol class="steps">
         {
-          (Array.isArray(process) ? process : (process?.steps ?? [])).map((s: any, i: number) => (
+          home.process.steps.map((s, i) => (
             <li class="step" data-reveal>
               <span class="step-n num">{String(i + 1).padStart(2, '0')}</span>
               <h3 class="step-title">{t(s.title, lang)}</h3>
-              <p class="muted small">{t(s.text ?? s.description, lang)}</p>
+              <p class="muted small">{t(s.text, lang)}</p>
             </li>
           ))
         }
@@ -197,7 +186,7 @@ const jsonLd = {
     references.length > 0 && (
       <section class="section" aria-labelledby="refs-title">
         <div class="wrap">
-          <SectionHead id="refs-title" title={t(C.refsTitle, lang)} intro={t(home.references?.intro ?? home.referencesIntro, lang)} />
+          <SectionHead id="refs-title" title={t(home.references.title, lang)} intro={t(home.references.intro, lang)} />
           <ul class="refs">
             {references.map((r) => (
               <li class="ref" data-reveal>
@@ -210,7 +199,7 @@ const jsonLd = {
             ))}
           </ul>
           <p class="partners">
-            <span class="muted small">{t(C.partners, lang)}</span>
+            <span class="muted small">{t(home.partners.title, lang)}</span>
             <span class="partner-list">
               {site.partners.map((p) => (
                 <span>{p}</span>
@@ -226,15 +215,15 @@ const jsonLd = {
   <section class="section mist" aria-labelledby="faq-title">
     <div class="wrap faq-grid">
       <div class="faq-copy" data-reveal>
-        <h2 id="faq-title" class="h2 rule">{t(C.faqTitle, lang)}</h2>
-        <p class="lead">{t(home.faq?.intro ?? home.faqIntro, lang)}</p>
+        <h2 id="faq-title" class="h2 rule">{t(home.faq.title, lang)}</h2>
+        <p class="lead">{t(home.faq.intro, lang)}</p>
         <a class="link-arrow" href={url(lang, '/faq/')}>{t(C.faqLink, lang)} <Icon name="arrow-right" size={16} /></a>
       </div>
       <FaqAccordion lang={lang} items={faqItems} idPrefix="home-faq" />
     </div>
   </section>
 
-  <CtaBand lang={lang} />
+  <CtaBand lang={lang} title={t(home.cta.title, lang)} text={t(home.cta.intro, lang)} />
 </Base>
 
 <style>

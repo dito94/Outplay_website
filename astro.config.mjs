@@ -1,6 +1,10 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 
+// Parallel builds (one per agent) use their own output + cache folders: OUTPLAY_AGENT=name npx astro build
+const agent = process.env.OUTPLAY_AGENT;
+const scratch = '/tmp/claude-0/-home-user/bd9643c5-b0c8-52a9-94df-688b6b6403b0/scratchpad';
+
 export default defineConfig({
   site: 'https://dito94.github.io',
   base: '/Outplay_website',
@@ -10,4 +14,5 @@ export default defineConfig({
   build: { format: 'directory', inlineStylesheets: 'auto' },
   prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
   devToolbar: { enabled: false },
+  ...(agent ? { outDir: `${scratch}/build-${agent}`, cacheDir: `./node_modules/.astro-${agent}` } : {}),
 });

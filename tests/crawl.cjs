@@ -6,8 +6,8 @@ const fs = require('fs');
 const path = require('path');
 
 const BASE = '/Outplay_website/';
-const DIST = path.resolve(__dirname, '..', 'dist');
-const PORT = 4399;
+const DIST = process.env.DIST ? path.resolve(process.env.DIST) : path.resolve(__dirname, '..', 'dist');
+const PORT = Number(process.env.PORT || 4399);
 const args = process.argv.slice(2);
 const SHOTS = args.includes('--shots');
 const ONLY = (args.find((a) => a.startsWith('--only=')) || '').slice(7);

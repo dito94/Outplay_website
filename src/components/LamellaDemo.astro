@@ -94,7 +94,7 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
 }));
 ---
 
-<div class="lam-demo" data-lamella data-mode={start} data-series={series} id={id}>
+<div class="lam-demo" data-lamella data-mode={start} data-series={series} id={id} data-manual={lang === 'bg' ? 'Плавна ротация от 0° до 120° – намерете точния баланс между светлина, сянка и проветрение.' : 'Smooth rotation from 0° to 120° lets you find the exact balance of light, shade and airflow.'}>
   <div class="lam-controls">
     <p class="lam-k" id={`${id}-modes`}>{L.modes[lang]}</p>
     <div class="lam-modes" role="radiogroup" aria-labelledby={`${id}-modes`}>
@@ -108,7 +108,7 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
             data-mode-btn={m.id}
             data-angle={m.angle}
             data-retract={m.retract ? '1' : undefined}
-            data-text={m.text[lang]}
+            data-desc={m.text[lang]}
             class:list={['lam-mode', { 'lam-mode-inf': m.retract }]}
           >
             {m.label[lang]}
@@ -121,7 +121,7 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
       <span class="lam-deg num" data-deg aria-hidden="true">
         {startMode.retract ? '—' : `${startMode.angle}°`}
       </span>
-      <p class="lam-text" data-text aria-live="polite">{startMode.text[lang]}</p>
+      <p class="lam-text" data-lam-text aria-live="polite">{startMode.text[lang]}</p>
     </div>
 
     <label class="lam-range-wrap" for={`${id}-range`}>
@@ -446,7 +446,7 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
     const btns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-mode-btn]'));
     const range = root.querySelector<HTMLInputElement>('[data-range]');
     const deg = root.querySelector<HTMLElement>('[data-deg]');
-    const text = root.querySelector<HTMLElement>('[data-text]');
+    const text = root.querySelector<HTMLElement>('[data-lam-text]');
     const W = 68;
     const S = 64;
     const openness = (a: number) => Math.max(0, Math.min(1, (S - W * Math.abs(Math.cos((a * Math.PI) / 180))) / S));
@@ -470,7 +470,7 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
 
     const select = (b: HTMLButtonElement, focus = false) => {
       apply(Number(b.dataset.angle), b.dataset.modeBtn ?? null, b.textContent?.trim());
-      if (text && b.dataset.text) text.textContent = b.dataset.text;
+      if (text && b.dataset.desc) text.textContent = b.dataset.desc;
       if (focus) b.focus();
     };
 
@@ -494,7 +494,7 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
       const a = Number(range.value);
       const match = btns.find((b) => !b.dataset.retract && Number(b.dataset.angle) === a);
       apply(a, match?.dataset.modeBtn ?? null);
-      if (match && text && match.dataset.text) text.textContent = match.dataset.text;
+      if (text) text.textContent = match?.dataset.desc ?? root.dataset.manual ?? '';
     });
 
     const initial = btns.find((b) => b.getAttribute('aria-checked') === 'true');

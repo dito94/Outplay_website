@@ -58,3 +58,12 @@ export function focalOf(path: string | undefined): string | undefined {
   if (!path) return undefined;
   return imageMeta[path]?.focal;
 }
+
+/** URL of a large WebP rendition for lightboxes (call from component frontmatter) */
+export async function lightboxSrc(path: string | undefined, width = 2000): Promise<string | undefined> {
+  const meta = img(path);
+  if (!meta) return undefined;
+  const { getImage } = await import('astro:assets');
+  const out = await getImage({ src: meta, width: Math.min(width, meta.width), format: 'webp', quality: 82 });
+  return out.src;
+}
