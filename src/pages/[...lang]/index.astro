@@ -114,10 +114,13 @@ const jsonLd = {
                   </a>
                 </h3>
                 <p class="tile-tag">{t(c.tagline, lang)}</p>
-                <p class="tile-list small">
-                  {productsOf(c.id)
-                    .map((p) => t(p.name, lang))
-                    .join(' · ')}
+                <p class="tile-list small" data-plist={c.id}>
+                  {productsOf(c.id).map((p, k) => (
+                    <Fragment>
+                      {k > 0 && ' · '}
+                      <span data-pid={p.id} data-pfield="name">{t(p.name, lang)}</span>
+                    </Fragment>
+                  ))}
                 </p>
               </div>
               <span class="tile-go" aria-hidden="true">

@@ -1,6 +1,7 @@
 ---
 import type { Lang } from '../data/types';
-import { url } from '../lib/i18n';
+import { routeOf, url } from '../lib/i18n';
+import { products } from '../data/products';
 interface Props {
   lang: Lang;
   items: { label: string; href?: string }[];
@@ -8,6 +9,9 @@ interface Props {
 }
 const { lang, items, tone = 'dark' } = Astro.props;
 const all = [{ label: lang === 'bg' ? 'Начало' : 'Home', href: url(lang, '/') }, ...items];
+// on a catalogue product page the last crumb is the product name: hook for admin-demo renames (src/lib/custom-products.ts)
+const routeMatch = routeOf(Astro.url.pathname).match(/^\/products\/([^/]+)\/([^/]+)\/$/);
+const pagePid = routeMatch && products.some((p) => p.category === routeMatch[1] && p.id === routeMatch[2]) ? routeMatch[2] : undefined;
 const site = Astro.site ?? new URL('https://dito94.github.io');
 const ld = {
   '@context': 'https://schema.org',
@@ -24,7 +28,11 @@ const ld = {
   <ol>
     {all.map((it, i) => (
       <li>
-        {it.href && i < all.length - 1 ? <a href={it.href}>{it.label}</a> : <span aria-current="page">{it.label}</span>}
+        {it.href && i < all.length - 1 ? (
+          <a href={it.href}>{it.label}</a>
+        ) : (
+          <span aria-current="page" data-pid={i === all.length - 1 ? pagePid : undefined} data-pfield={i === all.length - 1 && pagePid ? 'name' : undefined}>{it.label}</span>
+        )}
       </li>
     ))}
   </ol>

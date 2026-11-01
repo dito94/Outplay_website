@@ -34,3 +34,27 @@ export function layout2(n: number): Span2[] {
   if (n % 3 === 2) out[n - 1] = 'W';
   return out;
 }
+
+// Responsive `sizes` for a tile. Tiles crop with object-fit: cover, so the file must be at least
+// max(box width, box height × image aspect) wide. Box [width, height] per breakpoint, upper bounds taken from the
+// grid CSS in GalleryMosaic.astro: px at ≥1440 (content 1328, 6 cols of 208, rows ≤ 320), vw below.
+type Box = [number, number];
+const BOX3_PX: Record<Span3, Box> = { S: [432, 320], H: [656, 320], F: [880, 656], P: [1328, 656] };
+// 1001–1439: rows = max(220px, 21vw) ≤ 22vw
+const BOX3_VW: Record<Span3, Box> = { S: [31, 22], H: [47, 22], F: [62, 46], P: [94, 46] };
+// 601–1000: 2 columns, rows = clamp(170px, 27vw, 270px) ≤ 28.5vw
+const BOX2_VW: Record<Span2, Box> = { S: [47, 28.5], W: [94, 59] };
+// ≤600: one column at 3:2
+const BOX1_VW: Box = [94, 63];
+
+const need = ([w, h]: Box, aspect: number) => Math.ceil(Math.max(w, h * aspect));
+
+export function tileSizes(s3: Span3, s2: Span2, aspect: number): string {
+  const a = aspect > 0 ? aspect : 1.5;
+  return [
+    `(min-width: 1440px) ${need(BOX3_PX[s3], a)}px`,
+    `(min-width: 1001px) ${need(BOX3_VW[s3], a)}vw`,
+    `(min-width: 601px) ${need(BOX2_VW[s2], a)}vw`,
+    `${need(BOX1_VW, a)}vw`,
+  ].join(', ');
+}

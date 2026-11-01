@@ -178,10 +178,24 @@ server.listen(0, async () => {
     await page.click(`${F} .iq-thumb-rm >> nth=1`);
     check((await page.locator(`${F} .iq-thumb`).count()) === 1, 'remove button removes a thumbnail');
     await page.fill('#inquiry-form-message', 'Тераса на втори етаж.');
+    check((await page.locator(`${F} [data-iq-count]`).textContent()).trim() === '21 от 2000 знака', 'message counter follows the text');
+    const maxl = await page.evaluate(() =>
+      ['name', 'phone', 'email', 'city', 'message', 'pergola-colour'].map((k) => document.getElementById(`inquiry-form-${k}`)?.getAttribute('maxlength')).join(','),
+    );
+    check(maxl === '80,30,120,80,2000,120', `fields have length limits (${maxl})`);
+    await page.focus('#inquiry-form-message');
+    await page.keyboard.press('Enter');
+    check(
+      (await page.locator(`${F} section[data-step="2"]`).isVisible()) && (await page.inputValue('#inquiry-form-message')).endsWith('\n'),
+      'Enter in the message adds a new line',
+    );
+    await page.fill('#inquiry-form-message', 'Тераса на втори етаж.');
     await shot(page, 'flow-2-step2', true);
 
-    await page.click(`${F} [data-iq-next]`);
-    check(await page.locator(`${F} section[data-step="3"]`).isVisible(), 'step 3 visible');
+    // Enter in a text field on step 2 moves on
+    await page.focus('#inquiry-form-pergola-colour');
+    await page.keyboard.press('Enter');
+    check(await page.locator(`${F} section[data-step="3"]`).isVisible(), 'Enter in a step 2 text field goes to step 3');
     const sum = await page.locator(`${F} [data-iq-summary]`).textContent();
     check(sum.includes('Balance') && sum.includes('Ширина 5 м') && sum.includes('антрацит') && sum.includes('LED'), 'summary lists product, size and options');
     check(sum.includes('terrace-1.png'), 'summary lists the photo name');
@@ -216,9 +230,16 @@ server.listen(0, async () => {
     await page.waitForTimeout(500);
     const draft = await page.evaluate(() => JSON.parse(localStorage.getItem('outplay.inquiry.draft.v1') || 'null'));
     check(draft && draft.productId === 'balance' && draft.values['contact.name'] === 'Мария Петрова', 'draft saved to localStorage');
+    await page.focus('#inquiry-form-city');
+    await page.keyboard.press('Enter');
+    check(
+      (await page.locator(`${F} section[data-step="3"]`).isVisible()) && (await page.locator('#inquiry-form-consent-err').textContent()).length > 0,
+      'Enter on step 3 validates (consent still missing)',
+    );
     await page.check('#inquiry-form-consent');
     await shot(page, 'flow-3-step3', true);
-    await page.click(`${F} [data-iq-submit]`);
+    await page.focus('#inquiry-form-city');
+    await page.keyboard.press('Enter');
 
     check(await page.locator(`${F} [data-iq-success]`).isVisible(), 'success state visible');
     check(!(await page.locator(`${F} [data-iq-form]`).isVisible()), 'form hidden after submit');
@@ -338,7 +359,18 @@ server.listen(0, async () => {
     await page.reload({ waitUntil: 'networkidle' });
     check((await page.inputValue('#inquiry-form-pergola-width')) === '6,5', 'draft restored after reload');
     check(await page.locator(`${F} [data-iq-draft]`).isVisible(), 'draft notice shown');
+    check(!(await page.locator(`${F} [data-iq-draft-photos]`).isVisible()), 'no photo notice without photos');
+    await page.click(`${F} [data-iq-next]`);
+    await page.setInputFiles(`${F} [data-iq-file]`, [{ name: 'site.png', mimeType: 'image/png', buffer: PNG }]);
+    await page.waitForTimeout(500);
+    await page.reload({ waitUntil: 'networkidle' });
+    check(await page.locator(`${F} section[data-step="2"]`).isVisible(), 'draft restore returns to the step the visitor was on');
+    check(await page.locator(`${F} [data-iq-draft-photos]`).isVisible(), 'draft notice says photos must be added again');
+    check(await page.locator(`${F} [data-iq-photos-again]`).isVisible(), 'photo box repeats it');
+    await page.setInputFiles(`${F} [data-iq-file]`, [{ name: 'site.png', mimeType: 'image/png', buffer: PNG }]);
+    check(!(await page.locator(`${F} [data-iq-photos-again]`).isVisible()), 'notice goes once photos are added again');
     await page.click(`${F} [data-iq-reset]`);
+    check(await page.locator(`${F} section[data-step="1"]`).isVisible(), 'start over returns to step 1');
     check((await page.inputValue('#inquiry-form-pergola-width')) === '4', 'start over resets the values');
     check((await page.evaluate(() => localStorage.getItem('outplay.inquiry.draft.v1'))) === null, 'start over clears the draft');
     await ctx.close();
@@ -616,6 +648,70 @@ server.listen(0, async () => {
     check(s2h < 2000, `touch: step 2 is shorter with details folded (${s2h}px)`);
     await page.goto(`${origin}${BASE}search/`, { waitUntil: 'networkidle' });
     check((await page.getAttribute('#s-q', 'placeholder')) === 'Търсете продукт', 'search page: short placeholder on a phone');
+    await ctx.close();
+
+    // ------------------------------------------------------------------ 9. Admin demo state, sticky sub-nav, FAQ folding
+    console.log('\n9. Admin overrides in the product list, scroll under the sub-nav, FAQ folding');
+    ctx = await newCtx();
+    await ctx.addInitScript(() => {
+      localStorage.setItem(
+        'outplay.overrides.v1',
+        JSON.stringify({ balance: { hidden: true }, infinity: { name: { bg: 'Инфинити Про', en: 'Infinity Pro' } } }),
+      );
+    });
+    page = await ctx.newPage();
+    watch(page);
+    await page.goto(`${origin}${BASE}contact/`, { waitUntil: 'networkidle' });
+    check((await page.locator('#inquiry-form-product option[value="balance"]').count()) === 0, 'hidden product left out of the list');
+    check(((await page.locator('#inquiry-form-product option[value="infinity"]').textContent()) || '').trim() === 'Инфинити Про', 'renamed product shows its new name');
+    await page.goto(`${origin}${BASE}en/contact/`, { waitUntil: 'networkidle' });
+    check(((await page.locator('#inquiry-form-product option[value="infinity"]').textContent()) || '').trim() === 'Infinity Pro', 'EN: renamed product shows its English name');
+    await page.goto(`${origin}${BASE}contact/?product=balance`, { waitUntil: 'networkidle' });
+    check((await page.inputValue('#inquiry-form-product')) === 'balance', 'a link to a hidden product still preselects it');
+    await page.goto(`${origin}${BASE}products/bioclimatic-pergolas/infinity/`, { waitUntil: 'networkidle' });
+    check(((await page.locator(`${F} [data-iq-fixed-name]`).textContent()) || '').trim() === 'Инфинити Про', 'compact form shows the renamed product');
+    await page.goto(`${origin}${BASE}products/bioclimatic-pergolas/balance/`, { waitUntil: 'networkidle' });
+    check((await page.inputValue('#inquiry-form-product')) === 'balance', "a hidden product's own page keeps it selected");
+    await ctx.close();
+
+    // step change on a product page lands below the sticky header and sub-nav
+    for (const [vw, vh] of [[1440, 900], [390, 844]]) {
+      ctx = await newCtx({ viewport: { width: vw, height: vh } });
+      page = await ctx.newPage();
+      watch(page);
+      await page.goto(`${origin}${BASE}products/bioclimatic-pergolas/balance/`, { waitUntil: 'networkidle' });
+      await page.locator(`${F} [data-iq-next]`).scrollIntoViewIfNeeded();
+      await page.evaluate(() => window.scrollBy({ top: 300, behavior: 'instant' }));
+      await page.waitForTimeout(300);
+      await page.click(`${F} [data-iq-next]`);
+      await page.waitForTimeout(1500);
+      const r = await page.evaluate(() => {
+        const bottom = (sel) => {
+          const el = document.querySelector(sel);
+          if (!el) return 0;
+          const b = el.getBoundingClientRect();
+          return b.height && getComputedStyle(el).visibility !== 'hidden' ? b.bottom : 0;
+        };
+        return { bar: document.querySelector('#inquiry-form [data-iq-progress]').getBoundingClientRect().top, cover: Math.max(bottom('header[data-header]'), bottom('nav[data-subnav]')) };
+      });
+      check(r.bar >= r.cover - 1 && r.bar < vh / 2, `${vw}px: after a step change the progress bar is below the sticky bars (bar ${Math.round(r.bar)} ≥ ${Math.round(r.cover)})`);
+      await ctx.close();
+    }
+
+    // FAQ filter folds Latin ↔ Cyrillic like the site search
+    ctx = await newCtx();
+    page = await ctx.newPage();
+    watch(page);
+    await page.goto(`${origin}${BASE}faq/`, { waitUntil: 'networkidle' });
+    await page.fill('[data-faq-input]', 'pergola');
+    await page.waitForTimeout(200);
+    const faqShown = await page.locator('[data-faq-item]:not([hidden])').count();
+    check(faqShown > 0, `BG FAQ: "pergola" finds пергола questions (${faqShown})`);
+    check((await page.locator('[data-faq-item]:not([hidden]) mark').count()) > 0, 'BG FAQ: folded matches are highlighted');
+    await page.goto(`${origin}${BASE}en/faq/`, { waitUntil: 'networkidle' });
+    await page.fill('[data-faq-input]', 'зип');
+    await page.waitForTimeout(200);
+    check((await page.locator('[data-faq-item]:not([hidden])').count()) > 0, 'EN FAQ: Cyrillic "зип" finds the ZIP questions');
     await ctx.close();
   } catch (e) {
     failures.push(`exception: ${e.stack || e}`);

@@ -21,7 +21,7 @@ import { categories } from '../../../../data/categories';
 import { diagramHotspots } from '../../../../data/hotspots';
 import { site } from '../../../../data/site';
 import { ui } from '../../../../data/ui';
-import { LANGS, DEFAULT_LANG, getLang, url, categoryUrl, t, fmt } from '../../../../lib/i18n';
+import { LANGS, DEFAULT_LANG, getLang, url, categoryUrl, t, fmt, inlineName, withPrep } from '../../../../lib/i18n';
 import { productImages, img, altOf } from '../../../../lib/images';
 
 export function getStaticPaths() {
@@ -72,7 +72,7 @@ const T = {
     en: 'Photos and visualisations of {name}. Open any image to view it full size.',
   },
   relatedIntro: {
-    bg: 'Други системи, които си струва да разгледате заедно с {name}.',
+    bg: 'Други системи, които си струва да разгледате заедно {withName}.',
     en: 'Other systems worth considering alongside {name}.',
   },
   talk: { bg: 'Предпочитате да говорим?', en: 'Prefer to talk?' },
@@ -80,11 +80,29 @@ const T = {
 };
 
 const name = t(product.name, lang);
+// Inside sentences: lower-case generic names ("покрив от термопанели"), keep series/brand names
+const nameIn = inlineName(product, lang);
+const sentence = { name: nameIn, withName: withPrep(lang, nameIn) };
 const { hero, gallery, diagram } = productImages(product.id);
 const hotspots = diagramHotspots[product.id] ?? [];
 const ratioOf = (p: string | undefined) => {
   const m = img(p);
   return m ? m.width / m.height : 1.5;
+};
+// `sizes` for photos cropped with object-fit: cover. A photo wider than its box must be rendered wider
+// than the box (box height × photo ratio), or the browser picks a file that gets upscaled.
+const cover = (ar: number, boxRatio: number) => Math.max(1, ar / boxRatio);
+const heroAr = ratioOf(hero);
+const heroSizes = [
+  `(min-width: 1440px) ${Math.ceil(1328 * cover(heroAr, 2))}px`,
+  `(min-width: 1101px) ${Math.ceil(92 * cover(heroAr, 2))}vw`,
+  `(min-width: 641px) ${Math.ceil(92 * cover(heroAr, 16 / 9))}vw`,
+  `${Math.ceil(92 * cover(heroAr, 3 / 2))}vw`,
+].join(', ');
+// Editorial row photo: 6 of 12 columns from 901px (≈ 660px at 1440), full content width below
+const rowSizes = (image: string, boxRatio: number) => {
+  const f = cover(ratioOf(image), boxRatio);
+  return `(min-width: 1440px) ${Math.ceil(660 * f)}px, (min-width: 901px) ${Math.ceil(47 * f)}vw, ${Math.ceil(92 * f)}vw`;
 };
 
 // Every photo appears once per page: the hero stays in the hero, each editorial row gets its own photo and
@@ -218,7 +236,7 @@ const jsonLd = {
                   lang={lang}
                   alt={altOf(hero, lang) || t(product.fullName, lang)}
                   priority
-                  sizes="(min-width: 1440px) 1330px, calc(100vw - 2 * clamp(16px, 4vw, 56px))"
+                  sizes={heroSizes}
                 />
               </div>
             </div>
@@ -261,8 +279,8 @@ const jsonLd = {
                   src={r.image}
                   lang={lang}
                   alt={altOf(r.image, lang) || name}
-                  sizes="(min-width: 1440px) 720px, (min-width: 900px) 52vw, 100vw"
-                  widths={[480, 768, 1080, 1440]}
+                  sizes={rowSizes(r.image, r.ratio)}
+                  widths={[480, 768, 1080, 1440, 1920]}
                 />
               </div>
             </article>
@@ -413,7 +431,7 @@ const jsonLd = {
     hasGallery && (
       <section id="gallery" data-sn-section="gallery" class:list={['section', band.gallery]} aria-labelledby="gallery-title">
         <div class="wrap">
-          <SectionHead id="gallery-title" title={t(ui.product.gallery, lang)} intro={fmt(t(T.galleryIntro, lang), { name })} />
+          <SectionHead id="gallery-title" title={t(ui.product.gallery, lang)} intro={fmt(t(T.galleryIntro, lang), sentence)} />
           <ProductGallery lang={lang} images={galleryImages} group="product" name={name} />
           {videoSpot === 'gallery' && videoUrl && product.video && (
             <div class="p-vlink">
@@ -453,7 +471,7 @@ const jsonLd = {
   <section id="inquiry" data-sn-section="inquiry" data-sticky-cta-hide class:list={['section', 'p-inquiry', band.inquiry]} aria-labelledby="inquiry-title">
     <div class="wrap inq-grid">
       <div class="inq-copy">
-        <h2 id="inquiry-title" class="h2 rule">{fmt(t(ui.product.quoteTitle, lang), { product: name })}</h2>
+        <h2 id="inquiry-title" class="h2 rule">{fmt(t(ui.product.quoteTitle, lang), { product: nameIn })}</h2>
         <p class="lead">{t(ui.product.quoteLead, lang)}</p>
         <p class="small muted">{t(ui.product.noPrices, lang)}</p>
       </div>
@@ -485,7 +503,7 @@ const jsonLd = {
     related.length > 0 && (
       <section class:list={['section', band.related]} aria-labelledby="related-title">
         <div class="wrap">
-          <SectionHead id="related-title" title={t(ui.product.related, lang)} intro={fmt(t(T.relatedIntro, lang), { name })} />
+          <SectionHead id="related-title" title={t(ui.product.related, lang)} intro={fmt(t(T.relatedIntro, lang), sentence)} />
           <ProductGrid lang={lang} products={related} headingLevel="h3" />
         </div>
       </section>
@@ -645,8 +663,8 @@ const jsonLd = {
       padding-top: var(--s-4);
     }
     .p-top {
-      padding-top: var(--s-5);
-      row-gap: var(--s-5);
+      padding-top: var(--s-4);
+      row-gap: var(--s-4);
     }
     /* The catalogue name repeats the H1 here; the page title and breadcrumb already carry it */
     .p-full {
@@ -667,11 +685,8 @@ const jsonLd = {
       line-height: 1.18;
     }
     .p-sum {
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 3;
-      line-clamp: 3;
-      overflow: hidden;
+      font-size: var(--step-0);
+      line-height: 1.55;
     }
     .p-ctas {
       margin-top: var(--s-2);

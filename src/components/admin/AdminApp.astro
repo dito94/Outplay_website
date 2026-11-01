@@ -97,7 +97,11 @@ const data: AdminData = {
   s: S,
   statuses: { new: t(st.new, lang), 'in-progress': t(st.inProgress, lang), quoted: t(st.offerSent, lang), closed: t(st.closed, lang) },
   products: productData,
-  categories: cats.map((c) => ({ id: c.id, name: t(c.name, lang) })),
+  categories: cats.map((c) => ({
+    id: c.id,
+    name: t(c.name, lang),
+    subgroups: (c.subgroups ?? []).map((sg) => ({ id: sg.id, name: t(sg.name, lang) })),
+  })),
   faq: faq.map((g) => ({
     id: g.id,
     title: t(g.title, lang),
@@ -900,6 +904,9 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
   .adm-ed-state .adm-badge {
     margin-left: 0;
   }
+  .adm-sub {
+    overflow-wrap: anywhere;
+  }
   .adm-pill {
     display: inline-flex;
     align-items: center;
@@ -1106,7 +1113,10 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
     gap: 2px;
   }
   .adm-latest-name {
+    overflow: hidden;
     font-weight: 600;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
   .adm-latest-meta {
     overflow: hidden;
@@ -1286,6 +1296,16 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
     padding: 14px;
     border-bottom: 1px solid var(--line);
     vertical-align: middle;
+    overflow-wrap: anywhere;
+  }
+  .adm-table {
+    table-layout: auto;
+  }
+  .adm-table .c-name {
+    max-width: 280px;
+  }
+  .adm-table .c-prod {
+    max-width: 220px;
   }
   .adm-table tbody tr:last-child td {
     border-bottom: 0;
@@ -1320,12 +1340,18 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
     color: var(--steel);
   }
   .adm-rowlink {
+    display: inline-block;
+    max-width: 100%;
     padding: 2px 0;
+    overflow: hidden;
     border: 0;
     background: none;
     color: var(--ink);
     font-weight: 600;
     text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
   }
   .adm-rowlink:hover {
     text-decoration: underline;
@@ -1472,6 +1498,20 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
     margin-top: 6px;
     font-size: 1.75rem;
     font-weight: 300;
+    overflow-wrap: anywhere;
+  }
+  .adm-dw-sub,
+  .adm-msg,
+  .adm-files li,
+  .adm-vh h2,
+  .adm-prow-name,
+  .adm-frow-q,
+  .adm-frow-a,
+  .adm-ch-title {
+    overflow-wrap: anywhere;
+  }
+  .adm-files li span {
+    min-width: 0;
   }
   .adm-dw-title:focus {
     outline: none;
@@ -1700,7 +1740,12 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
   }
   .adm-toast p {
     flex: 1;
+    min-width: 0;
     padding-top: 1px;
+    overflow-wrap: anywhere;
+  }
+  .adm-toast.is-error > .adm-ic {
+    color: #ff8a80;
   }
   .adm-toast a {
     color: #fff;

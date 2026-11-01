@@ -499,6 +499,54 @@ async function findPage(page, candidates, selector) {
     },
   );
 
+
+  await step("QA: an edited name shows everywhere the product is named", async () => {
+    // Balance was renamed "Balance Плюс" in an earlier step
+    await page.goto(`${origin}${BASE}products/bioclimatic-pergolas/balance/`, { waitUntil: "networkidle" });
+    assert.ok((await page.title()).includes("Balance Плюс"), `page title: ${await page.title()}`);
+    assert.equal((await page.textContent('.crumbs [aria-current="page"]')).trim(), "Balance Плюс", "breadcrumb");
+    assert.equal((await page.textContent(".sn-title")).trim(), "Balance Плюс", "sub-nav title");
+    assert.equal((await page.textContent('.mega-col a[data-pid="balance"]')).trim(), "Balance Плюс", "mega-menu link");
+    assert.equal((await page.textContent('.drawer-cats a[data-pid="balance"]')).trim(), "Balance Плюс", "drawer link");
+    await page.goto(`${origin}${BASE}products/bioclimatic-pergolas/`, { waitUntil: "networkidle" });
+    assert.equal((await page.textContent('.c-jump a[data-pid="balance"]')).trim(), "Balance Плюс", "category hero list");
+    await page.goto(`${origin}${BASE}`, { waitUntil: "networkidle" });
+    assert.equal((await page.textContent('[data-plist="bioclimatic-pergolas"] [data-pid="balance"]')).trim(), "Balance Плюс", "home tile list");
+    await page.goto(`${origin}${BASE}projects/`, { waitUntil: "networkidle" });
+    const caps = page.locator('a.gm-prod[data-pid="balance"]');
+    if (await caps.count()) {
+      assert.equal((await caps.first().locator('[data-pfield="name"]').textContent()).trim(), "Balance Плюс", "gallery caption");
+      assert.ok((await caps.first().getAttribute("aria-label")).includes("Balance Плюс"), "gallery caption label");
+    }
+  });
+
+  await step("QA: hidden products drop out of lists, menus, hotspots and links", async () => {
+    const saved = await page.evaluate((k) => localStorage.getItem(k), KEYS.overrides);
+    try {
+      await page.evaluate((k) => {
+        localStorage.setItem(k, JSON.stringify({
+          flat: { hidden: true },
+          balance: { hidden: true, name: { bg: "Balance Плюс" } },
+          guillotine: { hidden: true },
+        }));
+      }, KEYS.overrides);
+      await page.goto(`${origin}${BASE}`, { waitUntil: "networkidle" });
+      const tile = (await page.innerText('[data-plist="bioclimatic-pergolas"]')).replace(/\s+/g, " ").trim();
+      assert.ok(!/Flat|Balance/.test(tile), `tile list without hidden products: ${tile}`);
+      assert.ok(!/^·|·\s*·|·$/.test(tile), `separators tidy: ${tile}`);
+      assert.equal(await page.locator('main a[href$="/bioclimatic-pergolas/balance/"]:visible').count(), 0, "no visible link to Balance (series link, hotspots)");
+      assert.equal(await page.locator('.scene-legend a[href$="/glass-systems/guillotine/"]').count(), 0, "hotspot legend row unlinked");
+      assert.equal(await page.locator(".scene-legend li").count(), 6, "numbered legend rows kept");
+      assert.equal(await page.locator('.mega-col a[data-pid="balance"]').evaluate((a) => a.closest("li").hidden), true, "mega-menu link hidden");
+      await page.goto(`${origin}${BASE}products/bioclimatic-pergolas/`, { waitUntil: "networkidle" });
+      assert.equal(await page.locator('.c-jump a[data-pid="flat"]').evaluate((a) => a.closest("li").hidden), true, "category hero list");
+      await page.goto(`${origin}${BASE}projects/`, { waitUntil: "networkidle" });
+      assert.equal(await page.locator('a.gm-prod[href$="/balance/"]:visible, a.gm-prod[href$="/guillotine/"]:visible, a.gm-prod[href$="/flat/"]:visible').count(), 0, "gallery caption links hidden");
+    } finally {
+      await page.evaluate(([k, v]) => (v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v)), [KEYS.overrides, saved]);
+    }
+  });
+
   await step("faq: edit a question inline (stored in KEYS.faq)", async () => {
     await page.goto(ADMIN + "#faq", { waitUntil: "networkidle" });
     await page.locator('[data-faq-edit="choosing-0"]').click();
@@ -521,6 +569,126 @@ async function findPage(page, candidates, selector) {
 
   const CP = "c-pergola-test";
   let cpCfg = null;
+
+  await step("QA: failed writes are reported and the UI rolls back", async () => {
+    await page.goto(ADMIN + "#products", { waitUntil: "networkidle" });
+    const errorToast = () => page.locator(".adm-toast.is-error").last().textContent();
+    await page.evaluate(() => {
+      window.__setItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function () {
+        throw new DOMException("full", "QuotaExceededError");
+      };
+    });
+    try {
+      await page.click('[data-toggle-vis="infinity"]');
+      assert.ok((await errorToast()).includes("Промените не бяха запазени"), "toggle: error toast");
+      assert.equal(await page.getAttribute('[data-toggle-vis="infinity"]', "aria-checked"), "true", "toggle: switch rolled back");
+      await page.goto(ADMIN + "#inquiries", { waitUntil: "networkidle" });
+      await page.click('tr[data-open-inq="test-inquiry-1"] .adm-rowlink');
+      const before = await page.locator("[data-adm-drawer] [data-status-radio]:checked").getAttribute("value");
+      await page.locator('[data-adm-drawer] label.chip:has(input[value="closed"])').click();
+      assert.ok((await errorToast()).includes("Промените не бяха запазени"), "status: error toast");
+      assert.equal(await page.locator("[data-adm-drawer] [data-status-radio]:checked").getAttribute("value"), before, "status: rolled back");
+      await page.keyboard.press("Escape");
+      await page.goto(ADMIN + "#faq", { waitUntil: "networkidle" });
+      await page.click('[data-faq-edit="choosing-1"]');
+      await page.fill("#adm-fq-choosing-1-bg", "Въпрос, който няма да се запази");
+      await page.click('[data-faq-form="choosing-1"] button[type="submit"]');
+      assert.ok((await errorToast()).includes("Промените не бяха запазени"), "FAQ: error toast");
+      assert.ok(await page.locator('[data-faq-form="choosing-1"]').isVisible(), "FAQ: editor stays open");
+      await page.click('[data-faq-form="choosing-1"] [data-faq-cancel]');
+      await page.goto(ADMIN + "#products/infinity", { waitUntil: "networkidle" });
+      await page.fill("#adm-f-name-bg", "Infinity Нова");
+      await page.click("[data-ed-save]");
+      assert.ok((await errorToast()).includes("Промените не бяха запазени"), "editor: error toast");
+      assert.equal(await page.inputValue("#adm-f-name-bg"), "Infinity Нова", "editor keeps the text");
+      assert.equal(await page.locator("[data-ed-save]").isDisabled(), false, "still unsaved");
+    } finally {
+      await page.evaluate(() => (Storage.prototype.setItem = window.__setItem));
+    }
+    await page.click("[data-ed-discard]");
+    assert.equal((await store(page, KEYS.overrides)).infinity, undefined, "nothing was stored");
+  });
+
+  await step("QA: leaving an editor with unsaved changes asks in-page; beforeunload too", async () => {
+    const beforeUnloadBlocked = () =>
+      page.evaluate(() => {
+        const e = new Event("beforeunload", { cancelable: true });
+        window.dispatchEvent(e);
+        return e.defaultPrevented;
+      });
+    let native = false;
+    page.on("dialog", (d) => {
+      native = true;
+      d.dismiss();
+    });
+    await page.goto(ADMIN + "#products/infinity", { waitUntil: "networkidle" });
+    await page.fill("#adm-f-name-bg", "Infinity X");
+    assert.equal(await beforeUnloadBlocked(), true, "beforeunload prompt while dirty");
+    await page.click('.adm-side [data-nav="dashboard"]');
+    const cf = page.locator("[data-adm-confirm]");
+    await cf.waitFor({ state: "visible" });
+    assert.equal((await cf.locator("#adm-cf-title").textContent()).trim(), "Незапазени промени");
+    await cf.locator("[data-cf-cancel]").click();
+    await cf.waitFor({ state: "hidden" });
+    assert.equal(await page.evaluate(() => location.hash), "#products/infinity", "stays on the editor");
+    assert.equal(await page.inputValue("#adm-f-name-bg"), "Infinity X", "edits kept");
+    await page.click('.adm-side [data-nav="dashboard"]');
+    await cf.waitFor({ state: "visible" });
+    await cf.locator("[data-cf-ok]").click();
+    await page.locator('[data-view="dashboard"]').waitFor({ state: "visible" });
+    assert.equal(await beforeUnloadBlocked(), false, "no prompt once discarded");
+    await page.goto(ADMIN + "#products/new", { waitUntil: "networkidle" });
+    await page.fill("#adm-cp-name-bg", "Чернова");
+    await page.click('.adm-side [data-nav="products"]');
+    await cf.waitFor({ state: "visible" });
+    await cf.locator("[data-cf-ok]").click();
+    await page.locator('[data-view="products"]').waitFor({ state: "visible" });
+    await page.goto(ADMIN + "#faq", { waitUntil: "networkidle" });
+    await page.click('[data-faq-edit="choosing-1"]');
+    await page.fill("#adm-fq-choosing-1-bg", "Променен въпрос");
+    await page.click('[data-faq-edit="choosing-2"]');
+    await cf.waitFor({ state: "visible" });
+    await cf.locator("[data-cf-cancel]").click();
+    assert.ok(await page.locator('[data-faq-form="choosing-1"]').isVisible(), "FAQ editor kept open");
+    await page.click('[data-faq-form="choosing-1"] [data-faq-cancel]');
+    assert.equal(native, false, "never a native dialog");
+    page.removeAllListeners("dialog");
+  });
+
+  await step("QA: very long unbroken text does not break the admin layout", async () => {
+    const long = "Ж".repeat(240);
+    await page.evaluate(([k, l]) => {
+      const list = JSON.parse(localStorage.getItem(k) || "[]");
+      list.push({ id: "test-long", createdAt: new Date().toISOString(), lang: "bg", productId: "balance", family: "pergola",
+        dims: { width: 4, depth: 3 }, options: {}, contact: { name: l, phone: "0888111222", email: `${l}@example.com`, city: l },
+        message: l, files: [`${l}.jpg`], status: "new" });
+      localStorage.setItem(k, JSON.stringify(list));
+    }, [KEYS.inquiries, long]);
+    try {
+      for (const w of [390, 1440]) {
+        await page.setViewportSize({ width: w, height: 900 });
+        await page.goto(ADMIN + "#inquiries", { waitUntil: "networkidle" });
+        const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        assert.ok(over <= 1, `no page overflow at ${w}: ${over}`);
+        await page.click('tr[data-open-inq="test-long"] .adm-rowlink');
+        await page.waitForTimeout(350);
+        const dw = await page.evaluate(() => {
+          const d = document.querySelector("[data-adm-drawer]");
+          const b = d.querySelector(".adm-dw-body");
+          return Math.max(d.scrollWidth - d.clientWidth, b.scrollWidth - b.clientWidth);
+        });
+        assert.ok(dw <= 1, `no overflow in the detail panel at ${w}: ${dw}`);
+        await page.keyboard.press("Escape");
+      }
+    } finally {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.evaluate((k) => {
+        localStorage.setItem(k, JSON.stringify(JSON.parse(localStorage.getItem(k) || "[]").filter((i) => i.id !== "test-long")));
+      }, KEYS.inquiries);
+    }
+  });
+
   await step(
     "custom product: create with photos (resized, reordered) and texts in BG/EN",
     async () => {
@@ -544,6 +712,11 @@ async function findPage(page, candidates, selector) {
       );
       await page.selectOption("#adm-cp-cat", "bioclimatic-pergolas");
       assert.equal(await page.inputValue("#adm-cp-fam"), "pergola");
+      assert.equal(await page.inputValue("#adm-cp-sub"), "automated", "subgroup defaults to the first");
+      await page.selectOption("#adm-cp-cat", "windbreaks");
+      assert.equal(await page.locator("#adm-cp-sub").count(), 0, "no subgroup choice without subgroups");
+      await page.selectOption("#adm-cp-cat", "bioclimatic-pergolas");
+      await page.selectOption("#adm-cp-sub", "automated");
       await page.click("[data-cp-save]");
       assert.equal(
         (await page.textContent('[data-cp-err="name-bg"]')).trim(),
@@ -773,6 +946,10 @@ async function findPage(page, candidates, selector) {
         "lightbox shows the photo",
       );
       await page.keyboard.press("Escape");
+      // the lightbox pops its own history entry on close: let that finish before navigating
+      await lb.waitFor({ state: "hidden" });
+      await page.waitForFunction(() => !history.state?.outplayLightbox);
+      await page.waitForTimeout(150);
       await page.goto(`${origin}${BASE}en/products/item/?id=${CP}`, {
         waitUntil: "networkidle",
       });
@@ -898,6 +1075,27 @@ async function findPage(page, candidates, selector) {
         1,
         "card on the category page",
       );
+      assert.equal(await page.locator(`section#automated [data-pcard][data-pid="${CP}"]`).count(), 1, "in its subgroup's grid");
+      assert.equal((await page.textContent(`.c-jump a[data-custom-link="${CP}"]`)).trim(), "Пергола Тест", "in the category hero list");
+      assert.ok((await page.getAttribute(`.c-jump a[data-custom-link="${CP}"]`, "href")).endsWith(`/products/item/?id=${CP}`));
+      // moved to the fixed-roof subgroup
+      await page.evaluate(([k, id]) => {
+        const l = JSON.parse(localStorage.getItem(k));
+        l.find((p) => p.id === id).subgroup = "fixed";
+        localStorage.setItem(k, JSON.stringify(l));
+      }, [KEYS.customProducts, CP]);
+      await page.reload({ waitUntil: "networkidle" });
+      assert.equal(await page.locator(`section#fixed [data-pcard][data-pid="${CP}"]`).count(), 1, "follows its subgroup");
+      await page.evaluate(([k, id]) => {
+        const l = JSON.parse(localStorage.getItem(k));
+        l.find((p) => p.id === id).subgroup = "automated";
+        localStorage.setItem(k, JSON.stringify(l));
+      }, [KEYS.customProducts, CP]);
+      await page.goto(`${origin}${BASE}products/`, { waitUntil: "networkidle" });
+      const order = await page.$$eval('[data-group="bioclimatic-pergolas"] .pg-item:not([hidden]) [data-pcard]', (els) => els.map((e) => e.dataset.pid));
+      assert.equal(order[order.indexOf("automatic-glass-roof") + 1], CP, `after the last automated pergola: ${order.join(",")}`);
+      await page.goto(`${origin}${BASE}`, { waitUntil: "networkidle" });
+      assert.equal((await page.textContent(`[data-plist="bioclimatic-pergolas"] [data-pid="${CP}"]`)).trim(), "Пергола Тест", "in the home tile list");
       await page.goto(
         `${origin}${BASE}products/bioclimatic-pergolas/balance/`,
         { waitUntil: "networkidle" },
@@ -1211,6 +1409,26 @@ async function findPage(page, candidates, selector) {
           await txt('.cs-count[data-pcount="windbreaks"]'),
           "1 продукт",
         );
+        // every windbreak hidden and none added: no empty sections, menus or "0 продукта"
+        await page.evaluate(([k]) => {
+          localStorage.setItem(k.overrides, JSON.stringify({ "telescopic-windbreak": { hidden: true } }));
+          localStorage.setItem(k.customProducts, "[]");
+        }, [KEYS]);
+        await page.goto(`${origin}${BASE}products/windbreaks/`, { waitUntil: "networkidle" });
+        assert.equal(await page.locator(".pgrid:visible").count(), 0, "empty product section hidden");
+        assert.equal(await txt('.c-count [data-pcount-mode="label"]'), "Скоро");
+        assert.equal(await page.locator('.c-count [data-pcount-mode="num"]').isVisible(), false);
+        assert.equal(await page.locator('.mega-col:has(.mega-cat[href$="/windbreaks/"])').evaluate((c) => c.hidden), true, "empty mega-menu column hidden");
+        assert.equal(await page.locator('.drawer-cats details:has(a[href$="/windbreaks/"])').evaluate((d) => d.closest("li").hidden), true, "empty drawer group hidden");
+        await page.goto(`${origin}${BASE}products/`, { waitUntil: "networkidle" });
+        assert.equal(await page.locator('[data-group="windbreaks"]').count(), 0, "no empty group on /products/");
+        assert.equal(await page.locator('[data-filter-btn="windbreaks"]').isVisible(), false, "and no filter for it");
+        await page.goto(`${origin}${BASE}`, { waitUntil: "networkidle" });
+        assert.equal(await txt('.cs-count[data-pcount="windbreaks"]'), "Скоро", "home strip says Скоро");
+        assert.equal((await page.innerText('[data-plist="windbreaks"]')).trim(), "Скоро", "home tile list says Скоро");
+        assert.equal(await page.locator("body").evaluate((b) => b.innerText.includes("0 продукта")), false, 'no "0 продукта"');
+        await page.goto(`${origin}${BASE}en/`, { waitUntil: "networkidle" });
+        assert.equal(await txt('.cs-count[data-pcount="windbreaks"]'), "Coming soon");
       } finally {
         await page.evaluate(
           ([k, v]) => {
@@ -1325,6 +1543,7 @@ async function findPage(page, candidates, selector) {
         nativeDialog = true;
         d.dismiss();
       });
+      await page.evaluate(() => localStorage.setItem("outplay.inquiry.draft.v1", JSON.stringify({ v: 1, productId: "balance", values: {} })));
       await page.click('.adm-banner [data-action="reset"]');
       const cf = page.locator("[data-adm-confirm]");
       await cf.waitFor({ state: "visible" });
@@ -1349,6 +1568,7 @@ async function findPage(page, candidates, selector) {
         null,
         "added products removed",
       );
+      assert.equal(await store(page, "outplay.inquiry.draft.v1"), null, "inquiry draft cleared");
       assert.ok(await store(page, KEYS.session), "still signed in");
       assert.equal(
         await page.locator(".adm-latest-row").count(),

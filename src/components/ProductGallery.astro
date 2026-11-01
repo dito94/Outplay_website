@@ -2,7 +2,7 @@
 // Product photo grid with mixed spans and no orphan cells. Each tile opens the page Lightbox
 // (include <Lightbox lang={lang} /> once on the page).
 import type { Lang } from '../data/types';
-import { altOf, lightboxSrc } from '../lib/images';
+import { altOf, img, lightboxSrc } from '../lib/images';
 import Img from './Img.astro';
 import Icon from './Icon.astro';
 
@@ -43,24 +43,44 @@ function layout(n: number): [number, number][] {
 }
 
 const spans = layout(images.length);
+// Phones: two columns; the first tile spans both, and so does the last when the rest is odd.
+const mobileWideLast = images.length > 1 && (images.length - 1) % 2 === 1;
+
+/**
+ * `sizes` for a cropped tile: the photo must be rendered at least as wide as the tile, and wider when it
+ * is wider than the tile (tile height × photo ratio), or the browser picks a file that gets upscaled.
+ * Grid: 12 columns, 16px gaps, rows clamp(170px, 15vw, 250px); phones: 2 columns, 8px gaps, 34vw rows.
+ */
+function tileSizes(src: string, c: number, r: number, wide: boolean): string {
+  const m = img(src);
+  const ar = m ? m.width / m.height : 1.5;
+  const desk = Math.max(c * 96 + (c - 1) * 16, (r * 250 + (r - 1) * 16) * ar); // ≥ 1440 (1328px content)
+  const large = Math.max(c * 7.7, r * 15 * ar); // 1134–1439: 15vw rows
+  const mid = Math.max(c * 7.7 * 11.33, (r * 170 + (r - 1) * 16) * ar); // 700–1133: 170px rows
+  const phone = wide ? Math.max(92, 68 * ar) : Math.max(46, 34 * ar);
+  return [
+    `(min-width: 1440px) ${Math.ceil(desk)}px`,
+    `(min-width: 1134px) ${Math.ceil(large)}vw`,
+    `(min-width: 700px) ${Math.ceil(mid)}px`,
+    `${Math.ceil(phone)}vw`,
+  ].join(', ');
+}
+
 const tiles = await Promise.all(
   images.map(async (src, i) => {
     const alt = altOf(src, lang) || `${name}, ${photo} ${i + 1}`;
     const [c, r] = spans[i];
-    const bigSizes =
-      c >= 12 ? '(min-width: 1440px) 1330px, 100vw' : c >= 7 ? '(min-width: 1440px) 890px, (min-width: 700px) 62vw, 100vw' : '';
+    const wide = i === 0 || (mobileWideLast && i === images.length - 1);
     return {
       src,
       alt,
       href: await lightboxSrc(src),
       c,
       r,
-      sizes: bigSizes || (c >= 5 ? '(min-width: 1440px) 660px, (min-width: 700px) 48vw, 50vw' : '(min-width: 1440px) 440px, (min-width: 700px) 33vw, 50vw'),
+      sizes: tileSizes(src, c, r, wide),
     };
   }),
 );
-// Phones: two columns; the first tile spans both, and so does the last when the rest is odd.
-const mobileWideLast = images.length > 1 && (images.length - 1) % 2 === 1;
 ---
 
 {

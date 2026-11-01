@@ -13,6 +13,12 @@ const data = {
   byCat: Object.fromEntries(categories.map((c) => [c.id, products.filter((p) => p.category === c.id).map((p) => p.id)])),
   /** public page of a custom product, per language: <item>?id=c-… */
   item: { bg: url('bg', '/products/item/'), en: url('en', '/products/item/') },
+  /** catalogue names, to rename them inside longer texts (page title, aria-labels) */
+  names: Object.fromEntries(products.map((p) => [p.id, p.name])),
+  /** subgroups per category with their catalogue product ids (added products can join one) */
+  subgroups: Object.fromEntries(
+    categories.map((c) => [c.id, (c.subgroups ?? []).map((sg) => ({ id: sg.id, productIds: sg.productIds }))]),
+  ),
 };
 ---
 

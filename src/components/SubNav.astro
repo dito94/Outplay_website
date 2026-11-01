@@ -1,9 +1,12 @@
 ---
 // In-page section navigation for product pages. Sticky under the header at every width (a horizontally
 // scrollable strip on phones). It follows the header: `--header-offset` (set by the header script) is 0px
-// while the header is hidden on scroll-down and the header height while it is shown. The current section is highlighted on scroll (IntersectionObserver):
-// any element with data-sn-section="<item id>" counts towards that item.
+// while the header is hidden on scroll-down and the header height while it is shown.
+// The current section is highlighted on scroll: the last section whose top has passed a line just under
+// the bar wins; any element with data-sn-section="<item id>" counts towards that item.
 import type { Lang } from '../data/types';
+import { products } from '../data/products';
+import { routeOf } from '../lib/i18n';
 import Icon from './Icon.astro';
 
 interface Props {
@@ -15,13 +18,16 @@ interface Props {
 }
 const { lang, items, title, cta } = Astro.props;
 const label = lang === 'bg' ? 'Съдържание на страницата' : 'On this page';
+// on a catalogue product page the title is the product name: hook for admin-demo renames (src/lib/custom-products.ts)
+const routeMatch = routeOf(Astro.url.pathname).match(/^\/products\/([^/]+)\/([^/]+)\/$/);
+const pagePid = routeMatch && products.some((p) => p.category === routeMatch[1] && p.id === routeMatch[2]) ? routeMatch[2] : undefined;
 ---
 
 <nav class="subnav" aria-label={label} data-subnav>
   <div class="wrap sn-inner">
     {
       title && (
-        <span class="sn-title" aria-hidden="true">
+        <span class="sn-title" aria-hidden="true" data-pid={pagePid} data-pfield={pagePid ? 'name' : undefined}>
           {title}
         </span>
       )
@@ -64,19 +70,22 @@ const label = lang === 'bg' ? 'Съдържание на страницата' :
     gap: var(--s-6);
     min-height: 60px;
   }
+  /* The name uses the free space first; it only shortens (faster than the links) when the bar is full */
   .sn-title {
-    flex: none;
+    flex: 0 6 auto;
+    min-width: 6ch;
+    max-width: 34ch;
     font-family: var(--font-display);
     font-size: var(--step-1);
     padding-right: var(--s-6);
     border-right: 1px solid var(--line);
     line-height: 1.6;
-    max-width: 22ch;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .sn-list {
+    flex: 0 1 auto;
     display: flex;
     gap: var(--s-1);
     list-style: none;
@@ -174,7 +183,7 @@ const label = lang === 'bg' ? 'Съдържание на страницата' :
     const sections = Array.from(document.querySelectorAll<HTMLElement>('[data-sn-section]')).filter((el) =>
       ids.includes(el.dataset.snSection ?? ''),
     );
-    if (!sections.length || !('IntersectionObserver' in window)) return;
+    if (!sections.length) return;
 
     let current = '';
     const setCurrent = (id: string) => {
@@ -193,30 +202,38 @@ const label = lang === 'bg' ? 'Съдържание на страницата' :
       }
     };
 
-    // A 1px detection line just under the sticky bar: the section crossing it is the current one.
-    let io: IntersectionObserver | undefined;
-    const observe = () => {
-      io?.disconnect();
+    // Detection line: header height + bar height + 24px. It does not move with the hiding header, so a
+    // section scrolled to by its anchor (html scroll-padding + scroll-margin) is always past it.
+    const update = () => {
       const header = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 72;
-      const line = Math.round(header + nav.offsetHeight + 24);
-      const bottom = Math.max(0, window.innerHeight - line - 1);
-      io = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((e) => {
-            if (e.isIntersecting) setCurrent((e.target as HTMLElement).dataset.snSection ?? '');
-          });
-          const first = sections[0];
-          if (first && first.getBoundingClientRect().top > line) setCurrent('');
-        },
-        { rootMargin: `-${line}px 0px -${bottom}px 0px`, threshold: 0 },
-      );
-      sections.forEach((s) => io!.observe(s));
+      const line = header + nav.offsetHeight + 24;
+      let id = '';
+      for (const s of sections) {
+        if (s.getBoundingClientRect().top <= line + 1) id = s.dataset.snSection ?? '';
+      }
+      // At the very end of the page the last sections may never reach the line: take the lowest one in view
+      const doc = document.documentElement;
+      if (window.scrollY + window.innerHeight >= doc.scrollHeight - 2) {
+        const inView = sections.filter((s) => s.getBoundingClientRect().top < window.innerHeight * 0.6);
+        const last = inView[inView.length - 1];
+        if (last) id = last.dataset.snSection ?? id;
+      }
+      setCurrent(id);
     };
-    observe();
-    let t: number | undefined;
-    window.addEventListener('resize', () => {
-      window.clearTimeout(t);
-      t = window.setTimeout(observe, 200);
-    });
+
+    let frame = 0;
+    const schedule = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        update();
+      });
+    };
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('scrollend', update);
+    window.addEventListener('resize', schedule);
+    window.addEventListener('hashchange', schedule);
+    window.addEventListener('load', update);
+    update();
   });
 </script>

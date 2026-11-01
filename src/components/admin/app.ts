@@ -60,6 +60,8 @@ type FamilyId = CustomProduct['family'];
 interface Draft {
   id: string | null;
   category: CategoryId;
+  /** subgroup id ('' when the category has none) */
+  subgroup: string;
   family: FamilyId;
   familyTouched: boolean;
   name: Pair;
@@ -213,13 +215,13 @@ export function boot(): void {
     if (key) container.querySelector<HTMLElement>(`[data-fkey="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
   }
 
-  function toast(message: string, link?: { href: string; label: string }) {
+  function toast(message: string, link?: { href: string; label: string } | null, error = false) {
     const openDialog = qa<HTMLDialogElement>('dialog[open]').pop();
     const region = (openDialog && q('[data-adm-toasts]', openDialog)) || q(':scope > [data-adm-toasts]');
     if (!region) return;
     const el = document.createElement('div');
-    el.className = 'adm-toast';
-    el.innerHTML = `${icon('check', 18)}<p>${esc(message)}${
+    el.className = error ? 'adm-toast is-error' : 'adm-toast';
+    el.innerHTML = `${icon(error ? 'info' : 'check', 18)}<p>${esc(message)}${
       link ? ` <a href="${esc(link.href)}" target="_blank" rel="noopener">${esc(link.label)}${newTab}</a>` : ''
     }</p><button type="button" class="adm-toast-x">${icon('close', 16)}<span class="sr-only">${esc(S.dismiss)}</span></button>`;
     region.appendChild(el);
@@ -238,10 +240,10 @@ export function boot(): void {
     el.addEventListener('mouseenter', () => window.clearTimeout(timer));
     el.addEventListener('focusin', () => window.clearTimeout(timer));
     el.addEventListener('mouseleave', () => arm(3000));
-    arm(link ? 9000 : 5000);
+    arm(link || error ? 9000 : 5000);
   }
 
-  function confirmDialog(o: { title: string; text: string; ok: string; danger?: boolean; check?: string }) {
+  function confirmDialog(o: { title: string; text: string; ok: string; danger?: boolean; check?: string; cancel?: string }) {
     q('#adm-cf-title', confirmEl)!.textContent = o.title;
     q('#adm-cf-text', confirmEl)!.textContent = o.text;
     const ok = q<HTMLButtonElement>('[data-cf-ok]', confirmEl)!;
@@ -252,6 +254,7 @@ export function boot(): void {
     checkWrap.hidden = !o.check;
     check.checked = true;
     if (o.check) q('span', checkWrap)!.textContent = o.check;
+    q('[data-cf-cancel]', confirmEl)!.textContent = o.cancel ?? S.cancel;
     confirmEl.returnValue = '';
     confirmEl.showModal();
     q<HTMLButtonElement>('[data-cf-cancel]', confirmEl)!.focus();
@@ -266,6 +269,9 @@ export function boot(): void {
   confirmEl.addEventListener('click', (e) => {
     if (e.target === confirmEl) confirmEl.close('cancel');
   });
+
+  /** Storage refused the write: say so (the UI is re-rendered from storage by the caller) */
+  const failed = () => toast(S.saveFailed, null, true);
 
   async function copyText(text: string): Promise<void> {
     try {
@@ -286,6 +292,39 @@ export function boot(): void {
       ta.remove();
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Unsaved changes (product editor, new/added product editor, FAQ editor)
+  // ---------------------------------------------------------------------------
+
+  function faqDirty(): boolean {
+    const id = state.faqEditing;
+    const it = id ? faqById.get(id) : undefined;
+    const form = id ? q(`[data-faq-form="${id}"]`) : null;
+    if (!it || !form) return false;
+    const ed = loadFaq();
+    const val = (sel: string) => q<HTMLInputElement>(sel, form)?.value ?? '';
+    return LANGS.some((l) => val(`[data-fq="${l}"]`) !== faqText(it, 'q', l, ed) || val(`[data-fa="${l}"]`) !== faqText(it, 'a', l, ed));
+  }
+  function isDirty(): boolean {
+    if (!isAuthed() || !state.rendered) return false;
+    if (state.view === 'editor') {
+      const save = q<HTMLButtonElement>('[data-ed-save]');
+      return !!save && !save.disabled;
+    }
+    if (state.view === 'custom') return !!state.draft && JSON.stringify(state.draft) !== state.draftBase;
+    if (state.view === 'faq') return faqDirty();
+    return false;
+  }
+  /** Ask in-page before unsaved changes are thrown away; true = go ahead */
+  async function confirmLeave(): Promise<boolean> {
+    if (!isDirty()) return true;
+    const r = await confirmDialog({ title: S.leaveTitle, text: S.leaveText, ok: S.leaveOk, danger: true, cancel: S.leaveStay });
+    return r.ok;
+  }
+  /** Hash of the view on screen (restored while the guard asks) */
+  let currentHash = location.hash;
+  let leaving = false;
 
   // ---------------------------------------------------------------------------
   // Routing
@@ -348,6 +387,7 @@ export function boot(): void {
     state.view = r.view;
     state.arg = r.arg;
     state.rendered = true;
+    currentHash = location.hash;
     qa('[data-view]').forEach((el) => (el.hidden = el.dataset.view !== r.view));
     const navId = r.view === 'editor' || r.view === 'custom' ? 'products' : r.view;
     qa<HTMLAnchorElement>('[data-nav]').forEach((a) => {
@@ -694,9 +734,11 @@ export function boot(): void {
   }
 
   function setStatus(id: string, s: InquiryStatus) {
+    let ok = true;
     if (isGenerated(id)) state.exampleStatus[id] = s;
-    else mutate(() => updateInquiry(id, { status: s }));
-    refresh();
+    else mutate(() => (ok = updateInquiry(id, { status: s })));
+    refresh(); // re-rendered from storage: on failure the previous status comes back
+    if (!ok) return failed();
     toast(fmt(S.statusSaved, { s: D.statuses[s] }));
   }
 
@@ -734,7 +776,9 @@ export function boot(): void {
       danger: true,
     });
     if (!res.ok) return;
-    mutate(() => deleteInquiry(inq.id));
+    let ok = true;
+    mutate(() => (ok = deleteInquiry(inq.id)));
+    if (!ok) return failed();
     state.drawerId = null;
     drawer.close();
     refresh();
@@ -829,7 +873,10 @@ export function boot(): void {
       const hide = !c.hidden;
       let res = { ok: true } as SaveResult;
       mutate(() => (res = updateCustomProduct(id, { hidden: hide || undefined })));
-      if (!res.ok) return toast(S.cpUnavailable);
+      if (!res.ok) {
+        refresh();
+        return failed();
+      }
       refresh();
       return toast(fmt(hide ? S.hiddenToast : S.shownToast, { name: cText(c.name) }));
     }
@@ -837,11 +884,12 @@ export function boot(): void {
     if (!p) return;
     const o = overrides()[id];
     const hide = !o?.hidden;
+    let ok = true;
     mutate(() => {
-      if (!hide && !hasText(o)) clearOverride(id);
-      else saveOverride(id, { hidden: hide ? true : undefined });
+      ok = !hide && !hasText(o) ? clearOverride(id) : saveOverride(id, { hidden: hide ? true : undefined });
     });
-    refresh();
+    refresh(); // re-rendered from storage: on failure the switch flips back
+    if (!ok) return failed();
     toast(fmt(hide ? S.hiddenToast : S.shownToast, { name: effText(p, 'name') }));
   }
 
@@ -1056,10 +1104,11 @@ export function boot(): void {
       patch[f] = Object.keys(diff).length ? diff : undefined;
     });
     const o = overrides()[p.id];
+    let ok = true;
     mutate(() => {
-      if (!hasText(patch) && !o?.hidden) clearOverride(p.id);
-      else saveOverride(p.id, patch);
+      ok = !hasText(patch) && !o?.hidden ? clearOverride(p.id) : saveOverride(p.id, patch);
     });
+    if (!ok) return failed(); // the form keeps the edits
     renderEditor();
     updateNavCount();
     document.title = `${viewTitle()} · ${S.title} · OUTPLAY`;
@@ -1078,10 +1127,11 @@ export function boot(): void {
     });
     if (!res.ok) return;
     const hidden = !!overrides()[p.id]?.hidden;
+    let ok = true;
     mutate(() => {
-      clearOverride(p.id);
-      if (hidden) saveOverride(p.id, { hidden: true });
+      ok = clearOverride(p.id) && (!hidden || saveOverride(p.id, { hidden: true }));
     });
+    if (!ok) return failed();
     renderEditor();
     document.title = `${viewTitle()} · ${S.title} · OUTPLAY`;
     q<HTMLElement>('#adm-h-editor')?.focus();
@@ -1123,11 +1173,15 @@ export function boot(): void {
     features: S.cpFeatures,
   };
 
+  const subgroupsOf = (cat: string) => D.categories.find((c) => c.id === cat)?.subgroups ?? [];
+  const firstSubgroup = (cat: string) => subgroupsOf(cat)[0]?.id ?? '';
+
   function emptyDraft(): Draft {
     const category = (D.categories[0]?.id ?? 'bioclimatic-pergolas') as CategoryId;
     return {
       id: null,
       category,
+      subgroup: firstSubgroup(category),
       family: DEFAULT_FAMILY[category],
       familyTouched: false,
       name: emptyPair(),
@@ -1149,6 +1203,7 @@ export function boot(): void {
     return {
       id: c.id,
       category: c.category,
+      subgroup: subgroupsOf(c.category).some((g) => g.id === c.subgroup) ? c.subgroup! : firstSubgroup(c.category),
       family: c.family,
       familyTouched: true,
       name: pair(c.name),
@@ -1176,6 +1231,7 @@ export function boot(): void {
         d.id ??
         customProductId(d.name.bg || d.name.en, [...customs().map((c) => c.id), ...D.products.map((p) => p.id)]),
       category: d.category,
+      ...(d.subgroup ? { subgroup: d.subgroup } : {}),
       family: d.family,
       name: trim(d.name),
       tagline: trim(d.tagline),
@@ -1312,6 +1368,15 @@ export function boot(): void {
                 <select id="adm-cp-cat" class="select" data-cp-select="category" data-fkey="cp-cat">${D.categories
                   .map((c) => `<option value="${c.id}"${c.id === d.category ? ' selected' : ''}>${esc(c.name)}</option>`)
                   .join('')}</select></div>
+              ${
+                subgroupsOf(d.category).length
+                  ? `<div class="field"><label for="adm-cp-sub">${esc(S.cpSubgroup)}</label>
+                <select id="adm-cp-sub" class="select" data-cp-select="subgroup" data-fkey="cp-sub" aria-describedby="adm-cp-sub-hint">${subgroupsOf(d.category)
+                  .map((g) => `<option value="${esc(g.id)}"${g.id === d.subgroup ? ' selected' : ''}>${esc(g.name)}</option>`)
+                  .join('')}</select>
+                <p class="hint" id="adm-cp-sub-hint">${esc(S.cpSubgroupHint)}</p></div>`
+                  : ''
+              }
               <div class="field"><label for="adm-cp-fam">${esc(S.cpFamily)}</label>
                 <select id="adm-cp-fam" class="select" data-cp-select="family" data-fkey="cp-fam" aria-describedby="adm-cp-fam-hint">${FAMILIES.map(
                   (f) => `<option value="${f}"${f === d.family ? ' selected' : ''}>${esc(famLabel[f])}</option>`,
@@ -1432,11 +1497,12 @@ export function boot(): void {
     if (!d) return;
     if (el.dataset.cpSelect === 'category') {
       d.category = el.value as CategoryId;
-      if (!d.familyTouched) {
-        d.family = DEFAULT_FAMILY[d.category];
-        const fam = q<HTMLSelectElement>('#adm-cp-fam');
-        if (fam) fam.value = d.family;
-      }
+      d.subgroup = firstSubgroup(d.category);
+      if (!d.familyTouched) d.family = DEFAULT_FAMILY[d.category];
+      paintCustom(); // the subgroup choices depend on the category
+      return;
+    } else if (el.dataset.cpSelect === 'subgroup') {
+      d.subgroup = el.value;
     } else {
       d.family = el.value as FamilyId;
       d.familyTouched = true;
@@ -1657,7 +1723,8 @@ export function boot(): void {
   }
   const edited = (it: AdminFaqItem, ed: FaqEdits) => !!ed[it.id];
 
-  function openFaqEditor(id: string) {
+  async function openFaqEditor(id: string) {
+    if (state.faqEditing && !(await confirmLeave())) return;
     const closing = state.faqEditing === id;
     state.faqEditing = closing ? null : id;
     state.faqTab = lang;
@@ -1712,7 +1779,9 @@ export function boot(): void {
     const da = diff('a');
     if (!dq && !da) delete ed[id];
     else ed[id] = { q: dq, a: da, updatedAt: new Date().toISOString() };
-    mutate(() => writeJSON(KEYS.faq, ed));
+    let ok = true;
+    mutate(() => (ok = writeJSON(KEYS.faq, ed)));
+    if (!ok) return failed(); // the editor stays open with the text
     closeFaqEditor(id);
     toast(S.faqSaved);
   }
@@ -1722,7 +1791,9 @@ export function boot(): void {
     if (!res.ok) return;
     const ed = loadFaq();
     delete ed[id];
-    mutate(() => writeJSON(KEYS.faq, ed));
+    let ok = true;
+    mutate(() => (ok = writeJSON(KEYS.faq, ed)));
+    if (!ok) return failed();
     closeFaqEditor(id);
     toast(S.faqReverted);
   }
@@ -1845,6 +1916,7 @@ export function boot(): void {
       remove(KEYS.faq);
       remove(KEYS.settings);
       remove(KEYS.customProducts);
+      remove(KEYS.draft);
       if (res.checked) remove(KEYS.inquiries);
       else {
         const list = storedInquiries();
@@ -1898,7 +1970,8 @@ export function boot(): void {
   });
   [user, pass].forEach((el) => el.addEventListener('input', () => el.removeAttribute('aria-invalid')));
 
-  function logout() {
+  async function logout() {
+    if (!(await confirmLeave())) return;
     if (drawer.open) {
       state.drawerId = null;
       drawer.close();
@@ -2096,11 +2169,28 @@ export function boot(): void {
     }
     if (e.key === 'Escape' && t.closest('[data-faq-form]')) {
       const id = t.closest<HTMLElement>('[data-faq-form]')?.dataset.faqForm;
-      if (id) closeFaqEditor(id);
+      if (id) void confirmLeave().then((ok) => ok && closeFaqEditor(id));
     }
   });
 
-  window.addEventListener('hashchange', () => route(true));
+  window.addEventListener('hashchange', async () => {
+    const target = location.hash;
+    if (!leaving && target !== currentHash && parseHash() && isDirty()) {
+      // keep the editor's address while asking (replaceState fires no hashchange)
+      history.replaceState(history.state, '', currentHash || `${location.pathname}${location.search}`);
+      if (!(await confirmLeave())) return;
+      leaving = true;
+      location.hash = target;
+      return;
+    }
+    leaving = false;
+    route(true);
+  });
+  window.addEventListener('beforeunload', (e) => {
+    if (!isDirty()) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
   window.addEventListener('outplay:store', () => {
     if (!muted) refresh();
   });

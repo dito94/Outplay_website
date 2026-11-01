@@ -25,6 +25,17 @@ export const T = {
   close: ui.actions.close,
   cancel: A.actions.cancel,
   dismiss: { bg: 'Затвори известието', en: 'Dismiss notification' },
+  saveFailed: {
+    bg: 'Промените не бяха запазени — паметта на браузъра е недостъпна или пълна.',
+    en: 'Your changes were not saved: browser storage is unavailable or full.',
+  },
+  leaveTitle: { bg: 'Незапазени промени', en: 'Unsaved changes' },
+  leaveText: {
+    bg: 'Имате промени, които не са запазени. Ако продължите, те ще бъдат загубени.',
+    en: 'You have changes that are not saved. If you continue, they will be lost.',
+  },
+  leaveOk: { bg: 'Отхвърли промените', en: 'Discard changes' },
+  leaveStay: { bg: 'Остани', en: 'Keep editing' },
   justNow: { bg: 'току-що', en: 'just now' },
 
   // Login
@@ -249,6 +260,11 @@ export const T = {
   cpNewTitle: { bg: 'Нов продукт', en: 'New product' },
   cpBasics: { bg: 'Основни данни', en: 'Basics' },
   cpCategory: A.fields.category,
+  cpSubgroup: { bg: 'Подгрупа', en: 'Subgroup' },
+  cpSubgroupHint: {
+    bg: 'В списъците на сайта продуктът се показва в тази подгрупа.',
+    en: 'In the site listings the product appears in this subgroup.',
+  },
   cpFamily: { bg: 'Вид запитване', en: 'Inquiry type' },
   cpFamilyHint: {
     bg: 'Определя кои размери и опции вижда клиентът във формата за запитване.',
@@ -358,8 +374,8 @@ export const T = {
   // Reset
   resetTitle: { bg: 'Нулиране на демо данните', en: 'Reset demo data' },
   resetText: {
-    bg: 'Всички редакции на продукти и въпроси и всички добавени продукти в този браузър ще бъдат изтрити и сайтът ще покаже оригиналното съдържание.',
-    en: 'All product and FAQ edits and all added products in this browser will be deleted, and the site will show the original content again.',
+    bg: 'Всички редакции на продукти и въпроси, всички добавени продукти и незавършеното запитване в този браузър ще бъдат изтрити и сайтът ще покаже оригиналното съдържание.',
+    en: 'All product and FAQ edits, all added products and any unfinished quote request in this browser will be deleted, and the site will show the original content again.',
   },
   resetInq: { bg: 'Изтрий и запитванията от формата ({n})', en: 'Also delete inquiries sent from the form ({n})' },
   resetConfirm: { bg: 'Нулирай', en: 'Reset' },

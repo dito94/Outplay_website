@@ -82,14 +82,15 @@ export function saveInquiry(inq: Omit<StoredInquiry, 'id' | 'createdAt' | 'statu
   list.unshift(full);
   return write(KEYS.inquiries, list) ? full : null;
 }
-export function updateInquiry(id: string, patch: Partial<StoredInquiry>): void {
-  write(
+/** Returns false when the browser refused the write (storage full or unavailable) */
+export function updateInquiry(id: string, patch: Partial<StoredInquiry>): boolean {
+  return write(
     KEYS.inquiries,
     loadInquiries().map((i) => (i.id === id ? { ...i, ...patch } : i)),
   );
 }
-export function deleteInquiry(id: string): void {
-  write(
+export function deleteInquiry(id: string): boolean {
+  return write(
     KEYS.inquiries,
     loadInquiries().filter((i) => i.id !== id),
   );
@@ -97,15 +98,16 @@ export function deleteInquiry(id: string): void {
 
 // Product overrides (admin demo edits applied on public pages)
 export const loadOverrides = (): Record<string, ProductOverride> => read(KEYS.overrides, {});
-export function saveOverride(productId: string, patch: ProductOverride): void {
+/** Returns false when the browser refused the write (storage full or unavailable) */
+export function saveOverride(productId: string, patch: ProductOverride): boolean {
   const all = loadOverrides();
   all[productId] = { ...all[productId], ...patch, updatedAt: new Date().toISOString() };
-  write(KEYS.overrides, all);
+  return write(KEYS.overrides, all);
 }
-export function clearOverride(productId: string): void {
+export function clearOverride(productId: string): boolean {
   const all = loadOverrides();
   delete all[productId];
-  write(KEYS.overrides, all);
+  return write(KEYS.overrides, all);
 }
 
 export const readJSON = read;
@@ -132,6 +134,8 @@ export interface CustomProduct {
   /** 'c-' + slug of the name, unique among custom products */
   id: string;
   category: 'bioclimatic-pergolas' | 'glass-systems' | 'sun-protection' | 'windbreaks';
+  /** subgroup of the category (e.g. 'automated' / 'fixed' pergolas); listings place the card there */
+  subgroup?: string;
   family: 'pergola' | 'glass' | 'door' | 'zip' | 'awning' | 'windbreak';
   name: LPair;
   tagline: LPair;

@@ -7,6 +7,7 @@
 // `compact`: on phones (≤ 600px) the cards become an index list (112px thumbnail, name + tagline).
 import type { Lang, Product } from '../data/types';
 import ProductCard from './ProductCard.astro';
+import { img, productImages } from '../lib/images';
 
 interface Props {
   lang: Lang;
@@ -22,13 +23,27 @@ const lead3 = n % 3 === 2 ? 'span2' : n % 3 === 1 ? 'full' : 'none';
 const lead2 = n % 2 === 1 ? 'full' : 'none';
 const hasLead = lead3 !== 'none' || lead2 !== 'none';
 
-const phone = compact ? '(min-width: 601px) 100vw, 112px' : '100vw';
-const SIZES = {
-  normal: `(min-width: 1440px) 440px, (min-width: 1100px) 31vw, (min-width: 700px) 47vw, ${phone}`,
-  span2: `(min-width: 1440px) 890px, (min-width: 1100px) 63vw, (min-width: 700px) 56vw, ${phone}`,
-  full: `(min-width: 1440px) 780px, (min-width: 1100px) 56vw, (min-width: 700px) 56vw, ${phone}`,
-};
-const leadSizes = lead3 === 'span2' ? SIZES.span2 : lead3 === 'full' ? SIZES.full : lead2 === 'full' ? SIZES.full : SIZES.normal;
+/**
+ * `sizes` per card. Photos are cropped (object-fit: cover), so a photo wider than its box must be rendered
+ * at box height × photo ratio, not just box width, or the browser picks a file that gets upscaled.
+ * Boxes: [width, width/height] at ≥1440 (px) and 1100–1439 (vw); 700–1099 and phones in vw.
+ */
+type Box = [number, number];
+const BOX = {
+  normal: { xl: [427, 1.5], lg: [31, 1.5] },
+  span2: { xl: [877, 2.09], lg: [62, 2.2] }, // fixed shared height clamp(260px, 28vw, 420px)
+  beside: { xl: [427, 1.02], lg: [31, 1.1] }, // the card next to a 2-column lead, same height
+  full: { xl: [751, 1.6], lg: [54, 1.6] }, // horizontal feature, 16:10 photo
+} satisfies Record<string, { xl: Box; lg: Box }>;
+function sizesFor(p: Product, i: number): string {
+  const m = img(productImages(p.id).hero);
+  const ar = m ? m.width / m.height : 1.5;
+  const need = ([w, r]: Box) => Math.ceil(w * Math.max(1, ar / r));
+  const role = i === 0 && lead3 !== 'none' ? lead3 : i === 1 && lead3 === 'span2' ? 'beside' : 'normal';
+  const md: Box = i === 0 && lead2 === 'full' ? [51, 4 / 3] : [46, 1.5];
+  const phone = compact ? `(min-width: 601px) ${need([92, 1.5])}vw, ${need([112, 4 / 3])}px` : `${need([92, 1.5])}vw`;
+  return `(min-width: 1440px) ${need(BOX[role].xl)}px, (min-width: 1100px) ${need(BOX[role].lg)}vw, (min-width: 700px) ${need(md)}vw, ${phone}`;
+}
 ---
 
 <div class:list={['pgrid', { compact }, cls]} data-lead3={lead3} data-lead2={lead2}>
@@ -40,7 +55,7 @@ const leadSizes = lead3 === 'span2' ? SIZES.span2 : lead3 === 'full' ? SIZES.ful
           product={p}
           size={i === 0 && hasLead ? 'large' : 'normal'}
           headingLevel={headingLevel}
-          sizes={i === 0 ? leadSizes : SIZES.normal}
+          sizes={sizesFor(p, i)}
         />
       </div>
     ))

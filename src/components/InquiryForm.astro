@@ -32,6 +32,8 @@ const { lang, productId, compact = false, runtimeProduct, id = 'inquiry' } = Ast
 const DEMO = true;
 const MAX_FILES = 10;
 const MAX_MB = 15;
+/** Field length limits */
+const MAX = { name: 80, phone: 30, email: 120, city: 80, message: 2000, text: 120 };
 
 const T = {
   step1: { bg: 'Продукт и размери', en: 'Product and size' },
@@ -74,6 +76,15 @@ const T = {
     en: 'You are continuing a request saved in this browser.',
   },
   startOver: { bg: 'Започнете отначало', en: 'Start over' },
+  photosAgain: {
+    bg: 'Снимките не се запазват в черновата – добавете ги отново в стъпка 2.',
+    en: 'Photos are not kept in the draft; please add them again in step 2.',
+  },
+  photosAgainHere: {
+    bg: 'Снимките, които бяхте прикачили, не се запазват – добавете ги отново.',
+    en: 'The photos you attached were not kept; please add them again.',
+  },
+  chars: { bg: '{n} от {max} знака', en: '{n} of {max} characters' },
   noscript: {
     bg: 'За да изпратите запитването онлайн, е нужен JavaScript. Можете да ни се обадите, да пишете във Viber или на имейл:',
     en: 'Sending the request online needs JavaScript. You can call us, message us on Viber or email:',
@@ -249,6 +260,7 @@ const optional = tx(ui.form.hints.optional);
   <form class="iq-card iq-form" novalidate data-iq-form autocomplete="on">
     <p class="iq-draft" data-iq-draft hidden>
       <span>{tx(T.draft)}</span>
+      <span data-iq-draft-photos hidden>{tx(T.photosAgain)}</span>
       <button type="button" class="iq-textbtn" data-iq-reset>{tx(T.startOver)}</button>
     </p>
 
@@ -472,6 +484,7 @@ const optional = tx(ui.form.hints.optional);
                         type="text"
                         id={fid(`${f.family}-${tf.id}`)}
                         name={`txt.${f.family}.${tf.id}`}
+                        maxlength={MAX.text}
                         placeholder={t(tf.placeholder, lang)}
                         data-text-field={tf.id}
                         data-label={t(tf.label, lang)}
@@ -541,6 +554,7 @@ const optional = tx(ui.form.hints.optional);
           </label>
           <p class="hint" id={fid('photos-hint')}>{tx(ui.form.hints.photos)} {tx(T.photosLocal)}</p>
           <p class="error" id={fid('photos-err')} aria-live="polite"></p>
+          <p class="iq-photos-again" data-iq-photos-again hidden>{tx(T.photosAgainHere)}</p>
           <ul class="iq-thumbs" data-iq-thumbs></ul>
         </div>
 
@@ -548,7 +562,18 @@ const optional = tx(ui.form.hints.optional);
           <label for={fid('message')} class="iq-legend-v">
             {tx(ui.form.labels.message)} <span class="iq-opt">· {optional}</span>
           </label>
-          <textarea class="textarea" id={fid('message')} name="message" rows="4" placeholder={tx(ui.form.placeholders.message)}></textarea>
+          <textarea
+            class="textarea"
+            id={fid('message')}
+            name="message"
+            rows="4"
+            maxlength={MAX.message}
+            aria-describedby={fid('message-count')}
+            placeholder={tx(ui.form.placeholders.message)}
+            data-iq-message></textarea>
+          <p class="iq-count num" id={fid('message-count')} data-iq-count data-tpl={tx(T.chars).replace('{max}', fmtN(MAX.message))}>
+            {tx(T.chars).replace('{n}', '0').replace('{max}', fmtN(MAX.message))}
+          </p>
         </div>
       </div>
     </section>
@@ -567,7 +592,7 @@ const optional = tx(ui.form.hints.optional);
         <div class="iq-s3-fields">
           <div class="field iq-full">
             <label for={fid('name')}>{tx(ui.form.labels.name)}</label>
-            <input class="input" type="text" id={fid('name')} name="contact.name" autocomplete="name" required aria-required="true" placeholder={tx(ui.form.placeholders.name)} />
+            <input class="input" type="text" id={fid('name')} name="contact.name" maxlength={MAX.name} autocomplete="name" required aria-required="true" placeholder={tx(ui.form.placeholders.name)} />
             <p class="error" id={fid('name-err')}></p>
           </div>
 
@@ -599,6 +624,7 @@ const optional = tx(ui.form.hints.optional);
               type="tel"
               id={fid('phone')}
               name="contact.phone"
+              maxlength={MAX.phone}
               autocomplete="tel"
               inputmode="tel"
               placeholder={tx(ui.form.placeholders.phone)}
@@ -618,6 +644,7 @@ const optional = tx(ui.form.hints.optional);
               type="email"
               id={fid('email')}
               name="contact.email"
+              maxlength={MAX.email}
               autocomplete="email"
               inputmode="email"
               spellcheck="false"
@@ -631,7 +658,7 @@ const optional = tx(ui.form.hints.optional);
             <label for={fid('city')}>
               {tx(ui.form.labels.city)} <span class="iq-opt">· {optional}</span>
             </label>
-            <input class="input" type="text" id={fid('city')} name="contact.city" autocomplete="address-level2" placeholder={tx(ui.form.placeholders.city)} />
+            <input class="input" type="text" id={fid('city')} name="contact.city" maxlength={MAX.city} autocomplete="address-level2" placeholder={tx(ui.form.placeholders.city)} />
           </div>
 
           <div class="iq-consent iq-full">
@@ -1485,6 +1512,21 @@ const optional = tx(ui.form.hints.optional);
     font-size: var(--step--1);
     color: var(--muted);
   }
+  .iq-photos-again {
+    padding: var(--s-2) var(--s-4);
+    border-left: 3px solid var(--yellow);
+    background: var(--mist);
+    font-size: var(--step--1);
+  }
+  .iq-count {
+    justify-self: end;
+    font-size: var(--step--2);
+    color: var(--muted);
+  }
+  .iq-count.is-near {
+    color: var(--fg);
+    font-weight: 600;
+  }
   /* Touch devices have nothing to drag: name the action instead */
   @media (pointer: coarse) {
     .iq-drop-fine {
@@ -1900,7 +1942,7 @@ const optional = tx(ui.form.hints.optional);
 </style>
 
 <script>
-  import { saveInquiry, readJSON, writeJSON, remove, loadCustomProducts, KEYS } from '../lib/store';
+  import { saveInquiry, readJSON, writeJSON, remove, loadCustomProducts, loadOverrides, KEYS } from '../lib/store';
 
   interface ProductCfg {
     family: string;
@@ -1926,6 +1968,10 @@ const optional = tx(ui.form.hints.optional);
     productId: string | null;
     values: Values;
     savedAt: string;
+    /** step the visitor was on */
+    step?: number;
+    /** number of photos attached (the files themselves are not stored) */
+    photos?: number;
   }
   interface Dim {
     el: HTMLElement;
@@ -2017,6 +2063,25 @@ const optional = tx(ui.form.hints.optional);
       opt.textContent = name;
       (select.querySelector(`optgroup[data-cat="${CSS.escape(p.category)}"]`) ?? select).appendChild(opt);
     }
+
+    // Admin-demo edits of catalogue products (this browser only): renamed products show their new name,
+    // hidden ones leave the list unless this page or link asks for that very product.
+    const ownProduct = root.dataset.product || new URLSearchParams(window.location.search).get('product') || '';
+    for (const [pid, o] of Object.entries(loadOverrides())) {
+      const opt = select.querySelector<HTMLOptionElement>(`option[value="${CSS.escape(pid)}"]`);
+      if (!opt || !cfg.products[pid] || pid.startsWith('c-')) continue;
+      const name = o.name?.[cfg.lang]?.trim();
+      if (name) {
+        cfg.products[pid].name = name;
+        opt.textContent = name;
+      }
+      if (o.hidden && pid !== ownProduct) {
+        const group = opt.parentElement;
+        opt.remove();
+        delete cfg.products[pid];
+        if (group instanceof HTMLOptGroupElement && !group.querySelector('option')) group.remove();
+      }
+    }
     const board = $('[data-iq-board]')!;
     const previewEl = $('[data-iq-preview]')!;
     const progressN = $('[data-iq-progress-n]');
@@ -2047,6 +2112,15 @@ const optional = tx(ui.form.hints.optional);
     let areaTimer = 0;
     let submitted = false;
     let lastSummaryText = '';
+    /** photos attached before a reload: files are not stored, so the visitor is asked to add them again */
+    let pendingPhotos = 0;
+    const photosAgain = $('[data-iq-photos-again]');
+    const draftPhotos = $('[data-iq-draft-photos]');
+    function setPendingPhotos(n: number) {
+      pendingPhotos = n;
+      if (photosAgain) photosAgain.hidden = n === 0;
+      if (draftPhotos) draftPhotos.hidden = n === 0;
+    }
 
     // ---------------------------------------------------------------- dimensions registry
     const dims: Record<string, Dim[]> = {};
@@ -2437,6 +2511,7 @@ const optional = tx(ui.form.hints.optional);
         .join('');
     }
     function addFiles(list: FileList | File[]) {
+      if (list.length && pendingPhotos) setPendingPhotos(0);
       const errs = new Set<string>();
       for (const f of Array.from(list)) {
         const okType = /^image\/(jpeg|png|webp)$/.test(f.type) || (!f.type && /\.(jpe?g|png|webp)$/i.test(f.name));
@@ -2457,6 +2532,7 @@ const optional = tx(ui.form.hints.optional);
       }
       photosErr.textContent = [...errs].join(' ');
       renderThumbs();
+      scheduleSave();
     }
     function clearFiles() {
       files.forEach((f) => URL.revokeObjectURL(f.url));
@@ -2476,6 +2552,7 @@ const optional = tx(ui.form.hints.optional);
       files.splice(i, 1);
       photosErr.textContent = '';
       renderThumbs();
+      scheduleSave();
       const next = $$<HTMLButtonElement>('[data-rm]', thumbs)[Math.min(i, files.length - 1)];
       (next ?? fileInput).focus();
     });
@@ -2573,9 +2650,20 @@ const optional = tx(ui.form.hints.optional);
       el.focus();
       announce(S.fixErrors);
     }
+    /** Height covered by sticky bars at the top (site header, product sub-nav) */
+    function stickyOffset(): number {
+      let h = 0;
+      document.querySelectorAll<HTMLElement>('[data-header], [data-subnav]').forEach((el) => {
+        const cs = getComputedStyle(el);
+        if ((cs.position === 'sticky' || cs.position === 'fixed') && cs.display !== 'none' && cs.visibility !== 'hidden') h += el.offsetHeight;
+      });
+      return h;
+    }
     function scrollToTop() {
+      const off = stickyOffset() + 12;
       const top = root.getBoundingClientRect().top;
-      if (top < 0 || top > window.innerHeight * 0.6) root.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+      if (top < off || top > window.innerHeight * 0.6)
+        window.scrollTo({ top: Math.max(0, window.scrollY + top - off), behavior: reduceMotion() ? 'auto' : 'smooth' });
     }
     function show(n: number, focus = true) {
       step = n;
@@ -2619,6 +2707,7 @@ const optional = tx(ui.form.hints.optional);
         }
       }
       show(n);
+      scheduleSave();
     }
     nextBtn.addEventListener('click', () => goTo(step + 1));
     backBtn.addEventListener('click', () => goTo(step - 1));
@@ -2642,10 +2731,11 @@ const optional = tx(ui.form.hints.optional);
       }
       if (['button', 'submit', 'file', 'range'].includes(el.type)) return;
       e.preventDefault();
-      if (step < total) {
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-        goTo(step + 1);
-      }
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      // steps 1–2: next step (validated); last step: submit (validated in the submit handler)
+      if (step < total) goTo(step + 1);
+      else if (typeof form.requestSubmit === 'function') form.requestSubmit(submitBtn);
+      else submitBtn.click();
     });
 
     // ---------------------------------------------------------------- collect + summary
@@ -2737,6 +2827,18 @@ const optional = tx(ui.form.hints.optional);
       return c;
     }
 
+    // ---------------------------------------------------------------- message length counter
+    const messageEl = $<HTMLTextAreaElement>('[data-iq-message]');
+    const counter = $('[data-iq-count]');
+    function updateCount() {
+      if (!messageEl || !counter) return;
+      const n = messageEl.value.length;
+      const max = messageEl.maxLength > 0 ? messageEl.maxLength : 2000;
+      counter.textContent = fill(counter.dataset.tpl || '{n}', { n: fmtN(n) });
+      counter.classList.toggle('is-near', n >= max * 0.9);
+    }
+    messageEl?.addEventListener('input', updateCount);
+
     // ---------------------------------------------------------------- draft (localStorage)
     function serialize(): Values {
       const out: Values = {};
@@ -2766,10 +2868,18 @@ const optional = tx(ui.form.hints.optional);
         .flat()
         .forEach((d) => validateDim(d, !!dimError(d)));
       syncMore();
+      updateCount();
     }
     function saveDraft() {
       if (submitted) return;
-      const draft: Draft = { v: 1, productId, values: serialize(), savedAt: new Date().toISOString() };
+      const draft: Draft = {
+        v: 1,
+        productId,
+        values: serialize(),
+        savedAt: new Date().toISOString(),
+        step,
+        photos: files.length || pendingPhotos,
+      };
       writeJSON(KEYS.draft, draft);
     }
     function scheduleSave() {
@@ -2871,6 +2981,8 @@ const optional = tx(ui.form.hints.optional);
       if (!productId) setFamily(root.dataset.initialFamily || family);
       updateRequired();
       syncMore();
+      updateCount();
+      setPendingPhotos(0);
       draftNote.hidden = true;
       submitted = false;
     }
@@ -2885,6 +2997,7 @@ const optional = tx(ui.form.hints.optional);
       show(1);
     });
     $('[data-iq-reset]')?.addEventListener('click', () => {
+      window.clearTimeout(saveTimer);
       remove(KEYS.draft);
       resetForm(false);
       show(1);
@@ -2907,9 +3020,11 @@ const optional = tx(ui.form.hints.optional);
     root.dataset.initialFamily = family;
     const pre = initialProduct();
     const draft = readJSON<Draft | null>(KEYS.draft, null);
+    let startStep = 1;
     if (draft && draft.v === 1 && draft.values && typeof draft.values === 'object') {
       let before = '';
-      if (!pre || draft.productId === pre) {
+      const sameProduct = !pre || draft.productId === pre;
+      if (sameProduct) {
         // same product (or none preselected): continue exactly where the visitor left off
         before = JSON.stringify(serialize());
         const id = pre ?? (draft.productId && cfg.products[draft.productId] ? draft.productId : null);
@@ -2923,12 +3038,20 @@ const optional = tx(ui.form.hints.optional);
         restore(draft.values, (n) => n.startsWith('contact.') || n.startsWith('proj.') || n === 'message');
       }
       if (JSON.stringify(serialize()) !== before) draftNote.hidden = false;
+      // back to the step the visitor was on, as long as step 1 is still complete
+      const saved = Math.round(Number(draft.step) || 1);
+      if (sameProduct && saved > 1 && productId && activeDims().every((d) => !dimError(d))) startStep = clamp(saved, 1, total);
+      const photos = Math.max(0, Math.round(Number(draft.photos) || 0));
+      if (photos) {
+        setPendingPhotos(photos);
+        draftNote.hidden = false;
+      }
     } else {
       setProduct(pre, true);
     }
     setFamily(family, dimKey);
     updateRequired();
-    show(1, false);
+    show(startStep, false);
     root.classList.add('is-ready');
   }
 

@@ -48,11 +48,21 @@ const [lead, ...rest] = pairs;
 const items = gallery.filter((g) => hasImg(g.image));
 const refs = references.filter((r) => hasImg(r.image));
 
-/** Aspect ratio of a pair's photos, clamped so sliders stay usable */
-const ratio = (p: BeforeAfterPair, min: number, max: number) => {
+const aspect = (p: BeforeAfterPair) => {
   const m = img(p.after);
-  const r = m ? m.width / m.height : 1.6;
-  return Math.min(max, Math.max(min, r)).toFixed(4);
+  return m ? m.width / m.height : 1.6;
+};
+/** Aspect ratio of a pair's slider frame, clamped so sliders stay usable */
+const ratio = (p: BeforeAfterPair, min: number, max: number) => Math.min(max, Math.max(min, aspect(p))).toFixed(4);
+/**
+ * `sizes` for a slider. The frame crops with object-fit: cover, so each width is scaled by
+ * max(1, photo aspect / frame aspect). `slots` = [media query, frame width, frame ratio] from wide to narrow;
+ * phones (≤700px) always get the square frame at 94vw.
+ */
+const baSizes = (p: BeforeAfterPair, slots: [string, string, number][], phoneBox = 1) => {
+  const fit = (box: number) => Math.max(1, aspect(p) / box);
+  const scale = (w: string, box: number) => w.replace(/^(\d+)/, (n) => String(Math.ceil(Number(n) * fit(box))));
+  return [...slots.map(([q, w, box]) => `${q} ${scale(w, box)}`), scale('94vw', phoneBox)].join(', ');
 };
 
 const jump = [
@@ -99,7 +109,15 @@ const jump = [
               {t(home.beforeAfter.title, lang)}
             </h2>
             <div class="ba-slot ba-lead" style={`--r:${ratio(lead, 1.4, 1.9)}`}>
-              <BeforeAfter lang={lang} pair={lead} sizes="(min-width: 1440px) 880px, (min-width: 901px) 62vw, 94vw" />
+              <BeforeAfter
+                lang={lang}
+                pair={lead}
+                sizes={baSizes(lead, [
+                  ['(min-width: 1440px)', '880px', +ratio(lead, 1.4, 1.9)],
+                  ['(min-width: 901px)', '62vw', +ratio(lead, 1.4, 1.9)],
+                  ['(min-width: 701px)', '94vw', +ratio(lead, 1.4, 1.9)],
+                ])}
+              />
             </div>
             <div class="ba-copy">
               <p class="lead">{t(home.beforeAfter.intro, lang)}</p>
@@ -119,13 +137,27 @@ const jump = [
                 return (
                   <div
                     class:list={['ba-slot', { 'ba-span': span }]}
-                    style={span ? `--r:${ratio(p, 2.2, 2.6)}` : '--r:1.3333'}
+                    style={span ? `--r:${ratio(p, 2.2, 2.6)};--rm:1.3333` : '--r:1.3333'}
                     data-reveal
                   >
                     <BeforeAfter
                       lang={lang}
                       pair={p}
-                      sizes={span ? '(min-width: 1440px) 1330px, 94vw' : '(min-width: 1440px) 660px, (min-width: 901px) 46vw, 94vw'}
+                      sizes={
+                        span
+                          ? baSizes(
+                              p,
+                              [
+                                ['(min-width: 1440px)', '1330px', +ratio(p, 2.2, 2.6)],
+                                ['(min-width: 701px)', '94vw', +ratio(p, 2.2, 2.6)],
+                              ],
+                              4 / 3,
+                            )
+                          : baSizes(p, [
+                              ['(min-width: 1440px)', '660px', 4 / 3],
+                              ['(min-width: 701px)', '46vw', 4 / 3],
+                            ])
+                      }
                     />
                   </div>
                 );

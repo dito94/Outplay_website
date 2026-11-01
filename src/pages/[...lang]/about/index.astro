@@ -10,6 +10,7 @@ import { pages } from '../../../data/pages';
 import { site } from '../../../data/site';
 import { ui } from '../../../data/ui';
 import { langParams, getLang, url, t } from '../../../lib/i18n';
+import { img } from '../../../lib/images';
 
 export function getStaticPaths() {
   return langParams();
@@ -37,12 +38,26 @@ const missionText = t(about.mission.text, lang);
 const [missionLead, ...missionMore] = missionText.split(/(?<=\.)\s+/);
 const missionRest = missionMore.join(' ');
 const [storyFirst, ...storyRest] = about.story;
+
+// The photos below are cropped into taller frames (object-fit: cover), so `sizes` asks for
+// max(frame width, frame height × photo aspect): each width is scaled by max(1, photo aspect / frame aspect).
+const aspectOf = (src: string) => {
+  const m = img(src);
+  return m ? m.width / m.height : 1.5;
+};
+const fit = (src: string, frame: number, n: number) => Math.ceil(n * Math.max(1, aspectOf(src) / frame));
+// Hero photo: 58% of the viewport wide and up to 880px tall from 1001px; a 4:3 frame at full width below
+const heroH = Math.ceil(880 * aspectOf('home/about.jpg'));
+const heroSizes = `(min-width: ${Math.ceil(heroH / 0.58)}px) 58vw, (min-width: 1001px) ${heroH}px, ${fit('home/about.jpg', 4 / 3, 100)}vw`;
+// Story and approach photos: 4:5 frames beside the copy from 901px, 3:2 full width below
+const storySizes = `(min-width: 1440px) ${fit('home/mood-01.jpg', 0.8, 560)}px, (min-width: 901px) ${fit('home/mood-01.jpg', 0.8, 40)}vw, ${fit('home/mood-01.jpg', 1.5, 94)}vw`;
+const valuesSizes = `(min-width: 1440px) ${fit('home/mood-02.jpg', 0.8, 540)}px, (min-width: 901px) ${fit('home/mood-02.jpg', 0.8, 38)}vw, ${fit('home/mood-02.jpg', 1.5, 94)}vw`;
 ---
 
 <Base lang={lang} title={t(about.title, lang)} description={t(T.metaDescription, lang)} ogImage="home/about.jpg" header="overlay">
   <section class="ab-hero night" aria-labelledby="about-title">
     <div class="ab-hero-media">
-      <Img src="home/about.jpg" lang={lang} priority sizes="(min-width: 1440px) 840px, (min-width: 1001px) 58vw, 100vw" />
+      <Img src="home/about.jpg" lang={lang} priority sizes={heroSizes} />
     </div>
     <div class="wrap ab-hero-inner">
       <Breadcrumbs lang={lang} tone="light" items={[{ label: t(ui.nav.about, lang) }]} />
@@ -70,7 +85,7 @@ const [storyFirst, ...storyRest] = about.story;
       </div>
       <div class="ab-story-side" data-reveal>
         <div class="media ab-story-img">
-          <Img src="home/mood-01.jpg" lang={lang} sizes="(min-width: 1440px) 560px, (min-width: 901px) 40vw, 94vw" />
+          <Img src="home/mood-01.jpg" lang={lang} sizes={storySizes} />
           <span class="ab-corner ab-corner-top" aria-hidden="true"></span>
           <span class="ab-corner ab-corner-bottom" aria-hidden="true"></span>
         </div>
@@ -114,7 +129,7 @@ const [storyFirst, ...storyRest] = about.story;
   <section class="section" aria-labelledby="values-title">
     <div class="wrap ab-values">
       <div class="media ab-values-img" data-reveal>
-        <Img src="home/mood-02.jpg" lang={lang} sizes="(min-width: 1440px) 540px, (min-width: 901px) 38vw, 94vw" />
+        <Img src="home/mood-02.jpg" lang={lang} sizes={valuesSizes} />
       </div>
       <div class="ab-values-copy">
         <h2 id="values-title" class="h2 rule">{t(T.approachTitle, lang)}</h2>

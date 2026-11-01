@@ -590,6 +590,7 @@ const jsonLd = {
 
 <script>
   // Client-side FAQ filter: diacritics- and case-insensitive, all words must match the question or answer.
+  import { fold as foldText } from '../../../lib/search';
   const input = document.querySelector<HTMLInputElement>('[data-faq-input]');
   const form = document.querySelector<HTMLFormElement>('[data-faq-search]');
   const clearBtn = document.querySelector<HTMLButtonElement>('[data-faq-clear]');
@@ -601,7 +602,8 @@ const jsonLd = {
   const groups = Array.from(document.querySelectorAll<HTMLElement>('[data-faq-group]'));
   const navLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-faq-navlink]'));
 
-  const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{M}+/gu, '');
+  // Same folding as the site search (src/lib/search.ts): case, diacritics and Cyrillic → Latin, so "pergola" finds "пергола"
+  const fold = (s: string) => foldText(s);
   // Folded text plus a map from each folded character back to its index in the original string
   const foldMap = (s: string) => {
     let out = '';

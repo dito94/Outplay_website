@@ -31,6 +31,7 @@ export interface AdminProduct {
 export interface AdminCategory {
   id: string;
   name: string;
+  subgroups: { id: string; name: string }[];
 }
 export interface AdminFaqItem {
   id: string;

@@ -9,8 +9,8 @@ import { categories } from '../data/categories';
 import { products } from '../data/products';
 import { ui } from '../data/ui';
 import { productUrl, fmt, t } from '../lib/i18n';
-import { lightboxSrc } from '../lib/images';
-import { layout2, layout3, type Span2, type Span3 } from '../lib/gallery-layout';
+import { img, lightboxSrc } from '../lib/images';
+import { layout2, layout3, tileSizes } from '../lib/gallery-layout';
 import Img from './Img.astro';
 import Icon from './Icon.astro';
 
@@ -32,11 +32,11 @@ const T = {
   product: { bg: 'Виж продукта {product}', en: 'View {product}' },
 };
 
-// [px at ≥1440, vw at 1001–1439] for each 3-up span; vw for each 2-up span (see the grid CSS below)
-const SZ3: Record<Span3, [number, number]> = { S: [440, 31], H: [660, 47], F: [880, 62], P: [1330, 94] };
-const SZ2: Record<Span2, number> = { S: 47, W: 94 };
-const sizesFor = (s3: Span3, s2: Span2) =>
-  `(min-width: 1440px) ${SZ3[s3][0]}px, (min-width: 1001px) ${SZ3[s3][1]}vw, (min-width: 601px) ${SZ2[s2]}vw, 94vw`;
+// Image aspect, so `sizes` can cover the cropped tile box (see tileSizes)
+const aspectOf = (path: string) => {
+  const m = img(path);
+  return m ? Number((m.width / m.height).toFixed(3)) : 1.5;
+};
 
 const tiles = await Promise.all(
   items.map(async (it) => {
@@ -44,8 +44,9 @@ const tiles = await Promise.all(
     return {
       ...it,
       href: await lightboxSrc(it.image),
+      aspect: aspectOf(it.image),
       caption: t(it.caption, lang),
-      product: p ? { name: t(p.name, lang), href: productUrl(lang, p.category, p.id) } : undefined,
+      product: p ? { id: p.id, name: t(p.name, lang), href: productUrl(lang, p.category, p.id) } : undefined,
     };
   }),
 );
@@ -63,7 +64,6 @@ const cats = [...categories]
   .filter((c) => c.count > 0);
 
 const countText = (n: number) => (n === 1 ? t(T.one, lang) : fmt(t(T.many, lang), { count: n }));
-const sizesJson = JSON.stringify({ SZ3, SZ2 });
 ---
 
 <div
@@ -72,7 +72,6 @@ const sizesJson = JSON.stringify({ SZ3, SZ2 });
   data-initial={initial}
   data-one={t(T.one, lang)}
   data-many={t(T.many, lang)}
-  data-sizes={sizesJson}
 >
   {
     cats.length > 1 && (
@@ -101,6 +100,7 @@ const sizesJson = JSON.stringify({ SZ3, SZ2 });
           class="gm-tile"
           data-gm-tile
           data-cat={tile.category}
+          data-ar={tile.aspect}
           data-n3={n3[i]}
           data-n2={n2[i]}
           data-l3={i < firstN ? j3[i] : undefined}
@@ -110,7 +110,7 @@ const sizesJson = JSON.stringify({ SZ3, SZ2 });
             <Img
               src={tile.image}
               lang={lang}
-              sizes={i < firstN ? sizesFor(j3[i], j2[i]) : sizesFor(n3[i], n2[i])}
+              sizes={i < firstN ? tileSizes(j3[i], j2[i], tile.aspect) : tileSizes(n3[i], n2[i], tile.aspect)}
               widths={[480, 768, 1080, 1440, 1920]}
             />
             <span class="sr-only">({t(T.open, lang)})</span>
@@ -121,8 +121,8 @@ const sizesJson = JSON.stringify({ SZ3, SZ2 });
           <div class="gm-meta">
             <p class="gm-cap">{tile.caption}</p>
             {tile.product && (
-              <a class="gm-prod" href={tile.product.href} aria-label={fmt(t(T.product, lang), { product: tile.product.name })}>
-                <span>{tile.product.name}</span>
+              <a class="gm-prod" href={tile.product.href} data-pid={tile.product.id} aria-label={fmt(t(T.product, lang), { product: tile.product.name })}>
+                <span data-pid={tile.product.id} data-pfield="name">{tile.product.name}</span>
                 <Icon name="arrow-right" size={16} />
               </a>
             )}
@@ -418,7 +418,7 @@ const sizesJson = JSON.stringify({ SZ3, SZ2 });
 </style>
 
 <script>
-  import { layout2, layout3, type Span2, type Span3 } from '../lib/gallery-layout';
+  import { layout2, layout3, tileSizes } from '../lib/gallery-layout';
 
   document.querySelectorAll<HTMLElement>('[data-gm]').forEach((root) => {
     const tiles = Array.from(root.querySelectorAll<HTMLElement>('[data-gm-tile]'));
@@ -431,12 +431,6 @@ const sizesJson = JSON.stringify({ SZ3, SZ2 });
     // phones get shorter pages (both values are multiples of 3, so earlier tiles keep their spans)
     const base = Number(root.dataset.initial) || 12;
     const step = window.matchMedia('(max-width: 600px)').matches ? Math.max(3, Math.round(base / 6) * 3) : base;
-    const { SZ3, SZ2 } = JSON.parse(root.dataset.sizes || '{}') as {
-      SZ3: Record<Span3, [number, number]>;
-      SZ2: Record<Span2, number>;
-    };
-    const sizesFor = (s3: Span3, s2: Span2) =>
-      `(min-width: 1440px) ${SZ3[s3][0]}px, (min-width: 1001px) ${SZ3[s3][1]}vw, (min-width: 601px) ${SZ2[s2]}vw, 94vw`;
     const countText = (n: number) => (n === 1 ? root.dataset.one ?? '' : (root.dataset.many ?? '').replace('{count}', String(n)));
     const valid = new Set(btns.map((b) => b.dataset.gmCat));
 
@@ -463,7 +457,7 @@ const sizesJson = JSON.stringify({ SZ3, SZ2 });
         if (el.dataset.l3 !== l3[i] || el.dataset.l2 !== l2[i]) {
           el.dataset.l3 = l3[i];
           el.dataset.l2 = l2[i];
-          const s = sizesFor(l3[i], l2[i]);
+          const s = tileSizes(l3[i], l2[i], Number(el.dataset.ar));
           el.querySelectorAll('source, img').forEach((n) => n.setAttribute('sizes', s));
         }
         if (opts.animateFrom !== undefined && i >= opts.animateFrom) {

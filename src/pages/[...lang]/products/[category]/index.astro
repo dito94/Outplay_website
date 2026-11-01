@@ -66,6 +66,33 @@ const heroImage =
       return r(b) - r(a);
     })[0]) ||
   catImage;
+
+// `sizes` for cropped photos (object-fit: cover): a photo wider than its box must be rendered at
+// box height × photo ratio, or the browser picks a file that gets upscaled. Category photos are 2.4:1.
+const arOf = (p: string) => {
+  const m = img(p);
+  return m ? m.width / m.height : 1.5;
+};
+// Hero: full-bleed, height clamp(540px, 82svh, 860px); phones clamp(460px, 64svh, 600px)
+const heroAr = arOf(heroImage);
+const heroSizes = [
+  `(max-width: 600px) ${Math.ceil(64 * heroAr)}vh`,
+  `(min-width: ${Math.ceil(860 * heroAr)}px) 100vw`,
+  `${Math.ceil(82 * heroAr)}vh`,
+].join(', ');
+// "Other categories" tiles: 3 columns from 901px (427px × clamp(280px, 24vw, 360px) at 1440),
+// one column below (content width × min 240px)
+const tileSizes = (p: string) => {
+  const ar = arOf(p);
+  const phoneMin = Math.ceil(240 * ar);
+  return [
+    `(min-width: 1440px) ${Math.ceil(Math.max(427, 360 * ar))}px`,
+    `(min-width: 1167px) ${Math.ceil(Math.max(31, 24 * ar))}vw`,
+    `(min-width: 901px) ${Math.ceil(Math.max(361, 280 * ar))}px`,
+    `(min-width: ${phoneMin}px) 100vw`,
+    `${phoneMin}px`,
+  ].join(', ');
+};
 const countLabel = t(inCat.length === 1 ? T.inCatOne : T.inCat, lang);
 
 type Group = { id: string; title: string; intro?: string; items: Product[] };
@@ -108,7 +135,7 @@ const othersBand = nextBand();
   <!-- Hero -->
   <section class="c-hero night" aria-labelledby="c-title">
     <div class="c-media">
-      <Img src={heroImage} lang={lang} priority sizes="(max-width: 700px) 240vw, 100vw" class="c-img" />
+      <Img src={heroImage} lang={lang} priority sizes={heroSizes} class="c-img" />
       <div class="c-scrim" aria-hidden="true"></div>
     </div>
     <div class="wrap c-content">
@@ -120,7 +147,7 @@ const othersBand = nextBand();
           {
             inCat.map((p) => (
               <li>
-                <a href={productUrl(lang, p.category, p.id)}>{t(p.name, lang)}</a>
+                <a href={productUrl(lang, p.category, p.id)} data-pid={p.id} data-pfield="name">{t(p.name, lang)}</a>
               </li>
             ))
           }
@@ -200,7 +227,7 @@ const othersBand = nextBand();
           others.map((c) => (
             <li class="other" data-reveal>
               <div class="media other-media">
-                <Img src={`categories/${c.id}.jpg`} lang={lang} alt="" sizes="(min-width: 1440px) 440px, (min-width: 800px) 31vw, 100vw" widths={[480, 768, 1080]} />
+                <Img src={`categories/${c.id}.jpg`} lang={lang} alt="" sizes={tileSizes(`categories/${c.id}.jpg`)} widths={[480, 768, 1080, 1440, 1920]} />
               </div>
               <div class="other-body">
                 <h3 class="other-title">
