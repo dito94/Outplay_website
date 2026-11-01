@@ -194,7 +194,7 @@ const ratio = meta ? `aspect-ratio:${meta.width}/${meta.height}` : undefined;
     margin: 0;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0 var(--s-6);
     border-top: 1px solid var(--hair);
   }
@@ -231,6 +231,16 @@ const ratio = meta ? `aspect-ratio:${meta.width}/${meta.height}` : undefined;
     font-family: var(--font-display);
     font-size: 0.85rem;
     font-weight: 500;
+  }
+  @media (max-width: 960px) {
+    .scene-legend {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 560px) {
+    .scene-legend {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
   @media (max-width: 720px) {
     .hs-dot {

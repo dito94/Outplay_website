@@ -24,7 +24,8 @@ const server = http.createServer((req, res) => {
   pg.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
   pg.on('pageerror', (e) => errs.push(e.message));
   await pg.goto(`http://localhost:${port}${route}`, { waitUntil: 'networkidle' });
-  if (full === '1') await pg.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 700) { scrollTo(0, y); await new Promise((r) => setTimeout(r, 50)); } scrollTo(0, 0); });
+  if (full === '1') await pg.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 450) { scrollTo(0, y); await new Promise((r) => setTimeout(r, 120)); } scrollTo(0, 0); });
+  await pg.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 15000 }).catch(() => {});
   await pg.waitForTimeout(1500);
   await pg.screenshot({ path: out, fullPage: full === '1' });
   console.log('saved', out, '| console errors:', errs.length ? errs.join(' | ') : 'none');

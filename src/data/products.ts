@@ -182,6 +182,10 @@ export const products: Product[] = [
     configurations: lamellaConfigurations,
     options: [{ bg: 'RGB осветление с димиране', en: 'Dimmable RGB lighting' }, ...automatedPergolaOptions],
     related: ['infinity', 'guillotine', 'vertical-zip'],
+    video: {
+      url: 'https://outplay.bg/video/',
+      title: { bg: 'Вижте автоматизираните перголи в движение', en: 'See the automated pergolas in motion' },
+    },
     keywords: [
       'пергола', 'перголи', 'биоклиматична пергола', 'биоклиматични перголи', 'ламели', 'ламелна пергола',
       'алуминиева пергола', 'алуминиеви ламели', 'въртящи се ламели', 'зимна градина', 'навес', 'сенник', 'тераса',
@@ -281,6 +285,10 @@ export const products: Product[] = [
     configurations: lamellaConfigurations,
     options: [{ bg: 'RGB осветление с димиране', en: 'Dimmable RGB lighting' }, ...automatedPergolaOptions],
     related: ['balance', 'sliding-glass', 'vertical-zip'],
+    video: {
+      url: 'https://outplay.bg/video/',
+      title: { bg: 'Вижте автоматизираните перголи в движение', en: 'See the automated pergolas in motion' },
+    },
     keywords: [
       'пергола', 'перголи', 'биоклиматична пергола', 'ламели', 'прибиращи се ламели', 'отваряем покрив',
       'подвижен покрив', 'алуминиева пергола', 'зимна градина', 'навес', 'тераса',
@@ -390,6 +398,10 @@ export const products: Product[] = [
     ],
     options: [...automatedPergolaOptions, { bg: 'Ветрозащита', en: 'Windbreaks' }],
     related: ['curved', 'vertical-zip', 'sliding-glass'],
+    video: {
+      url: 'https://outplay.bg/video/',
+      title: { bg: 'Вижте автоматизираните перголи в движение', en: 'See the automated pergolas in motion' },
+    },
     keywords: [
       'пергола', 'перголи', 'поливинилно покритие', 'поливинил', 'pvc', 'пвц', 'платно', 'текстилен покрив',
       'подвижен покрив', 'тента', 'сенник', 'blackout', 'блекаут', 'плоска пергола', 'флат', 'зимна градина',
@@ -499,6 +511,10 @@ export const products: Product[] = [
     ],
     options: [...automatedPergolaOptions, { bg: 'Ветрозащита', en: 'Windbreaks' }],
     related: ['flat', 'telescopic-windbreak', 'sliding-glass'],
+    video: {
+      url: 'https://outplay.bg/video/',
+      title: { bg: 'Вижте автоматизираните перголи в движение', en: 'See the automated pergolas in motion' },
+    },
     keywords: [
       'пергола', 'перголи', 'извита пергола', 'арка', 'сводест покрив', 'поливинилно покритие', 'поливинил', 'pvc',
       'платно', 'подвижен покрив', 'тента', 'сенник', 'blackout', 'кървд', 'зимна градина', 'покривна тераса',
@@ -612,6 +628,10 @@ export const products: Product[] = [
       ...automatedPergolaOptions,
     ],
     related: ['fixed-glass-roof', 'roof-zip', 'guillotine'],
+    video: {
+      url: 'https://outplay.bg/video/',
+      title: { bg: 'Вижте автоматизираните перголи в движение', en: 'See the automated pergolas in motion' },
+    },
     keywords: [
       'стъклен покрив', 'подвижен стъклен покрив', 'автоматичен покрив', 'плъзгащ покрив', 'стъклена пергола',
       'пергола', 'зимна градина', 'веранда', 'остъкляване', 'stop ray', 'стоп рей', 'ресторант', 'заведение',

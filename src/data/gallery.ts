@@ -1,3 +1,246 @@
-// TEMPORARY placeholder — the assets pipeline overwrites this file.
 import type { GalleryItem } from './types';
-export const gallery: GalleryItem[] = [];
+
+/**
+ * Curated gallery (reuses product/category image paths; no duplicate files).
+ * Ordered so neighbouring tiles alternate category and daylight/dusk mood.
+ */
+export const gallery: GalleryItem[] = [
+  {
+    image: 'categories/bioclimatic-pergolas.jpg',
+    category: 'bioclimatic-pergolas',
+    caption: { bg: 'Остъклена пергола с ламели в тропическа градина', en: 'Glazed louvred pergola in a tropical garden' },
+  },
+  {
+    image: 'products/guillotine/hero.jpg',
+    category: 'glass-systems',
+    productId: 'guillotine',
+    caption: { bg: 'Покривен ресторант със стъклени стени тип „гилотина“', en: 'Rooftop restaurant with guillotine glass walls' },
+  },
+  {
+    image: 'products/shell-awning/hero.jpg',
+    category: 'sun-protection',
+    productId: 'shell-awning',
+    caption: { bg: 'Касетъчна тента Shell над крайбрежно кафене', en: 'Shell cassette awning over a seaside café' },
+  },
+  {
+    image: 'products/flat/hero.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'flat',
+    caption: { bg: 'Покривен бар под перголи Flat', en: 'Rooftop bar under Flat pergolas' },
+  },
+  {
+    image: 'products/harmonia/hero.jpg',
+    category: 'glass-systems',
+    productId: 'harmonia',
+    caption: { bg: 'Въртящи се стъклени панели Harmonia над морето', en: 'Harmonia pivoting glass panels above the sea' },
+  },
+  {
+    image: 'products/telescopic-windbreak/hero.jpg',
+    category: 'windbreaks',
+    productId: 'telescopic-windbreak',
+    caption: { bg: 'Улична тераса с телескопични ветрозащити', en: 'Street terrace with telescopic windbreaks' },
+  },
+  {
+    image: 'products/balance/hero.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'balance',
+    caption: { bg: 'Пергола с ламели до безкраен басейн', en: 'Louvred pergola beside an infinity pool' },
+  },
+  {
+    image: 'products/vertical-zip/hero.jpg',
+    category: 'sun-protection',
+    productId: 'vertical-zip',
+    caption: { bg: 'Вертикални ZIP завеси на пергола до басейн', en: 'Vertical ZIP screens on a poolside pergola' },
+  },
+  {
+    image: 'products/sliding-glass/hero.jpg',
+    category: 'glass-systems',
+    productId: 'sliding-glass',
+    caption: { bg: 'Пергола, затворена с плъзгащи се стъкла', en: 'Pergola closed in with sliding glass' },
+  },
+  {
+    image: 'products/fixed-glass-roof/hero.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'fixed-glass-roof',
+    caption: { bg: 'Пергола със стационарен стъклен покрив', en: 'Pergola with a fixed glass roof' },
+  },
+  {
+    image: 'products/roof-zip/hero.jpg',
+    category: 'sun-protection',
+    productId: 'roof-zip',
+    caption: { bg: 'Покривна ZIP сенника върху зимна градина', en: 'Roof ZIP shade on a conservatory' },
+  },
+  {
+    image: 'products/accord/hero.jpg',
+    category: 'glass-systems',
+    productId: 'accord',
+    caption: { bg: 'Сгъваемо остъкляване Accord на крайбрежна тераса', en: 'Accord folding glazing on a seafront terrace' },
+  },
+  {
+    image: 'products/infinity/hero.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'infinity',
+    caption: { bg: 'Бяла пергола с ламели и LED осветление', en: 'White louvred pergola with LED lighting' },
+  },
+  {
+    image: 'products/telescopic-windbreak/gallery-01.jpg',
+    category: 'windbreaks',
+    productId: 'telescopic-windbreak',
+    caption: { bg: 'Ветрозащитни паравани на тераса край морето', en: 'Windbreaks on a seaside terrace' },
+  },
+  {
+    image: 'products/compact/hero.jpg',
+    category: 'glass-systems',
+    productId: 'compact',
+    caption: { bg: 'Безрамкова стъклена стена Compact', en: 'Compact frameless glass wall' },
+  },
+  {
+    image: 'products/curved/hero.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'curved',
+    caption: { bg: 'Покривна тераса под сводест покрив Curved', en: 'Rooftop terrace under a Curved arched roof' },
+  },
+  {
+    image: 'categories/sun-protection.jpg',
+    category: 'sun-protection',
+    productId: 'vertical-zip',
+    caption: { bg: 'Къща с жълти ZIP завеси', en: 'House with yellow ZIP screens' },
+  },
+  {
+    image: 'products/dormakaba-es-200/hero.jpg',
+    category: 'glass-systems',
+    productId: 'dormakaba-es-200',
+    caption: { bg: 'Остъклена тераса с автоматична входна врата', en: 'Glazed terrace with an automatic entrance door' },
+  },
+  {
+    image: 'products/automatic-glass-roof/hero.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'automatic-glass-roof',
+    caption: { bg: 'Двор на ресторант под подвижен стъклен покрив', en: 'Restaurant courtyard under a sliding glass roof' },
+  },
+  {
+    image: 'products/shell-awning/gallery-01.jpg',
+    category: 'sun-protection',
+    productId: 'shell-awning',
+    caption: { bg: 'Жълта тента Shell над градинска маса', en: 'Yellow Shell awning over a garden table' },
+  },
+  {
+    image: 'categories/glass-systems.jpg',
+    category: 'glass-systems',
+    caption: { bg: 'Стъклена стая със зимна гледка', en: 'Glass room with a winter view' },
+  },
+  {
+    image: 'products/infinity/gallery-03.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'infinity',
+    caption: { bg: 'Пергола в цвят по избор по залез', en: 'Pergola in a custom colour at sunset' },
+  },
+  {
+    image: 'products/guillotine/gallery-01.jpg',
+    category: 'glass-systems',
+    productId: 'guillotine',
+    caption: { bg: 'Гледка към езеро през „гилотина“', en: 'Lake view through guillotine glazing' },
+  },
+  {
+    image: 'products/thermo-panel-roof/hero.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'thermo-panel-roof',
+    caption: { bg: 'Навес с покрив от термопанели', en: 'Carport with an insulated-panel roof' },
+  },
+  {
+    image: 'products/roof-zip/gallery-01.jpg',
+    category: 'sun-protection',
+    productId: 'roof-zip',
+    caption: { bg: 'ZIP сенника под стъклен покрив привечер', en: 'ZIP shade under a glass roof at dusk' },
+  },
+  {
+    image: 'products/sliding-glass/gallery-02.jpg',
+    category: 'glass-systems',
+    productId: 'sliding-glass',
+    caption: { bg: 'Вила, отворена към басейна с плъзгащи се стъкла', en: 'Villa opened to the pool with sliding glass' },
+  },
+  {
+    image: 'products/fixed-glass-roof/gallery-01.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'fixed-glass-roof',
+    caption: { bg: 'Покривен лаундж под стъклен покрив', en: 'Rooftop lounge under a glass roof' },
+  },
+  {
+    image: 'products/vertical-zip/gallery-01.jpg',
+    category: 'sun-protection',
+    productId: 'vertical-zip',
+    caption: { bg: 'Бежови ZIP завеси на къща и пергола', en: 'Beige ZIP screens on a house and pergola' },
+  },
+  {
+    image: 'products/harmonia/gallery-01.jpg',
+    category: 'glass-systems',
+    productId: 'harmonia',
+    caption: { bg: 'Високи осеви стъклени врати', en: 'Tall pivot glass doors' },
+  },
+  {
+    image: 'products/flat/gallery-03.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'flat',
+    caption: { bg: 'Бар под платнено покритие на покривна тераса', en: 'Bar under a fabric roof on a rooftop terrace' },
+  },
+  {
+    image: 'products/sliding-glass/gallery-01.jpg',
+    category: 'glass-systems',
+    productId: 'sliding-glass',
+    caption: { bg: 'Остъклена пергола в горска градина', en: 'Glazed pergola in a forest garden' },
+  },
+  {
+    image: 'products/balance/gallery-01.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'balance',
+    caption: { bg: 'Свободностояща пергола с ламели', en: 'Freestanding louvred pergola' },
+  },
+  {
+    image: 'products/guillotine/gallery-02.jpg',
+    category: 'glass-systems',
+    productId: 'guillotine',
+    caption: { bg: 'Гараж със стъклена фасада тип „гилотина“', en: 'Garage with a guillotine glass front' },
+  },
+  {
+    image: 'products/curved/gallery-01.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'curved',
+    caption: { bg: 'Пергола Curved на фасада край морето', en: 'Curved pergola on a seaside façade' },
+  },
+  {
+    image: 'products/accord/gallery-01.jpg',
+    category: 'glass-systems',
+    productId: 'accord',
+    caption: { bg: 'Винен бар със сгъваеми стъклени врати', en: 'Wine bar with folding glass doors' },
+  },
+  {
+    image: 'products/thermo-panel-roof/gallery-02.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'thermo-panel-roof',
+    caption: { bg: 'Стъклена стая под покрив от термопанели', en: 'Glass room under an insulated-panel roof' },
+  },
+  {
+    image: 'products/guillotine/gallery-03.jpg',
+    category: 'glass-systems',
+    productId: 'guillotine',
+    caption: { bg: 'Изцяло остъклен покривен ресторант', en: 'Fully glazed rooftop restaurant' },
+  },
+  {
+    image: 'products/automatic-glass-roof/gallery-01.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'automatic-glass-roof',
+    caption: { bg: 'Скатен стъклен покрив над ресторант', en: 'Pitched glass roof over a restaurant' },
+  },
+  {
+    image: 'products/roof-zip/gallery-03.jpg',
+    category: 'sun-protection',
+    productId: 'roof-zip',
+    caption: { bg: 'Зимна градина с покривна и вертикална ZIP защита', en: 'Conservatory with roof and vertical ZIP shading' },
+  },
+  {
+    image: 'products/fixed-glass-roof/gallery-02.jpg',
+    category: 'bioclimatic-pergolas',
+    productId: 'fixed-glass-roof',
+    caption: { bg: 'Стъклен покрив над басейн във вътрешен двор', en: 'Glass roof over a courtyard pool' },
+  },
+];
