@@ -16,14 +16,15 @@ const uid = `ba-${pair.id}-${Math.random().toString(36).slice(2, 7)}`;
 
 <figure class="ba" data-ba style={`--pos:${start}%`}>
   <div class="ba-stage">
+    <!-- each label lives in its own layer, so the divider clips it as it moves -->
     <div class="ba-layer ba-after">
       <Img src={pair.after} lang={lang} sizes={sizes} />
+      <span class="ba-tag ba-tag-after" aria-hidden="true">{t(pair.afterLabel, lang)}</span>
     </div>
     <div class="ba-layer ba-before" aria-hidden="true">
       <Img src={pair.before} lang={lang} sizes={sizes} />
+      <span class="ba-tag ba-tag-before">{t(pair.beforeLabel, lang)}</span>
     </div>
-    <span class="ba-tag ba-tag-before" aria-hidden="true">{t(pair.beforeLabel, lang)}</span>
-    <span class="ba-tag ba-tag-after" aria-hidden="true">{t(pair.afterLabel, lang)}</span>
     <span class="ba-handle" aria-hidden="true">
       <span class="ba-knob">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"

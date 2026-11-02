@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
+import typography from './integrations/typography.mjs';
 
 // Parallel builds (one per agent) use their own output + cache folders: OUTPLAY_AGENT=name npx astro build
 const agent = process.env.OUTPLAY_AGENT;
@@ -14,5 +15,6 @@ export default defineConfig({
   build: { format: 'directory', inlineStylesheets: 'always' },
   prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
   devToolbar: { enabled: false },
+  integrations: [typography()],
   ...(agent ? { outDir: `${scratch}/build-${agent}`, cacheDir: `./node_modules/.astro-${agent}` } : {}),
 });

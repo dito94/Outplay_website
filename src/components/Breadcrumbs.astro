@@ -61,4 +61,8 @@ const ld = {
   .crumbs a:hover { opacity: 1; text-decoration: underline; }
   .crumbs span[aria-current] { opacity: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60vw; }
   .crumbs-light { color: #fff; }
+  /* phones: home and the current page only, so the trail never wraps */
+  @media (max-width: 600px) {
+    .crumbs li:not(:first-child):not(:last-child) { display: none; }
+  }
 </style>

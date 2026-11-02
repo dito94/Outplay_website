@@ -15,8 +15,11 @@ interface Props {
   legend?: boolean;
   sizes?: string;
   id: string;
+  /** where points without their own product/category lead (home villa: the company page); none on diagrams */
+  fallbackHref?: string;
+  fallbackLabel?: string;
 }
-const { lang, image, hotspots, legend = true, sizes = '100vw', id } = Astro.props;
+const { lang, image, hotspots, legend = true, sizes = '100vw', id, fallbackHref, fallbackLabel } = Astro.props;
 
 const items = hotspots.map((h, i) => {
   const p = h.productId ? products.find((x) => x.id === h.productId) : undefined;
@@ -26,9 +29,9 @@ const items = hotspots.map((h, i) => {
     n: i + 1,
     title: t(h.label, lang),
     text: p ? t(p.summary, lang) : c ? (t(c.intro[0], lang).split(/(?<=\.)\s/)[0] ?? t(c.tagline, lang)) : '',
-    // systems without their own product page (balustrades, joinery) lead to the company's activities
-    href: p ? productUrl(lang, p.category, p.id) : c ? categoryUrl(lang, c.id) : url(lang, '/about/'),
-    linkLabel: p ? t(p.name, lang) : c ? t(c.name, lang) : lang === 'bg' ? 'За нас' : 'About us',
+    // points without their own page: the scene's fallback (home villa → company page) or no link at all (diagrams)
+    href: p ? productUrl(lang, p.category, p.id) : c ? categoryUrl(lang, c.id) : fallbackHref,
+    linkLabel: p ? t(p.name, lang) : c ? t(c.name, lang) : (fallbackLabel ?? ''),
     fallback: !p && !c,
     isCategory: !p && !!c,
     // flip the card to the left/top near edges
@@ -89,10 +92,10 @@ const crowded = hotspots.some((a, i) =>
                 <Icon name="arrow-right" size={16} />
               </a>
             ) : (
-              <span>
+              <button type="button" class="legend-btn" data-legend-n={h.n - 1}>
                 <span class="n" aria-hidden="true">{h.n}</span>
-                {h.title}
-              </span>
+                <span>{h.title}</span>
+              </button>
             )}
           </li>
         ))}
@@ -122,15 +125,9 @@ const crowded = hotspots.some((a, i) =>
     height: 0;
     z-index: 2;
   }
-  /* the open card sits above the image; the other dots stay above the card so they remain clickable */
+  /* the open card sits above everything; clicking the image elsewhere closes it */
   .hs:has(.hs-dot[aria-expanded='true']) {
-    z-index: 3;
-  }
-  .scene-stage:has(.hs-dot[aria-expanded='true']) .hs:not(:has(.hs-dot[aria-expanded='true'])) {
-    z-index: 4;
-  }
-  .scene-stage:has(.hs-dot[aria-expanded='true']) .hs:not(:has(.hs-dot[aria-expanded='true'])) .hs-dot {
-    opacity: 0.75;
+    z-index: 5;
   }
   .hs-dot {
     position: absolute;
@@ -218,7 +215,21 @@ const crowded = hotspots.some((a, i) =>
   .scene-legend li {
     border-bottom: 1px solid var(--hair);
   }
+  .legend-btn {
+    width: 100%;
+    border: 0;
+    background: none;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .legend-btn:hover span:last-child {
+    text-decoration: underline;
+    text-decoration-color: var(--yellow);
+    text-decoration-thickness: 2px;
+  }
   .scene-legend a,
+  .scene-legend .legend-btn,
   .scene-legend li > span {
     display: flex;
     align-items: center;
@@ -310,12 +321,28 @@ const crowded = hotspots.some((a, i) =>
         closeAll(b);
         b.setAttribute('aria-expanded', String(open));
         const card = document.getElementById(b.getAttribute('aria-controls') ?? '');
-        if (card) card.hidden = !open;
+        if (card) {
+          card.hidden = !open;
+          if (open) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
       });
     });
     document.addEventListener('click', (e) => {
       if (!scene.contains(e.target as Node)) closeAll();
     });
+    // a click on the picture outside the open card closes it (so a dot under the card can be reached)
+    scene.querySelector('.scene-stage')?.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      if (!t.closest('.hs-card, .hs-dot')) closeAll();
+    });
+    // legend rows without a page of their own open the matching card
+    scene.querySelectorAll<HTMLButtonElement>('[data-legend-n]').forEach((lb) =>
+      lb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        btns[Number(lb.dataset.legendN)]?.click();
+        if (!small.matches) btns[Number(lb.dataset.legendN)]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }),
+    );
     scene.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         const openBtn = btns.find((b) => b.getAttribute('aria-expanded') === 'true');

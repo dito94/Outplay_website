@@ -22,7 +22,7 @@ import { diagramHotspots } from '../../../../data/hotspots';
 import { site } from '../../../../data/site';
 import { ui } from '../../../../data/ui';
 import { LANGS, DEFAULT_LANG, getLang, url, categoryUrl, t, fmt, inlineName, withPrep } from '../../../../lib/i18n';
-import { productImages, img, altOf } from '../../../../lib/images';
+import { productImages, img, altOf, lightboxSrc } from '../../../../lib/images';
 
 export function getStaticPaths() {
   return LANGS.flatMap((l) =>
@@ -75,7 +75,7 @@ const T = {
     bg: 'Други системи, които си струва да разгледате заедно {withName}.',
     en: 'Other systems worth considering alongside {name}.',
   },
-  talk: { bg: 'Предпочитате да говорим?', en: 'Prefer to talk?' },
+  talk: { bg: 'Предпочитате разговор?', en: 'Prefer to talk?' },
   viber: { bg: 'Пишете ни във Viber', en: 'Message us on Viber' },
 };
 
@@ -115,7 +115,8 @@ const rowCount = gallery.length - maxRows >= 3 ? maxRows : gallery.length >= 4 ?
 // Rows prefer landscape photos (stable order); everything else is left for the gallery.
 const rowImages = [...gallery].sort((a, b) => Number(landscape(b)) - Number(landscape(a))).slice(0, rowCount);
 const leftover = gallery.filter((p) => !rowImages.includes(p));
-const galleryImages = leftover.length >= 3 ? leftover : [];
+// every photo not used above is shown (the gallery lays out 1, 2 or more tiles)
+const galleryImages = leftover.length >= 1 ? leftover : [];
 const unusedImages = galleryImages.length ? [] : leftover;
 // Spread the row photos evenly over the sections, always starting with the first one.
 const imageAt = new Map<number, string>();
@@ -135,6 +136,14 @@ const rows = product.sections.map((s, i) => {
   const lead = intro && t(s.paragraphs[0], lang).length <= LEAD_MAX;
   return { ...s, image, flip, ratio, intro, lead };
 });
+
+// every photo on the page (hero, editorial rows, gallery) opens full size in one lightbox group
+const zoomHref: Record<string, string> = {};
+for (const path of [hero, ...rows.map((r) => r.image)].filter((x): x is string => !!x)) {
+  const src = await lightboxSrc(path);
+  if (src) zoomHref[path] = src;
+}
+const hasZoom = Object.keys(zoomHref).length > 0;
 
 const hasTech = !!diagram;
 const techWithHotspots = hasTech && hotspots.length > 0;
@@ -231,13 +240,15 @@ const jsonLd = {
           heroMeta && (
             <div class="p-hero-media">
               <div class="media p-hero-img">
-                <Img
-                  src={hero}
-                  lang={lang}
-                  alt={altOf(hero, lang) || t(product.fullName, lang)}
-                  priority
-                  sizes={heroSizes}
-                />
+                <a class="zoom" href={zoomHref[hero!] ?? '#'} data-lightbox="product" data-caption={altOf(hero, lang) || t(product.fullName, lang)}>
+                  <Img
+                    src={hero}
+                    lang={lang}
+                    alt={altOf(hero, lang) || t(product.fullName, lang)}
+                    priority
+                    sizes={heroSizes}
+                  />
+                </a>
               </div>
             </div>
           )
@@ -275,13 +286,15 @@ const jsonLd = {
                 </div>
               </div>
               <div class="row-media media" style={`aspect-ratio:${r.ratio.toFixed(3)}`}>
-                <Img
-                  src={r.image}
-                  lang={lang}
-                  alt={altOf(r.image, lang) || name}
-                  sizes={rowSizes(r.image, r.ratio)}
-                  widths={[480, 768, 1080, 1440, 1920]}
-                />
+                <a class="zoom" href={zoomHref[r.image] ?? '#'} data-lightbox="product" data-caption={altOf(r.image, lang) || name}>
+                  <Img
+                    src={r.image}
+                    lang={lang}
+                    alt={altOf(r.image, lang) || name}
+                    sizes={rowSizes(r.image, r.ratio)}
+                    widths={[480, 768, 1080, 1440, 1920]}
+                  />
+                </a>
               </div>
             </article>
           ) : (
@@ -510,7 +523,7 @@ const jsonLd = {
     )
   }
 
-  {hasGallery && <Lightbox lang={lang} />}
+  {(hasGallery || hasZoom) && <Lightbox lang={lang} />}
   <StickyCta lang={lang} href="#inquiry" />
 </Base>
 
@@ -1042,5 +1055,21 @@ const jsonLd = {
       grid-template-areas: 'copy' 'form' 'contacts';
       grid-template-rows: auto;
     }
+  }
+  /* photos open full size */
+  .zoom {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: zoom-in;
+  }
+  .zoom :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .zoom:focus-visible {
+    outline: 3px solid var(--yellow);
+    outline-offset: -3px;
   }
 </style>

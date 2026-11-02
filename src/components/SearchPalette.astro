@@ -555,6 +555,7 @@ const config = {
       const hits = search(prepared, q);
       const groups = groupHits(hits);
       if (!groups.length) {
+        all.hidden = true; // nothing to see on the results page either
         list.hidden = true;
         list.innerHTML = '';
         options = [];

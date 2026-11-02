@@ -362,8 +362,8 @@ export const inquiryFamilies: Record<InquiryFamily, InquiryFamilyDef> = {
       },
       {
         id: 'height',
-        label: { bg: 'Височина / дължина', en: 'Height / length' },
-        hint: { bg: 'За покривни завеси – дължината по покрива', en: 'For roof screens, the length along the roof' },
+        label: { bg: 'Височина', en: 'Height' },
+        hint: { bg: 'Височината на отвора, който завесата ще закрива', en: 'The height of the opening the screen will cover' },
         unit: 'm',
         min: 0.5,
         max: 8,

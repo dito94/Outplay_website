@@ -10,7 +10,7 @@ export const beforeAfter: BeforeAfterPair[] = [
     id: 'glassroom',
     before: 'before-after/glassroom-before.jpg',
     after: 'before-after/glassroom-after.jpg',
-    beforeLabel: { bg: 'Навес за автомобил', en: 'Carport' },
+    beforeLabel: { bg: 'Навес', en: 'Carport' },
     afterLabel: { bg: 'Стъклена стая', en: 'Glass room' },
     title: { bg: 'Една конструкция, две приложения', en: 'One structure, two uses' },
     caption: {

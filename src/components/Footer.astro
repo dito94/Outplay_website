@@ -39,7 +39,7 @@ const isProductPage = /^\/products\/[^/]+\/[^/]+\/$/.test(routeOf(Astro.url.path
       <p class="muted tagline">{t(site.tagline, lang)}</p>
       <p class="partners small">
         <span class="muted">{t(T.partners, lang)}</span>
-        <span>{site.partners.join(' · ')}</span>
+        <span class="p-list">{site.partners.map((p) => <span class="p-item">{p}</span>)}</span>
       </p>
     </div>
     <nav class="col" aria-label={t(T.products, lang)}>
@@ -138,6 +138,17 @@ const isProductPage = /^\/products\/[^/]+\/[^/]+\/$/.test(routeOf(Astro.url.path
     max-width: 40ch;
     line-height: 1.7;
     letter-spacing: 0.04em;
+  }
+  .p-list {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 0.35rem;
+  }
+  .p-item {
+    white-space: nowrap;
+  }
+  .p-item:not(:last-child)::after {
+    content: ' ·';
   }
   .f-h {
     font-family: var(--font-body);

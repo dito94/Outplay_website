@@ -267,12 +267,6 @@ export const imageMeta: Record<string, ImageMeta> = {
       en: 'Close-up of the retractable fabric with LED spots and exposed curved beams against a blue sky',
     },
   },
-  'products/curved/diagram.jpg': {
-    alt: {
-      bg: 'Техническа визуализация на пергола с поливинилно покритие, монтирана към стена, с частично прибрано платно',
-      en: 'Technical render of a wall-mounted PVC-roof pergola with the fabric partly retracted',
-    },
-  },
 
   // ---------------------------------------------------------------- automatic glass roof
   'products/automatic-glass-roof/hero.jpg': {
@@ -339,7 +333,7 @@ export const imageMeta: Record<string, ImageMeta> = {
       bg: 'Навес с покрив от термопанели над сив автомобил, жена товари куфарче в багажника, тухлена къща',
       en: 'Carport with an insulated-panel roof over a grey car, a woman loading a briefcase into the boot, brick house',
     },
-    focal: '55% 60%',
+    focal: '50% 15%',
   },
   'products/thermo-panel-roof/gallery-01.jpg': {
     alt: {
@@ -688,6 +682,7 @@ export const imageMeta: Record<string, ImageMeta> = {
       bg: 'Визуализация на модерни двуетажни къщи с големи остъклявания привечер – NEW LAND DISTRICT',
       en: 'Render of modern two-storey houses with large glazing at dusk – NEW LAND DISTRICT',
     },
+    focal: '0% 50%',
   },
   'references/samelyon.jpg': {
     alt: {

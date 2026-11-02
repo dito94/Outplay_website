@@ -88,7 +88,15 @@ const jsonLd = {
   <section class="section" aria-labelledby="what-title">
     <div class="wrap">
       <SectionHead id="what-title" title={t(home.whatWeDo.title, lang)} intro={t(home.whatWeDo.intro, lang)} />
-      <HotspotScene lang={lang} id="villa" image="home/what-we-do.jpg" hotspots={houseHotspots} sizes="(min-width: 1440px) 1330px, 100vw" />
+      <HotspotScene
+        lang={lang}
+        id="villa"
+        image="home/what-we-do.jpg"
+        hotspots={houseHotspots}
+        sizes="(min-width: 1440px) 1330px, 100vw"
+        fallbackHref={url(lang, '/about/')}
+        fallbackLabel={lang === 'bg' ? 'За нас' : 'About us'}
+      />
     </div>
   </section>
 

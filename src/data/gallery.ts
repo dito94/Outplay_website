@@ -214,12 +214,6 @@ export const gallery: GalleryItem[] = [
     caption: { bg: 'Винен бар със сгъваеми стъклени врати', en: 'Wine bar with folding glass doors' },
   },
   {
-    image: 'products/thermo-panel-roof/gallery-02.jpg',
-    category: 'bioclimatic-pergolas',
-    productId: 'thermo-panel-roof',
-    caption: { bg: 'Стъклена стая под покрив от термопанели', en: 'Glass room under an insulated-panel roof' },
-  },
-  {
     image: 'products/guillotine/gallery-03.jpg',
     category: 'glass-systems',
     productId: 'guillotine',

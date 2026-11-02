@@ -654,14 +654,14 @@ export const products: Product[] = [
       bg: 'Биоклиматична алуминиева пергола със стационарен стъклен покрив',
       en: 'Bioclimatic aluminium pergola with fixed glass roof',
     },
-    tagline: { bg: 'Инженерна гъвкавост и структурен финес.', en: 'Flexible engineering, refined structure.' },
+    tagline: { bg: 'Стъклен покрив за светлина през цялата година.', en: 'A glass roof for daylight all year round.' },
     summary: {
       bg: 'Алуминиева пергола с фиксиран стъклен покрив в наклонен или плосък вариант. Дневна светлина през цялата година и защита от сняг и вятър, без движещи се части.',
       en: 'An aluminium pergola with a fixed glass roof, sloped or flat. Daylight all year round and shelter from snow and wind, with no moving parts.',
     },
     sections: [
       {
-        heading: { bg: 'Инженерна гъвкавост и структурен финес', en: 'Flexible engineering, refined structure' },
+        heading: { bg: 'Алуминиева конструкция, покрита със стъкло', en: 'An aluminium frame under a glass roof' },
         paragraphs: [
           {
             bg: 'Алуминиевите перголи със стационарен стъклен покрив превръщат откритите пространства в обитаеми през цялата година зони с неограничен достъп на дневна светлина.',
@@ -1225,14 +1225,14 @@ export const products: Product[] = [
     order: 11,
     name: { bg: 'Compact', en: 'Compact' },
     fullName: { bg: 'Сгъваема стъклена система, серия Compact', en: 'Compact series folding glass system' },
-    tagline: { bg: 'Видимо изящество, невидими прегради.', en: 'Visible elegance, invisible barriers.' },
+    tagline: { bg: 'Стъклена стена, която се прибира в ниша.', en: 'A glass wall that parks away in a niche.' },
     summary: {
       bg: 'Независими стъклени панели, които се насочват към паркинг зона, следват завои и могат да се скрият в ниша или зад колона. Първият панел работи и като врата.',
       en: 'Independent glass panels that move to a parking zone, follow curves and can hide in a niche or behind a column. The first panel doubles as a door.',
     },
     sections: [
       {
-        heading: { bg: 'Видимо изящество, невидими прегради', en: 'Visible elegance, invisible barriers' },
+        heading: { bg: 'Всеки панел се движи самостоятелно', en: 'Every panel moves on its own' },
         paragraphs: [
           {
             bg: 'Compact е система за пространства, в които пълното освобождаване на отвора е от първостепенно значение. Всеки стъклен панел е напълно независим: крилата се насочват едно по едно по релсата към предварително обособена паркинг зона.',
@@ -1418,14 +1418,14 @@ export const products: Product[] = [
     order: 13,
     name: { bg: 'Harmonia', en: 'Harmonia' },
     fullName: { bg: 'Сгъваема стъклена система, серия Harmonia', en: 'Harmonia series folding glass system' },
-    tagline: { bg: 'Модулна свобода и интелигентно зониране.', en: 'Modular freedom, flexible zoning.' },
+    tagline: { bg: 'Панели, които се въртят и подреждат свободно.', en: 'Panels that pivot and stack freely.' },
     summary: {
       bg: 'Централно окачени стъклени панели, които се въртят на 360° и се движат независимо по релсата. Работят като подвижна стена или като серия осеви врати.',
       en: 'Centrally hung glass panels that rotate through 360° and move independently along the track, working as a movable wall or a series of pivot doors.',
     },
     sections: [
       {
-        heading: { bg: 'Модулна свобода и интелигентно зониране', en: 'Modular freedom, flexible zoning' },
+        heading: { bg: 'Окачване в центъра на панела', en: 'Hung from the centre of the panel' },
         paragraphs: [
           {
             bg: 'Harmonia въвежда различна логика на движение: носещият механизъм е разположен централно спрямо стъкления панел. Всяко крило е окачено в средата си, затова панелите могат да се въртят свободно на 360° и да се движат линейно по релсата с отличен баланс.',
@@ -1517,7 +1517,7 @@ export const products: Product[] = [
         heading: { bg: 'Микроперфорирано платно', en: 'Micro-perforated fabric' },
         paragraphs: [
           {
-            bg: 'Вертикалните ZIP завеси са дългосрочен партньор за дома, офиса или заведението. Специалната микроперфорирана материя омекотява и разсейва пряката слънчева светлина, създава визуален комфорт и значително понижава температурата в помещенията, като пропуска свеж въздух.',
+            bg: 'Вертикалните ZIP завеси служат дълги години на дома, офиса или заведението. Специалната микроперфорирана материя омекотява и разсейва пряката слънчева светлина, създава визуален комфорт и значително понижава температурата в помещенията, като пропуска свеж въздух.',
             en: 'Vertical ZIP screens are a long-term partner for homes, offices and restaurants. The special micro-perforated fabric softens and diffuses direct sunlight, improving visual comfort and noticeably lowering indoor temperatures while letting fresh air through.',
           },
           {

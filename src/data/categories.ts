@@ -89,7 +89,7 @@ export const categories: Category[] = [
     order: 3,
     name: { bg: 'Слънцезащита', en: 'Sun protection' },
     title: { bg: 'Моторизирани слънцезащитни системи', en: 'Motorised sun protection' },
-    tagline: { bg: 'Филтър за слънце, стандарт за комфорт.', en: 'Sun filtered, comfort controlled.' },
+    tagline: { bg: 'Сянка и прохлада с едно натискане.', en: 'Shade and cooler rooms at the touch of a button.' },
     intro: [
       {
         bg: 'Покривните и вертикалните моторизирани системи са съвременният наследник на традиционните завеси, тенти и алуминиеви щори. Проектирани са за външен монтаж и засенчват големи площи – тераси, прозорци, витрини и зимни градини – в частни домове и търговски обекти.',
@@ -109,7 +109,7 @@ export const categories: Category[] = [
     id: 'windbreaks',
     order: 4,
     name: { bg: 'Ветрозащита', en: 'Windbreaks' },
-    title: { bg: 'Телескопични хидравлични ветрозащитни системи', en: 'Telescopic hydraulic windbreaks' },
+    title: { bg: 'Ветрозащитни системи за тераси и заведения', en: 'Windbreaks for terraces and restaurants' },
     tagline: { bg: 'Елегантна защита в точния момент.', en: 'Shelter, exactly when you need it.' },
     intro: [
       {

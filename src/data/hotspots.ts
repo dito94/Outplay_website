@@ -28,13 +28,6 @@ export const diagramHotspots: Record<string, Hotspot[]> = {
     { x: 71.1, y: 11.8, label: { bg: 'Вградено LED осветление', en: 'Integrated LED lighting' } },
     { x: 91.6, y: 8.3, label: { bg: 'Скрита система за водооттичане', en: 'Concealed drainage system' } },
   ],
-  'curved': [
-    { x: 7.8, y: 21.6, label: { bg: 'Висококачествена прахово боядисана алуминиева конструкция', en: 'High-grade powder-coated aluminium structure' } },
-    { x: 32.4, y: 20.1, label: { bg: 'Интегрирани улуци', en: 'Integrated gutters' } },
-    { x: 53.0, y: 21.0, label: { bg: 'Водонепромокаемо и ветроустойчиво покритие', en: 'Waterproof, wind-resistant fabric roof' } },
-    { x: 71.1, y: 11.8, label: { bg: 'Вградено LED осветление', en: 'Integrated LED lighting' } },
-    { x: 91.6, y: 8.3, label: { bg: 'Скрита система за водооттичане', en: 'Concealed drainage system' } },
-  ],
   'automatic-glass-roof': [
     { x: 13.7, y: 52.9, label: { bg: 'Интегрирани улуци', en: 'Integrated gutters' } },
     { x: 35.1, y: 34.9, label: { bg: 'Долно ламинирано стъкло', en: 'Laminated lower glass' } },
