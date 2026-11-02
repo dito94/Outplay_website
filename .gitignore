@@ -1,9 +1,10 @@
-node_modules/
-dist/
-.astro/
-.DS_Store
-test-results/
-playwright-report/
-tests/screenshots/
 *.log
+.DS_Store
+.astro/
+dist/
+node_modules/
+outplay-site.zip
+playwright-report/
 shot.png
+test-results/
+tests/screenshots/
