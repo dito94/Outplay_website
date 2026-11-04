@@ -1,8 +1,7 @@
 ---
 // Full-bleed hero. Signature moment: the whole hero (photo, headline and buttons) is seen through a closed
-// bioclimatic roof whose lamellas all rotate together (one motor) towards the open position, fading out as they turn so
-// that they are gone the moment they are fully open. The content sits still behind the roof and is revealed by it —
-// nothing pops in.
+// bioclimatic roof whose lamellas all rotate together (one motor) to the fully open position and are gone the moment they
+// get there (no hold, no fade). The headline and buttons wait until the roof is gone, then fade in together.
 // The roof is drawn on a canvas at device resolution (no scaled textures, so nothing shimmers); a static CSS copy of
 // the closed roof covers the first paint. Skipped entirely without JS or with reduced motion.
 import type { Lang } from '../data/types';
@@ -155,13 +154,14 @@ const SLATS = 12;
 
   if (roof && canvas && ctx && !reduce && getComputedStyle(roof).display !== 'none') {
     const N = Number(roof.dataset.slats) || 12;
-    const OPEN = (86 * Math.PI) / 180; // fully open angle
-    // timeline (ms): the lamellas fade out during the turn and are fully transparent when it ends
+    const OPEN = Math.PI / 2; // fully open: lamellas vertical, only their edges in view
+    // timeline (ms): one continuous turn; the roof is removed the moment it reaches the open position
     const T_START = 60;
     const T_TURN = 900;
-    const FADE_FROM = 0.25; // share of the turn before the fade starts
-    const TOTAL = T_START + T_TURN;
-    const sineInOut = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * x);
+    const content = roof.closest('.hero')?.querySelector<HTMLElement>('.hero-content');
+    // motor-like turn: starts gently, then keeps going at speed into the open position (no slow settle that reads as a stop)
+    const K = 0.75 * Math.PI;
+    const turnEase = (x: number) => (1 - Math.cos(K * x)) / (1 - Math.cos(K));
     const easeOut = (x: number) => 1 - (1 - x) * (1 - x);
     const clamp = (x: number) => Math.min(1, Math.max(0, x));
 
@@ -233,19 +233,25 @@ const SLATS = 12;
       if (!t0) t0 = now;
       const t = now - t0;
       const p = clamp((t - T_START) / T_TURN);
-      const turn = sineInOut(p);
-      const fade = sineInOut(clamp((p - FADE_FROM) / (1 - FADE_FROM)));
-      draw(turn * OPEN, 0.5 * (1 - easeOut(turn)), 1 - fade);
-      if (t < TOTAL) requestAnimationFrame(frame);
-      else {
+      if (p >= 1) {
+        // fully open: the roof is gone at once, then the headline and buttons fade in
         window.removeEventListener('resize', size);
         roof.remove();
+        if (content) {
+          content.style.removeProperty('opacity');
+          content.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 650, easing: 'cubic-bezier(0.33, 0, 0.2, 1)' });
+        }
+        return;
       }
+      const turn = turnEase(p);
+      draw(turn * OPEN, 0.5 * (1 - easeOut(turn)), 1);
+      requestAnimationFrame(frame);
     };
 
     const start = () => {
       size();
       draw(0, 0.5, 1); // identical to the CSS cover, so the hand-over is invisible
+      if (content) content.style.opacity = '0'; // hidden until the roof has opened
       cover?.remove();
       requestAnimationFrame(frame);
     };
