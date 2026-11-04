@@ -126,7 +126,8 @@ const SLATS = 12;
       animation: roof-cover-away 0.4s ease 3s forwards;
     }
     .roof-cover span {
-      background: linear-gradient(to bottom, #4a4f54 0%, #2a2e32 46%, #16181a 100%);
+      /* bronze lamellas (#926a52), same palette as the canvas frames */
+      background: linear-gradient(to bottom, #a47e66 0%, #926a52 46%, #5e4535 100%);
     }
     @keyframes roof-cover-away {
       to {
@@ -225,8 +226,8 @@ const SLATS = 12;
         // front edge (catches the sky light)
         if (edge > 0.25) {
           const eg = ctx.createLinearGradient(0, top, 0, top + edge);
-          eg.addColorStop(0, '#727980');
-          eg.addColorStop(1, '#4a4f55');
+          eg.addColorStop(0, '#c4a38e');
+          eg.addColorStop(1, '#9a7660');
           ctx.fillStyle = eg;
           ctx.fillRect(0, top, W, edge);
         }
@@ -234,9 +235,10 @@ const SLATS = 12;
         if (face > 0.25) {
           const fy = top + edge;
           const g = ctx.createLinearGradient(0, fy, 0, fy + face);
-          g.addColorStop(0, '#4a4f54');
-          g.addColorStop(0.46, '#2a2e32');
-          g.addColorStop(1, '#16181a');
+          // bronze lamella (#926a52): lit near the edge, deeper towards the far side
+          g.addColorStop(0, '#a47e66');
+          g.addColorStop(0.46, '#926a52');
+          g.addColorStop(1, '#5e4535');
           ctx.fillStyle = g;
           ctx.fillRect(0, fy, W, face);
           if (dim > 0.002) {
