@@ -1,6 +1,7 @@
 ---
-// Full-bleed hero. Signature moment: dark aluminium louvres rotate open on load (0° → 90°), revealing the photo,
-// echoing a bioclimatic roof opening. Pure CSS; skipped entirely with reduced motion.
+// Full-bleed hero. Signature moment: the photo is seen through a closed bioclimatic roof whose lamellas all rotate
+// together (one motor) to the fully open position, hold for a beat, then fade away while the light comes in.
+// Pure CSS; skipped entirely with reduced motion.
 import type { Lang } from '../data/types';
 import Img from './Img.astro';
 import Icon from './Icon.astro';
@@ -21,8 +22,9 @@ const SLATS = 12;
   <div class="hero-media">
     <Img src={image} lang={lang} priority sizes="(max-width: 600px) 300vw, (max-width: 1100px) 160vw, 100vw" class="hero-img" />
     <div class="hero-scrim" aria-hidden="true"></div>
+    <div class="louvre-shade" aria-hidden="true"></div>
     <div class="louvres" aria-hidden="true">
-      {Array.from({ length: SLATS }, (_, i) => <span style={`--i:${i}`} />)}
+      {Array.from({ length: SLATS }, () => <span />)}
     </div>
   </div>
   <div class="wrap hero-content">
@@ -93,8 +95,16 @@ const SLATS = 12;
     --btn-bd: #fff;
   }
 
-  .louvres {
+  .louvres,
+  .louvre-shade {
     display: none;
+  }
+  /* The lamella angle drives the motion: a lamella seen from below is its full height × cos(angle), so the
+     projection can never turn past open or show its back face. */
+  @property --louvre-angle {
+    syntax: '<angle>';
+    inherits: true;
+    initial-value: 0deg;
   }
   @media (prefers-reduced-motion: no-preference) {
     .louvres {
@@ -102,43 +112,72 @@ const SLATS = 12;
       inset: 0;
       display: grid;
       grid-template-rows: repeat(12, 1fr);
-      perspective: 1600px;
       pointer-events: none;
+      /* one motor: every lamella turns together, then the open roof fades away */
+      animation:
+        louvre-turn 1.05s cubic-bezier(0.45, 0.05, 0.25, 1) 0.12s both,
+        louvre-away 0.5s cubic-bezier(0.4, 0, 0.2, 1) 1.5s forwards;
     }
     .louvres span {
+      position: relative;
       display: block;
-      margin-bottom: -1px;
-      background: linear-gradient(to bottom, #3a3f44 0%, #23262a 46%, #121315 100%);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+      margin-bottom: -1px; /* no hairline seams while the roof is closed */
+      background: linear-gradient(to bottom, #474c51 0%, #2c3034 42%, #17191b 100%);
       transform-origin: 50% 50%;
-      animation: louvre-open 0.9s var(--ease) forwards;
-      animation-delay: calc(60ms + var(--i) * 40ms);
-      will-change: transform, opacity;
+      transform: scaleY(cos(var(--louvre-angle)));
+      will-change: transform;
     }
-    @keyframes louvre-open {
-      0% {
-        transform: rotateX(0deg);
-        opacity: 1;
+    /* the lit front edge catches more light as the lamella opens towards the sky */
+    .louvres span::after {
+      content: '';
+      position: absolute;
+      inset: 0 0 auto;
+      height: 2px;
+      background: linear-gradient(to right, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.55) 45%, rgba(255, 255, 255, 0.12));
+      opacity: calc(0.25 + 0.75 * sin(var(--louvre-angle)));
+      transform: scaleY(calc(1 / max(0.14, cos(var(--louvre-angle)))));
+      transform-origin: 50% 0;
+    }
+    @keyframes louvre-turn {
+      from {
+        --louvre-angle: 0deg;
       }
-      75% {
-        opacity: 1;
+      to {
+        --louvre-angle: 82deg;
       }
-      100% {
-        transform: rotateX(-90deg);
+    }
+    @keyframes louvre-away {
+      to {
         opacity: 0;
+        visibility: hidden;
+      }
+    }
+    /* under a closed roof the scene is in shade; light floods in as the lamellas open */
+    .louvre-shade {
+      position: absolute;
+      inset: 0;
+      display: block;
+      background: rgba(10, 10, 8, 0.55);
+      pointer-events: none;
+      animation: shade-lift 1.3s cubic-bezier(0.45, 0.05, 0.25, 1) 0.12s forwards;
+    }
+    @keyframes shade-lift {
+      to {
+        opacity: 0;
+        visibility: hidden;
       }
     }
     .hero-content > * {
       animation: hero-rise 0.7s var(--ease) both;
     }
     .hero-title {
-      animation-delay: 0.45s !important;
+      animation-delay: 0.85s !important;
     }
     .hero-lead {
-      animation-delay: 0.55s !important;
+      animation-delay: 0.97s !important;
     }
     .hero-ctas {
-      animation-delay: 0.65s !important;
+      animation-delay: 1.09s !important;
     }
     @keyframes hero-rise {
       from {
