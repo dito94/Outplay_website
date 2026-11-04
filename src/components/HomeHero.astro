@@ -1,7 +1,8 @@
 ---
 // Full-bleed hero. Signature moment: the whole hero (photo, headline and buttons) is seen through a closed
 // bioclimatic roof whose lamellas all rotate together (one motor) to the fully open position and are gone the moment they
-// get there (no hold, no fade). The headline and buttons wait until the roof is gone, then fade in together.
+// get there (no hold, no fade). The headline and buttons wait until the roof is gone and then rise into place, starting
+// on the very next frame with a decelerating curve and a short cascade, so the hand-over reads as one continuous motion.
 // The roof is drawn on a canvas at device resolution (no scaled textures, so nothing shimmers); a static CSS copy of
 // the closed roof covers the first paint. Skipped entirely without JS or with reduced motion.
 import type { Lang } from '../data/types';
@@ -163,6 +164,27 @@ const SLATS = 12;
     const K = 0.75 * Math.PI;
     const turnEase = (x: number) => (1 - Math.cos(K * x)) / (1 - Math.cos(K));
     const easeOut = (x: number) => 1 - (1 - x) * (1 - x);
+    // the text takes over from the roof: no pause, fastest at the start (picking up the roof's speed), settling softly;
+    // title, lead and buttons follow each other closely so they arrive as one cascade rather than three events
+    const enter = () => {
+      if (!content) return;
+      content.style.removeProperty('opacity');
+      if (!content.animate) return;
+      // a new animation only starts on the following frame; start the clock one frame back so the title is already
+      // moving on the very frame the roof disappears (no empty frame in between)
+      const now = document.timeline?.currentTime;
+      const startAt = typeof now === 'number' ? now - 1000 / 60 : null;
+      Array.from(content.children).forEach((el, i) => {
+        const timing = { delay: i * 90, fill: 'backwards' as const };
+        const fade = el.animate([{ opacity: 0 }, { opacity: 1 }], { ...timing, duration: 650, easing: 'cubic-bezier(0.33, 1, 0.68, 1)' });
+        const rise = el.animate([{ transform: 'translateY(18px)' }, { transform: 'none' }], {
+          ...timing,
+          duration: 950,
+          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        });
+        if (startAt !== null) fade.startTime = rise.startTime = startAt;
+      });
+    };
     const clamp = (x: number) => Math.min(1, Math.max(0, x));
 
     let W = 0;
@@ -234,13 +256,10 @@ const SLATS = 12;
       const t = now - t0;
       const p = clamp((t - T_START) / T_TURN);
       if (p >= 1) {
-        // fully open: the roof is gone at once, then the headline and buttons fade in
+        // fully open: the roof is gone at once and the text takes over in the same frame
         window.removeEventListener('resize', size);
         roof.remove();
-        if (content) {
-          content.style.removeProperty('opacity');
-          content.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 650, easing: 'cubic-bezier(0.33, 0, 0.2, 1)' });
-        }
+        enter();
         return;
       }
       const turn = turnEase(p);
