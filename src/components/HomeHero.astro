@@ -1,7 +1,8 @@
 ---
 // Full-bleed hero. Signature moment: the photo is seen through a closed bioclimatic roof whose lamellas all rotate
 // together (one motor) to the fully open position, hold for a beat, then fade away while the light comes in.
-// Pure CSS; skipped entirely with reduced motion.
+// The roof is drawn on a canvas at device resolution (no scaled textures, so nothing shimmers); a static CSS copy of
+// the closed roof covers the first paint. Skipped entirely without JS or with reduced motion.
 import type { Lang } from '../data/types';
 import Img from './Img.astro';
 import Icon from './Icon.astro';
@@ -22,9 +23,11 @@ const SLATS = 12;
   <div class="hero-media">
     <Img src={image} lang={lang} priority sizes="(max-width: 600px) 300vw, (max-width: 1100px) 160vw, 100vw" class="hero-img" />
     <div class="hero-scrim" aria-hidden="true"></div>
-    <div class="louvre-shade" aria-hidden="true"></div>
-    <div class="louvres" aria-hidden="true">
-      {Array.from({ length: SLATS }, () => <span />)}
+    <div class="roof" aria-hidden="true" data-roof data-slats={SLATS}>
+      <div class="roof-cover" data-roof-cover>
+        {Array.from({ length: SLATS }, () => <span />)}
+      </div>
+      <canvas class="roof-canvas" data-roof-canvas></canvas>
     </div>
   </div>
   <div class="wrap hero-content">
@@ -95,73 +98,35 @@ const SLATS = 12;
     --btn-bd: #fff;
   }
 
-  .louvres,
-  .louvre-shade {
+  .roof {
     display: none;
   }
-  /* The lamella angle drives the motion: a lamella seen from below is its full height × cos(angle), so the
-     projection can never turn past open or show its back face. */
-  @property --louvre-angle {
-    syntax: '<angle>';
-    inherits: true;
-    initial-value: 0deg;
-  }
   @media (prefers-reduced-motion: no-preference) {
-    .louvres {
+    /* only with JS: the canvas script runs the opening; the cover is the closed roof for the first paint */
+    :global(html.js) .roof {
+      position: absolute;
+      inset: 0;
+      display: block;
+      pointer-events: none;
+    }
+    .roof-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .roof-cover {
       position: absolute;
       inset: 0;
       display: grid;
       grid-template-rows: repeat(12, 1fr);
-      pointer-events: none;
-      /* one motor: every lamella turns together, then the open roof fades away */
-      animation:
-        louvre-turn 1.05s cubic-bezier(0.45, 0.05, 0.25, 1) 0.12s both,
-        louvre-away 0.5s cubic-bezier(0.4, 0, 0.2, 1) 1.5s forwards;
+      /* safety net: never leave the photo covered if the script can't run */
+      animation: roof-cover-away 0.4s ease 3s forwards;
     }
-    .louvres span {
-      position: relative;
-      display: block;
-      margin-bottom: -1px; /* no hairline seams while the roof is closed */
-      background: linear-gradient(to bottom, #474c51 0%, #2c3034 42%, #17191b 100%);
-      transform-origin: 50% 50%;
-      transform: scaleY(cos(var(--louvre-angle)));
-      will-change: transform;
+    .roof-cover span {
+      background: linear-gradient(to bottom, #4a4f54 0%, #2a2e32 46%, #16181a 100%);
     }
-    /* the lit front edge catches more light as the lamella opens towards the sky */
-    .louvres span::after {
-      content: '';
-      position: absolute;
-      inset: 0 0 auto;
-      height: 2px;
-      background: linear-gradient(to right, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.55) 45%, rgba(255, 255, 255, 0.12));
-      opacity: calc(0.25 + 0.75 * sin(var(--louvre-angle)));
-      transform: scaleY(calc(1 / max(0.14, cos(var(--louvre-angle)))));
-      transform-origin: 50% 0;
-    }
-    @keyframes louvre-turn {
-      from {
-        --louvre-angle: 0deg;
-      }
-      to {
-        --louvre-angle: 82deg;
-      }
-    }
-    @keyframes louvre-away {
-      to {
-        opacity: 0;
-        visibility: hidden;
-      }
-    }
-    /* under a closed roof the scene is in shade; light floods in as the lamellas open */
-    .louvre-shade {
-      position: absolute;
-      inset: 0;
-      display: block;
-      background: rgba(10, 10, 8, 0.55);
-      pointer-events: none;
-      animation: shade-lift 1.3s cubic-bezier(0.45, 0.05, 0.25, 1) 0.12s forwards;
-    }
-    @keyframes shade-lift {
+    @keyframes roof-cover-away {
       to {
         opacity: 0;
         visibility: hidden;
@@ -171,13 +136,13 @@ const SLATS = 12;
       animation: hero-rise 0.7s var(--ease) both;
     }
     .hero-title {
-      animation-delay: 0.85s !important;
+      animation-delay: 1.05s !important;
     }
     .hero-lead {
-      animation-delay: 0.97s !important;
+      animation-delay: 1.17s !important;
     }
     .hero-ctas {
-      animation-delay: 1.09s !important;
+      animation-delay: 1.29s !important;
     }
     @keyframes hero-rise {
       from {
@@ -187,3 +152,118 @@ const SLATS = 12;
     }
   }
 </style>
+
+<script>
+  // Bioclimatic roof opening, drawn per frame at device resolution.
+  // Each lamella is a profile of depth = pitch and thickness T, turning about its centre. Seen from below
+  // (orthographic), it covers pitch·cos(θ) of underside plus T·sin(θ) of its front edge, so near the open position
+  // a solid edge remains instead of a vanishing sliver.
+  const roof = document.querySelector<HTMLElement>('[data-roof]');
+  const canvas = roof?.querySelector<HTMLCanvasElement>('[data-roof-canvas]');
+  const cover = roof?.querySelector<HTMLElement>('[data-roof-cover]');
+  const ctx = canvas?.getContext('2d');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (roof && canvas && ctx && !reduce && getComputedStyle(roof).display !== 'none') {
+    const N = Number(roof.dataset.slats) || 12;
+    const OPEN = (86 * Math.PI) / 180; // fully open angle
+    // timeline (ms)
+    const T_START = 140;
+    const T_TURN = 1250;
+    const T_HOLD = 280;
+    const T_FADE = 640;
+    const TOTAL = T_START + T_TURN + T_HOLD + T_FADE;
+    const sineInOut = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * x);
+    const easeOut = (x: number) => 1 - (1 - x) * (1 - x);
+    const clamp = (x: number) => Math.min(1, Math.max(0, x));
+
+    let W = 0;
+    let H = 0;
+    let dpr = 1;
+    const size = () => {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const r = roof.getBoundingClientRect();
+      W = Math.max(1, Math.round(r.width * dpr));
+      H = Math.max(1, Math.round(r.height * dpr));
+      canvas.width = W;
+      canvas.height = H;
+    };
+
+    const draw = (angle: number, shade: number, alpha: number) => {
+      ctx.clearRect(0, 0, W, H);
+      ctx.globalAlpha = alpha;
+      // the scene stays in shade while the roof is closed; light floods in as it opens
+      if (shade > 0.001) {
+        ctx.fillStyle = `rgba(10, 10, 8, ${shade})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+      const pitch = H / N;
+      const thick = Math.max(2.5 * dpr, pitch * 0.07);
+      const c = Math.cos(angle);
+      const sn = Math.sin(angle);
+      const face = pitch * c + (angle < 0.02 ? 1 : 0); // overlap while closed: no seams
+      const edge = thick * sn;
+      const total = face + edge;
+      // underside turns away from the light: a touch darker as it opens
+      const dim = 0.28 * sn;
+      for (let i = 0; i < N; i++) {
+        const top = pitch * (i + 0.5) - total / 2;
+        // front edge (catches the sky light)
+        if (edge > 0.25) {
+          const eg = ctx.createLinearGradient(0, top, 0, top + edge);
+          eg.addColorStop(0, '#727980');
+          eg.addColorStop(1, '#4a4f55');
+          ctx.fillStyle = eg;
+          ctx.fillRect(0, top, W, edge);
+        }
+        // underside
+        if (face > 0.25) {
+          const fy = top + edge;
+          const g = ctx.createLinearGradient(0, fy, 0, fy + face);
+          g.addColorStop(0, '#4a4f54');
+          g.addColorStop(0.46, '#2a2e32');
+          g.addColorStop(1, '#16181a');
+          ctx.fillStyle = g;
+          ctx.fillRect(0, fy, W, face);
+          if (dim > 0.002) {
+            ctx.fillStyle = `rgba(10, 10, 8, ${dim})`;
+            ctx.fillRect(0, fy, W, face);
+          }
+        }
+        // soft crease light where edge meets underside
+        if (sn > 0.05) {
+          ctx.fillStyle = `rgba(255, 255, 255, ${0.1 * sn})`;
+          ctx.fillRect(0, top + edge - dpr * 0.5, W, dpr);
+        }
+      }
+      ctx.globalAlpha = 1;
+    };
+
+    let t0 = 0;
+    const frame = (now: number) => {
+      if (!t0) t0 = now;
+      const t = now - t0;
+      const turn = sineInOut(clamp((t - T_START) / T_TURN));
+      const fade = sineInOut(clamp((t - T_START - T_TURN - T_HOLD) / T_FADE));
+      draw(turn * OPEN, 0.5 * (1 - easeOut(turn)), 1 - fade);
+      if (t < TOTAL) requestAnimationFrame(frame);
+      else {
+        window.removeEventListener('resize', size);
+        roof.remove();
+      }
+    };
+
+    const start = () => {
+      size();
+      draw(0, 0.5, 1); // identical to the CSS cover, so the hand-over is invisible
+      cover?.remove();
+      requestAnimationFrame(frame);
+    };
+    window.addEventListener('resize', size, { passive: true });
+    // a tab opened in the background starts the opening when it is first shown
+    if (document.hidden) document.addEventListener('visibilitychange', start, { once: true });
+    else start();
+  } else {
+    roof?.remove();
+  }
+</script>
