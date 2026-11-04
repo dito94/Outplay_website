@@ -89,6 +89,8 @@ const SLATS = 12;
     margin-top: var(--s-2);
   }
   .hero .btn-ghost {
+    /* a faint fill keeps the outline button steady over any photo */
+    --btn-bg: rgba(10, 10, 8, 0.35);
     --btn-fg: #fff;
     --btn-bd: rgba(255, 255, 255, 0.5);
   }
@@ -136,13 +138,23 @@ const SLATS = 12;
       animation: hero-rise 0.7s var(--ease) both;
     }
     .hero-title {
-      animation-delay: 1.05s !important;
+      animation-delay: 0.55s !important;
     }
     .hero-lead {
-      animation-delay: 1.17s !important;
+      animation-delay: 0.68s !important;
     }
-    .hero-ctas {
-      animation-delay: 1.29s !important;
+    /* the buttons appear once the roof has cleared (the roof script adds .is-open), with a plain fade:
+       nothing moves behind or inside them. Fallback when the script can't run: after 2.6s. */
+    :global(html.js) .hero-content > .hero-ctas {
+      animation: hero-appear 0.45s ease-out 2.6s both;
+    }
+    :global(html.js) .hero.is-open .hero-content > .hero-ctas {
+      animation: hero-appear 0.45s ease-out both;
+    }
+    @keyframes hero-appear {
+      from {
+        opacity: 0;
+      }
     }
     @keyframes hero-rise {
       from {
@@ -159,6 +171,8 @@ const SLATS = 12;
   // (orthographic), it covers pitch·cos(θ) of underside plus T·sin(θ) of its front edge, so near the open position
   // a solid edge remains instead of a vanishing sliver.
   const roof = document.querySelector<HTMLElement>('[data-roof]');
+  const hero = roof?.closest<HTMLElement>('.hero');
+  const reveal = () => hero?.classList.add('is-open');
   const canvas = roof?.querySelector<HTMLCanvasElement>('[data-roof-canvas]');
   const cover = roof?.querySelector<HTMLElement>('[data-roof-cover]');
   const ctx = canvas?.getContext('2d');
@@ -168,10 +182,10 @@ const SLATS = 12;
     const N = Number(roof.dataset.slats) || 12;
     const OPEN = (86 * Math.PI) / 180; // fully open angle
     // timeline (ms)
-    const T_START = 140;
-    const T_TURN = 1250;
-    const T_HOLD = 280;
-    const T_FADE = 640;
+    const T_START = 60;
+    const T_TURN = 850;
+    const T_HOLD = 180;
+    const T_FADE = 420;
     const TOTAL = T_START + T_TURN + T_HOLD + T_FADE;
     const sineInOut = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * x);
     const easeOut = (x: number) => 1 - (1 - x) * (1 - x);
@@ -246,6 +260,7 @@ const SLATS = 12;
       const turn = sineInOut(clamp((t - T_START) / T_TURN));
       const fade = sineInOut(clamp((t - T_START - T_TURN - T_HOLD) / T_FADE));
       draw(turn * OPEN, 0.5 * (1 - easeOut(turn)), 1 - fade);
+      if (fade > 0.85) reveal(); // the roof is almost gone: bring in the buttons
       if (t < TOTAL) requestAnimationFrame(frame);
       else {
         window.removeEventListener('resize', size);
@@ -265,5 +280,6 @@ const SLATS = 12;
     else start();
   } else {
     roof?.remove();
+    reveal();
   }
 </script>
