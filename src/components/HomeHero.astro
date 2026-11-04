@@ -1,6 +1,7 @@
 ---
-// Full-bleed hero. Signature moment: the photo is seen through a closed bioclimatic roof whose lamellas all rotate
-// together (one motor) to the fully open position, hold for a beat, then fade away while the light comes in.
+// Full-bleed hero. Signature moment: the whole hero (photo, headline and buttons) is seen through a closed
+// bioclimatic roof whose lamellas all rotate together (one motor) to the fully open position, hold for a beat, then
+// fade away while the light comes in. The content sits still behind the roof and is revealed by it — nothing pops in.
 // The roof is drawn on a canvas at device resolution (no scaled textures, so nothing shimmers); a static CSS copy of
 // the closed roof covers the first paint. Skipped entirely without JS or with reduced motion.
 import type { Lang } from '../data/types';
@@ -23,12 +24,6 @@ const SLATS = 12;
   <div class="hero-media">
     <Img src={image} lang={lang} priority sizes="(max-width: 600px) 300vw, (max-width: 1100px) 160vw, 100vw" class="hero-img" />
     <div class="hero-scrim" aria-hidden="true"></div>
-    <div class="roof" aria-hidden="true" data-roof data-slats={SLATS}>
-      <div class="roof-cover" data-roof-cover>
-        {Array.from({ length: SLATS }, () => <span />)}
-      </div>
-      <canvas class="roof-canvas" data-roof-canvas></canvas>
-    </div>
   </div>
   <div class="wrap hero-content">
     <h1 id="hero-title" class="display hero-title">{title}</h1>
@@ -37,6 +32,13 @@ const SLATS = 12;
       <a class="btn" href={primary.href}>{primary.label} <Icon name="arrow-right" class="arrow" /></a>
       <a class="btn btn-ghost" href={secondary.href}>{secondary.label}</a>
     </div>
+  </div>
+  <!-- the roof sits in front of the photo and the text, so the opening reveals everything together -->
+  <div class="roof" aria-hidden="true" data-roof data-slats={SLATS}>
+    <div class="roof-cover" data-roof-cover>
+      {Array.from({ length: SLATS }, () => <span />)}
+    </div>
+    <canvas class="roof-canvas" data-roof-canvas></canvas>
   </div>
 </section>
 
@@ -108,6 +110,7 @@ const SLATS = 12;
     :global(html.js) .roof {
       position: absolute;
       inset: 0;
+      z-index: 1;
       display: block;
       pointer-events: none;
     }
@@ -135,34 +138,6 @@ const SLATS = 12;
         visibility: hidden;
       }
     }
-    .hero-content > * {
-      animation: hero-rise 0.7s var(--ease) both;
-    }
-    .hero-title {
-      animation-delay: 0.55s !important;
-    }
-    .hero-lead {
-      animation-delay: 0.68s !important;
-    }
-    /* the buttons appear once the roof has cleared (the roof script adds .is-open), with a plain fade:
-       nothing moves behind or inside them. Fallback when the script can't run: after 2.6s. */
-    :global(html.js) .hero-content > .hero-ctas {
-      animation: hero-appear 0.45s ease-out 2.6s both;
-    }
-    :global(html.js) .hero.is-open .hero-content > .hero-ctas {
-      animation: hero-appear 0.45s ease-out both;
-    }
-    @keyframes hero-appear {
-      from {
-        opacity: 0;
-      }
-    }
-    @keyframes hero-rise {
-      from {
-        opacity: 0;
-        transform: translateY(14px);
-      }
-    }
   }
 </style>
 
@@ -172,8 +147,6 @@ const SLATS = 12;
   // (orthographic), it covers pitch·cos(θ) of underside plus T·sin(θ) of its front edge, so near the open position
   // a solid edge remains instead of a vanishing sliver.
   const roof = document.querySelector<HTMLElement>('[data-roof]');
-  const hero = roof?.closest<HTMLElement>('.hero');
-  const reveal = () => hero?.classList.add('is-open');
   const canvas = roof?.querySelector<HTMLCanvasElement>('[data-roof-canvas]');
   const cover = roof?.querySelector<HTMLElement>('[data-roof-cover]');
   const ctx = canvas?.getContext('2d');
@@ -262,7 +235,6 @@ const SLATS = 12;
       const turn = sineInOut(clamp((t - T_START) / T_TURN));
       const fade = sineInOut(clamp((t - T_START - T_TURN - T_HOLD) / T_FADE));
       draw(turn * OPEN, 0.5 * (1 - easeOut(turn)), 1 - fade);
-      if (fade > 0.85) reveal(); // the roof is almost gone: bring in the buttons
       if (t < TOTAL) requestAnimationFrame(frame);
       else {
         window.removeEventListener('resize', size);
@@ -282,6 +254,5 @@ const SLATS = 12;
     else start();
   } else {
     roof?.remove();
-    reveal();
   }
 </script>
