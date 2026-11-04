@@ -75,8 +75,11 @@ const jsonLd = {
         cats.map((c) => (
           <li>
             <a href={categoryUrl(lang, c.id)}>
-              <span class="cs-name">{t(c.name, lang)}</span>
-              <span class="cs-count" data-pcount={c.id} data-pcount-n={countOf(c.id)}>{productCount(lang, countOf(c.id))}</span>
+              <span class="cs-text">
+                <span class="cs-name">{t(c.name, lang)}</span>
+                <span class="cs-count" data-pcount={c.id} data-pcount-n={countOf(c.id)}>{productCount(lang, countOf(c.id))}</span>
+              </span>
+              <span class="cs-go" aria-hidden="true"><Icon name="arrow-right" size={20} /></span>
             </a>
           </li>
         ))
@@ -238,44 +241,108 @@ const jsonLd = {
 </Base>
 
 <style>
-  /* Category strip */
+  /* Category strip: four equal buttons across the content width, the first title aligned under the hero text */
   .cat-strip {
     border-top: 1px solid var(--line-dark);
   }
   .cat-strip ul {
     list-style: none;
-    margin: 0;
+    margin-block: 0; /* keep .wrap's automatic side margins, so the strip stays centred on wide screens */
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .cat-strip li {
+    display: flex;
+    min-width: 0;
   }
   .cat-strip li:not(:first-child) {
     border-left: 1px solid var(--line-dark);
   }
   .cat-strip a {
+    position: relative;
+    flex: 1;
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.15rem;
-    padding: 1.1rem var(--s-5);
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+    min-height: 96px;
+    padding: 1.25rem clamp(1rem, 0.5rem + 1.4vw, 2rem);
     text-decoration: none;
-    transition: background-color 0.2s var(--ease);
+    transition: background-color 0.25s var(--ease);
   }
+  /* outer cells line up with the content edges: first title under the hero text, last arrow under the header CTA */
   .cat-strip li:first-child a {
     padding-left: 0;
   }
-  .cat-strip a:hover {
+  .cat-strip li:last-child a {
+    padding-right: 0;
+  }
+  /* yellow accent drawn in along the top edge on hover/focus */
+  .cat-strip a::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -1px;
+    height: 2px;
+    background: var(--yellow);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.35s var(--ease);
+  }
+  .cat-strip a:hover,
+  .cat-strip a:focus-visible {
     background: var(--ink-2);
+  }
+  .cat-strip a:hover::before,
+  .cat-strip a:focus-visible::before {
+    transform: scaleX(1);
+  }
+  .cat-strip a:focus-visible {
+    outline-offset: -3px;
+  }
+  .cs-text {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
   }
   .cs-name {
     font-family: var(--font-display);
     font-size: var(--step-1);
+    line-height: 1.2;
   }
   .cs-count {
-    flex: none;
     color: var(--alu);
     font-size: var(--step--1);
     font-weight: 500;
     white-space: nowrap;
+  }
+  .cs-go {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--line-dark);
+    border-radius: 50%;
+    color: var(--alu);
+    transition:
+      color 0.25s var(--ease),
+      border-color 0.25s var(--ease),
+      transform 0.35s var(--ease);
+  }
+  .cat-strip a:hover .cs-go,
+  .cat-strip a:focus-visible .cs-go {
+    color: var(--ink);
+    border-color: var(--yellow);
+    background: var(--yellow);
+    transform: translateX(3px);
+  }
+  @media (max-width: 1100px) {
+    .cs-go {
+      width: 34px;
+      height: 34px;
+    }
   }
   @media (max-width: 900px) {
     .cat-strip ul {
@@ -294,13 +361,26 @@ const jsonLd = {
     .cat-strip li:nth-child(odd) a {
       padding-left: 0;
     }
+    .cat-strip li:nth-child(even) a {
+      padding-right: 0;
+    }
+    .cat-strip a {
+      min-height: 84px;
+    }
   }
   @media (max-width: 520px) {
     .cat-strip a {
       padding-inline: var(--s-3);
+      min-height: 76px;
+      gap: var(--s-2);
     }
     .cs-name {
       font-size: var(--step-0);
+    }
+    .cs-go {
+      width: 28px;
+      height: 28px;
+      border: 0;
     }
   }
 

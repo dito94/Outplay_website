@@ -239,9 +239,10 @@ const T = {
       { rootMargin: '0px 0px -10% 0px' },
     );
     let typing = false;
-    // phones: the first screen has its own call-to-action buttons, so the button waits until the visitor scrolls on
+    // the first screen has its own call-to-action buttons (and the category strip at its foot),
+    // so the button waits until the visitor scrolls on
     const small = window.matchMedia('(max-width: 900px)');
-    const atTop = () => small.matches && window.scrollY < window.innerHeight * 0.6;
+    const atTop = () => window.scrollY < window.innerHeight * 0.6;
     const update = () => {
       const away = (zones.size > 0 || typing || atTop()) && (pop?.hidden ?? true);
       root.classList.toggle('is-away', away);
