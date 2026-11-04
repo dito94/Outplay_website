@@ -1,7 +1,8 @@
 ---
 // Full-bleed hero. Signature moment: the whole hero (photo, headline and buttons) is seen through a closed
-// bioclimatic roof whose lamellas all rotate together (one motor) to the fully open position, hold for a beat, then
-// fade away while the light comes in. The content sits still behind the roof and is revealed by it — nothing pops in.
+// bioclimatic roof whose lamellas all rotate together (one motor) towards the open position, fading out as they turn so
+// that they are gone the moment they are fully open. The content sits still behind the roof and is revealed by it —
+// nothing pops in.
 // The roof is drawn on a canvas at device resolution (no scaled textures, so nothing shimmers); a static CSS copy of
 // the closed roof covers the first paint. Skipped entirely without JS or with reduced motion.
 import type { Lang } from '../data/types';
@@ -155,12 +156,11 @@ const SLATS = 12;
   if (roof && canvas && ctx && !reduce && getComputedStyle(roof).display !== 'none') {
     const N = Number(roof.dataset.slats) || 12;
     const OPEN = (86 * Math.PI) / 180; // fully open angle
-    // timeline (ms)
+    // timeline (ms): the lamellas fade out during the turn and are fully transparent when it ends
     const T_START = 60;
-    const T_TURN = 850;
-    const T_HOLD = 180;
-    const T_FADE = 420;
-    const TOTAL = T_START + T_TURN + T_HOLD + T_FADE;
+    const T_TURN = 900;
+    const FADE_FROM = 0.25; // share of the turn before the fade starts
+    const TOTAL = T_START + T_TURN;
     const sineInOut = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * x);
     const easeOut = (x: number) => 1 - (1 - x) * (1 - x);
     const clamp = (x: number) => Math.min(1, Math.max(0, x));
@@ -232,8 +232,9 @@ const SLATS = 12;
     const frame = (now: number) => {
       if (!t0) t0 = now;
       const t = now - t0;
-      const turn = sineInOut(clamp((t - T_START) / T_TURN));
-      const fade = sineInOut(clamp((t - T_START - T_TURN - T_HOLD) / T_FADE));
+      const p = clamp((t - T_START) / T_TURN);
+      const turn = sineInOut(p);
+      const fade = sineInOut(clamp((p - FADE_FROM) / (1 - FADE_FROM)));
       draw(turn * OPEN, 0.5 * (1 - easeOut(turn)), 1 - fade);
       if (t < TOTAL) requestAnimationFrame(frame);
       else {
