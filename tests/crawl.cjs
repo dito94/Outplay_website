@@ -20,6 +20,20 @@ const MIME = {
   '.woff2': 'font/woff2', '.woff': 'font/woff', '.json': 'application/json', '.ico': 'image/x-icon', '.txt': 'text/plain',
 };
 
+// every built page (same walk as tests/a11y.cjs), plus the 404 page: pages no link points to are still checked
+function builtPages() {
+  const out = [];
+  (function walk(d) {
+    for (const f of fs.readdirSync(d)) {
+      const p = path.join(d, f);
+      if (fs.statSync(p).isDirectory()) { if (f !== '_astro') walk(p); }
+      else if (f === 'index.html') out.push(BASE + path.relative(DIST, d).split(path.sep).join('/') + (d === DIST ? '' : '/'));
+    }
+  })(DIST);
+  if (fs.existsSync(path.join(DIST, '404.html'))) out.push(`${BASE}404.html`);
+  return out.map((p) => p.replace(/\/+$/, '/')).sort();
+}
+
 function serve() {
   return http
     .createServer((req, res) => {
@@ -45,7 +59,7 @@ function serve() {
   const browser = await chromium.launch();
   const issues = [];
   const seen = new Set();
-  const queue = ONLY ? [ONLY] : [BASE, `${BASE}en/`];
+  const queue = ONLY ? [ONLY] : [BASE, `${BASE}en/`, ...builtPages()];
   const pages = [];
   // 1) discover pages at desktop width
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });

@@ -2185,6 +2185,18 @@ export function boot(): void {
     void addImages(Array.from(e.dataTransfer?.files ?? []));
   });
 
+  // A focused field of the custom product editor is scrolled clear of the sticky Save bar (phones)
+  root.addEventListener('focusin', (e) => {
+    const t = e.target as HTMLElement;
+    if (!t.closest('[data-cp-form]') || t.closest('.adm-cp-actions')) return;
+    requestAnimationFrame(() => {
+      const bar = q('.adm-cp-actions');
+      if (!bar) return;
+      const over = t.getBoundingClientRect().bottom - bar.getBoundingClientRect().top + 12;
+      if (over > 0) window.scrollBy({ top: over, behavior: 'instant' as ScrollBehavior });
+    });
+  });
+
   root.addEventListener('input', (e) => {
     const t = e.target as HTMLElement;
     if (t.matches('[data-inq-search]')) {

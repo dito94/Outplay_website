@@ -23,6 +23,7 @@ import { site } from '../../../../data/site';
 import { ui } from '../../../../data/ui';
 import { LANGS, DEFAULT_LANG, getLang, url, categoryUrl, t, fmt, inlineName, withPrep } from '../../../../lib/i18n';
 import { productImages, img, altOf, lightboxSrc } from '../../../../lib/images';
+import { preloadImage } from '../../../../lib/responsive';
 
 export function getStaticPaths() {
   return LANGS.flatMap((l) =>
@@ -99,6 +100,7 @@ const heroSizes = [
   `(min-width: 641px) ${Math.ceil(92 * cover(heroAr, 16 / 9))}vw`,
   `${Math.ceil(92 * cover(heroAr, 3 / 2))}vw`,
 ].join(', ');
+const heroPreload = await preloadImage(hero, { sizes: heroSizes });
 // Editorial row photo: 6 of 12 columns from 901px (≈ 660px at 1440), full content width below
 const rowSizes = (image: string, boxRatio: number) => {
   const f = cover(ratioOf(image), boxRatio);
@@ -228,6 +230,7 @@ const jsonLd = {
   description={t(product.summary, lang)}
   ogImage={hero}
   jsonLd={jsonLd}
+  preload={heroPreload}
 >
   <!-- 1. Product hero -->
   <section class="p-hero" aria-labelledby="p-title">

@@ -42,6 +42,7 @@ const {
   bodyClass,
   jsonLd,
   noindex = false,
+  preload = [],
 } = Astro.props;
 /** the whole site is a staging preview for now: drop this flag at launch, pages with `noindex` stay excluded */
 const STAGING = true;
@@ -60,7 +61,22 @@ if (ogSrc) {
   const og = await getImage({ src: ogSrc, width: 1200, height: 630, fit: 'cover', format: 'jpg', quality: 82 });
   ogUrl = new URL(og.src, site).href;
 }
-const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
+// The business entity (home, contact) gets a stable @id, the logo and the home photo
+const BUSINESS = 'HomeAndConstructionBusiness';
+const homeSrc = img('home/hero.jpg');
+const businessImage = homeSrc
+  ? new URL((await getImage({ src: homeSrc, width: 1200, height: 630, fit: 'cover', format: 'jpg', quality: 82 })).src, site).href
+  : undefined;
+const ld = (jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : []).map((obj) =>
+  obj['@type'] === BUSINESS
+    ? {
+        ...obj,
+        '@id': new URL(`${asset('')}#business`, site).href,
+        logo: new URL(logoSvg, site).href,
+        ...(businessImage ? { image: businessImage } : {}),
+      }
+    : obj,
+);
 ---
 
 <!doctype html>
@@ -69,6 +85,11 @@ const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{fullTitle}</title>
+    {
+      preload.map((p) => (
+        <link rel="preload" as="image" type="image/webp" imagesrcset={p.srcset} imagesizes={p.sizes} media={p.media} fetchpriority="high" />
+      ))
+    }
     <meta name="description" content={description} />
     {(noindex || STAGING) && <meta name="robots" content="noindex, nofollow" />}
     {
@@ -82,6 +103,7 @@ const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       )
     }
     <meta name="theme-color" content="#0a0a08" />
+    <link rel="icon" href={asset('favicon.ico')} sizes="32x32" />
     <link rel="icon" href={asset('favicon.svg')} type="image/svg+xml" />
     <link rel="apple-touch-icon" href={asset('apple-touch-icon.png')} />
     <meta property="og:type" content="website" />
@@ -120,6 +142,7 @@ const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <slot name="head" />
   </head>
   <body class={bodyClass}>
+    <LogoSymbol />
     <a class="skip-link" href="#main">{lang === 'bg' ? 'Към съдържанието' : 'Skip to content'}</a>
     <Header lang={lang} variant={header} />
     <main id="main">

@@ -5,10 +5,27 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$(pwd)
 SKIP_BUILD=${SKIP_BUILD:-0}
+# OUTPLAY_AGENT sends the build to a scratch folder (astro.config.mjs): dist/ would be stale
+if [ -n "${OUTPLAY_AGENT:-}" ]; then
+  echo "OUTPLAY_AGENT is set (${OUTPLAY_AGENT}): the build would not go to dist/. Unset it to deploy." >&2
+  exit 1
+fi
+# The deploy commit names HEAD, so the build must be HEAD: refuse uncommitted changes to tracked files
+if [ "${ALLOW_DIRTY:-0}" != "1" ] && ! git diff --quiet HEAD --; then
+  echo "Uncommitted changes in tracked files; commit them or run with ALLOW_DIRTY=1." >&2
+  exit 1
+fi
 [ "$SKIP_BUILD" = "1" ] || npx astro build
 touch dist/.nojekyll
 SRC_SHA=$(git rev-parse --short HEAD)
 WT=$(mktemp -d)
+# remove the worktree however the script ends (failed fetch, commit or push included)
+cleanup() {
+  cd "$ROOT"
+  git worktree remove --force "$WT" 2>/dev/null || rm -rf "$WT"
+  git worktree prune
+}
+trap cleanup EXIT
 
 if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
   git fetch -q origin gh-pages:refs/remotes/origin/gh-pages
@@ -31,5 +48,3 @@ else
   git -C "$WT" push -q origin gh-pages
   echo "Deployed ${SRC_SHA} to gh-pages"
 fi
-cd "$ROOT"
-git worktree remove --force "$WT"

@@ -1,9 +1,17 @@
 import type { ImageMetadata } from 'astro';
 import type { Lang } from '../data/types';
 
-const files = import.meta.glob<{ default: ImageMetadata }>('/src/assets/img/**/*.{jpg,jpeg,png,webp}', {
-  eager: true,
-});
+// Every match is emitted as-is unless a page transforms it, so leave out rasters no page shows: the brand icons
+// (served from public/) and unused home artwork.
+const files = import.meta.glob<{ default: ImageMetadata }>(
+  [
+    '/src/assets/img/**/*.{jpg,jpeg,png,webp}',
+    '!/src/assets/img/brand/**',
+    '!/src/assets/img/home/tech-*',
+    '!/src/assets/img/home/cover-pergola.*',
+  ],
+  { eager: true },
+);
 
 const PREFIX = '/src/assets/img/';
 

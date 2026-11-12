@@ -41,13 +41,12 @@ const attrs = r && {
   srcset: r.main.srcSet.attribute,
   sizes,
   alt: altText,
-  loading: priority ? 'eager' : (loading ?? 'lazy'),
-  decoding: priority ? 'sync' : 'async',
-  fetchpriority: priority ? 'high' : 'auto',
+  loading: priority ? ('eager' as const) : (loading ?? ('lazy' as const)),
+  decoding: priority ? ('sync' as const) : ('async' as const),
+  fetchpriority: priority ? ('high' as const) : ('auto' as const),
   style: focal ? `object-position:${focal}` : undefined,
   width: r.main.attributes.width,
   height: r.main.attributes.height,
-  class: cls,
 };
 ---
 
@@ -56,10 +55,10 @@ const attrs = r && {
     r.crop ? (
       <picture class={pictureClass}>
         <source media={r.crop.media} srcset={r.crop.srcset} sizes={r.crop.sizes} type="image/webp" />
-        <img {...attrs} />
+        <img {...attrs} class={cls} />
       </picture>
     ) : (
-      <img {...attrs} />
+      <img {...attrs} class={cls} />
     )
   ) : (
     <div class:list={['img-missing', cls]} role="img" aria-label={altText} />

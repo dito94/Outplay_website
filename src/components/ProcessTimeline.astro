@@ -99,10 +99,24 @@ const Tag = headingLevel;
      more lines pushes every text in that row down by the same amount and the texts start on one line. */
   @media (min-width: 701px) {
     @supports (grid-template-rows: subgrid) {
+      /* the parent's row gap would also open up inside each subgrid, so rows of steps are spaced with padding */
+      .tl {
+        row-gap: 0;
+      }
       .tl-step {
         grid-row: span 4;
         grid-template-rows: subgrid;
         row-gap: var(--s-3);
+      }
+    }
+  }
+  @media (min-width: 701px) and (max-width: 1100px) {
+    @supports (grid-template-rows: subgrid) {
+      .tl-step:nth-child(n + 4) {
+        padding-top: var(--s-8);
+      }
+      .tl-step:nth-child(n + 4)::before {
+        top: calc(var(--s-8) + var(--n-h) + var(--s-3) + var(--node) / 2);
       }
     }
   }

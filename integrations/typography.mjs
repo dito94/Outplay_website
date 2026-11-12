@@ -13,11 +13,19 @@ const PHONES = [
 ];
 
 function nbspHeadings(html) {
+  // inline <script> blocks can hold heading markup in template strings: leave them untouched
+  return html
+    .split(/(<script\b[\s\S]*?<\/script>)/i)
+    .map((part, i) => (i % 2 ? part : nbspHeadingsIn(part)))
+    .join('');
+}
+
+function nbspHeadingsIn(html) {
   return html.replace(/(<h[1-4]\b[^>]*>)([\s\S]*?)(<\/h[1-4]>)/g, (_, open, inner, close) => {
     // only touch text between tags, never attributes
     const fixed = inner
       .split(/(<[^>]+>)/)
-      .map((part) => (part.startsWith('<') ? part : part.replace(shortWord, (m, pre, w) => `${pre}${w} `)))
+      .map((part) => (part.startsWith('<') ? part : part.replace(shortWord, (_m, pre, w) => `${pre}${w} `)))
       .join('');
     return open + fixed + close;
   });

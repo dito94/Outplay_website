@@ -9,6 +9,7 @@ import FaqAccordion from '../../components/FaqAccordion.astro';
 import CtaBand from '../../components/CtaBand.astro';
 import Img from '../../components/Img.astro';
 import Icon from '../../components/Icon.astro';
+import { preloadImage } from '../../lib/responsive';
 import { categories } from '../../data/categories';
 import { products } from '../../data/products';
 import { faq } from '../../data/faq';
@@ -56,9 +57,13 @@ const jsonLd = {
     addressCountry: site.postalAddress.country,
   },
 };
+// LCP: same image and sizes as the <Img> in src/components/HomeHero.astro
+const heroPreload = await preloadImage('home/hero.jpg', { sizes: '(max-width: 600px) 300vw, (max-width: 1100px) 160vw, 100vw' });
+// Phones (one tile per row, ~0.9:1 boxes) get a 1.1:1 crop instead of the 2.4:1 panorama
+const tileCrop = { media: '(max-width: 480px)', ratio: 1.1 };
 ---
 
-<Base lang={lang} title={t(C.metaTitle, lang)} description={t(site.description, lang)} header="overlay" jsonLd={jsonLd}>
+<Base lang={lang} title={t(C.metaTitle, lang)} description={t(site.description, lang)} header="overlay" jsonLd={jsonLd} preload={heroPreload}>
   <HomeHero
     lang={lang}
     image="home/hero.jpg"
@@ -116,6 +121,7 @@ const jsonLd = {
                   src={`categories/${c.id}.jpg`}
                   lang={lang}
                   sizes={i === 0 ? '(min-width: 900px) 105vw, 260vw' : i === 3 ? '(min-width: 900px) 100vw, 260vw' : '(min-width: 900px) 55vw, 260vw'}
+                  crop={tileCrop}
                 />
               </div>
               <div class="tile-body">

@@ -11,6 +11,7 @@ import { site } from '../../../data/site';
 import { ui } from '../../../data/ui';
 import { langParams, getLang, url, t } from '../../../lib/i18n';
 import { img } from '../../../lib/images';
+import { preloadImage } from '../../../lib/responsive';
 
 export function getStaticPaths() {
   return langParams();
@@ -49,12 +50,13 @@ const fit = (src: string, frame: number, n: number) => Math.ceil(n * Math.max(1,
 // Hero photo: 58% of the viewport wide and up to 880px tall from 1001px; a 4:3 frame at full width below
 const heroH = Math.ceil(880 * aspectOf('home/about.jpg'));
 const heroSizes = `(min-width: ${Math.ceil(heroH / 0.58)}px) 58vw, (min-width: 1001px) ${heroH}px, ${fit('home/about.jpg', 4 / 3, 100)}vw`;
+const heroPreload = await preloadImage('home/about.jpg', { sizes: heroSizes });
 // Story and approach photos: 4:5 frames beside the copy from 901px, 3:2 full width below
 const storySizes = `(min-width: 1440px) ${fit('home/mood-01.jpg', 0.8, 560)}px, (min-width: 901px) ${fit('home/mood-01.jpg', 0.8, 40)}vw, ${fit('home/mood-01.jpg', 1.5, 94)}vw`;
 const valuesSizes = `(min-width: 1440px) ${fit('home/mood-02.jpg', 0.8, 540)}px, (min-width: 901px) ${fit('home/mood-02.jpg', 0.8, 38)}vw, ${fit('home/mood-02.jpg', 1.5, 94)}vw`;
 ---
 
-<Base lang={lang} title={t(about.title, lang)} description={t(T.metaDescription, lang)} ogImage="home/about.jpg" header="overlay">
+<Base lang={lang} title={t(about.title, lang)} description={t(T.metaDescription, lang)} ogImage="home/about.jpg" header="overlay" preload={heroPreload}>
   <section class="ab-hero night" aria-labelledby="about-title">
     <div class="ab-hero-media">
       <Img src="home/about.jpg" lang={lang} priority sizes={heroSizes} />

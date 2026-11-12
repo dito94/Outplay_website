@@ -5,7 +5,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const BASE = '/Outplay_website/';
-const DIST = path.resolve(process.env.DIST || path.join('/nonexistent'));
+const DIST = path.resolve(process.env.DIST || path.join(__dirname, '..', 'dist'));
 const [, , route = BASE, out = 'shot.png', w = '1440', h = '900', full = '1'] = process.argv;
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.json': 'application/json' };
 const server = http.createServer((req, res) => {

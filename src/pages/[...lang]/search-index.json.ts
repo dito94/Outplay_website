@@ -40,7 +40,6 @@ const PAGE_KW: Record<string, string> = {
 export const GET: APIRoute = async ({ params }) => {
   const lang = getLang(params.lang);
   const o = other(lang);
-  const catName = (id: string) => categories.find((c) => c.id === id)?.name;
   const docs: SearchDoc[] = [];
 
   // Products
