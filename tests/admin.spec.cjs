@@ -1548,10 +1548,12 @@ async function findPage(page, candidates, selector) {
       const cf = page.locator("[data-adm-confirm]");
       await cf.waitFor({ state: "visible" });
       assert.equal(nativeDialog, false, "no window.confirm");
-      assert.ok(
+      assert.equal(
         await cf.locator("[data-cf-check] input").isChecked(),
-        "delete inquiries ticked by default",
+        false,
+        "deleting the inquiries is opt-in",
       );
+      await cf.locator("[data-cf-check] input").check();
       assert.ok(
         (await cf.locator("#adm-cf-text").textContent()).includes(
           "добавени продукти",

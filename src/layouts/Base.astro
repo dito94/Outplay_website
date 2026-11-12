@@ -10,6 +10,9 @@ import Footer from '../components/Footer.astro';
 import ViberFab from '../components/ViberFab.astro';
 import SearchPalette from '../components/SearchPalette.astro';
 import CustomProducts from '../components/CustomProducts.astro';
+import LogoSymbol from '../components/LogoSymbol.astro';
+import type { PreloadImage } from '../lib/responsive';
+import logoSvg from '../assets/img/brand/logo.svg?url';
 
 interface Props {
   lang: Lang;
@@ -25,6 +28,8 @@ interface Props {
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
   /** keep this page out of search engines for good (admin demo, browser-local pages), not just while staging */
   noindex?: boolean;
+  /** the page's LCP image, from `preloadImage()` in src/lib/responsive.ts with the same options as its <Img> */
+  preload?: PreloadImage[];
 }
 
 const {

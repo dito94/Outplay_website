@@ -31,20 +31,25 @@ const lang = getLang(Astro.params.lang);
   `padding-top: calc(var(--header-h) + …)`.
 
 ## Tokens & utilities (src/styles/global.css)
-- Layout: `.wrap` (max 1440 + responsive gutter), `.section` (vertical rhythm), `.section-tight`, `.measure`.
-- Type: `.display`, `.h1`, `.h2`, `.h3`, `.h4`, `.lead`, `.muted`, `.small`, `.num` (tabular numerals), `.rule`
-  (yellow 56px rule above a heading — use on section headings, not everywhere).
+- Layout: `.wrap` (max 1440 + responsive gutter), `.section` (vertical rhythm), `.section-tight`.
+- Type: `.display`, `.h2`, `.h3`, `.h4`, `.lead`, `.muted`, `.small`, `.num` (tabular numerals), `.rule`
+  (yellow 56px rule above a heading — use on section headings, not everywhere). Page titles: `--h1-hero` (home hero)
+  and `--h1-page` (standard page hero, `.page-hero h1`).
 - Display face: Jost (light 300 for big headings). Body: Onest. Don't introduce other fonts.
 - Buttons: `.btn` (yellow primary), `.btn-dark`, `.btn-ghost`, `.btn-viber`, `.btn-sm`, `.btn-row`; `.link-arrow`.
   Primary CTA everywhere = "Направете запитване" / "Request a quote" → `url(lang, '/contact/?product=<id>#inquiry')`.
-- Media: `.media` + aspect classes `.ratio-wide|cine|photo|tall`; always render images with `<Img src="path" lang>`
+- Media: `.media` (set `aspect-ratio` on it); always render images with `<Img src="path" lang>`
   (`src/components/Img.astro`, responsive WebP, alt text from `src/data/image-meta.ts`). Give a correct `sizes`.
 - Forms: `.field`, `.input`, `.select`, `.textarea`, `.hint`, `.error`, `.chips` + `.chip` (radio/checkbox pills).
+  Control borders use `--control-bd` (≥ 3:1); focus is a transparent outline plus an ink line and yellow halo.
 - Lists: `.ticks` (yellow-dash bullets). Specs: `.spec-table` (hairline table, `<th>` label / `<td>` value).
 - `data-reveal` on a block = subtle reveal on scroll (content stays visible without JS). Use on section-level blocks
   only, not on every element.
-- Colours via CSS vars: `--ink --graphite --steel --alu --line --mist --paper --yellow --yellow-deep --viber`, and
-  contextual `--fg --bg --muted --hair --focus --surface` (switch automatically inside `.night`).
+- Colours via CSS vars: `--ink --graphite --steel --alu --line --mist --paper --yellow --yellow-deep --viber
+  --viber-deep --danger --danger-on-dark`, and contextual `--fg --bg --muted --hair --focus --control-bd` (switch
+  automatically inside `.night`). Focus rings: 2px `var(--focus)`; on a photo or a fixed-colour surface set `--focus`
+  locally so the ring stays visible.
+- Hover: put colour/background/transform hover changes inside `@media (hover: hover)` so they don't stick after a tap.
 - Motion: `var(--ease)` = cubic-bezier(.16,1,.3,1); 150–300 ms for state changes; transform/opacity only; no image
   zoom on hover, no bounce, no infinite pulsing; respect `prefers-reduced-motion`.
 
