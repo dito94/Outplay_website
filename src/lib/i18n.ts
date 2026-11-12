@@ -46,12 +46,18 @@ export function routeOf(pathname: string): string {
   return '/' + p;
 }
 
-/** Same page in the other language */
+/** Same page in the other language (the 404 pages have no counterpart route: they switch to the home page) */
 export function switchLangUrl(pathname: string, to: Lang): string {
-  return url(to, routeOf(pathname));
+  const route = routeOf(pathname);
+  return url(to, /^\/(404|not-found)(\.html|\/)?$/.test(route) ? '/' : route);
 }
 
-export const productUrl = (lang: Lang, category: string, id: string) => url(lang, `/products/${category}/${id}/`);
+/** A product page (/products/<category>/<id>/ or the admin-added /products/item/), which embeds its own #inquiry form */
+export function isProductRoute(route: string): boolean {
+  return /^\/products\/[^/]+\/[^/]+\/$/.test(route) || route === '/products/item/';
+}
+
+export const productUrl =(lang: Lang, category: string, id: string) => url(lang, `/products/${category}/${id}/`);
 export const categoryUrl = (lang: Lang, category: string) => url(lang, `/products/${category}/`);
 
 /** Simple {placeholder} interpolation */

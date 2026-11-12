@@ -5,7 +5,7 @@
 import type { Lang, OptionGroup } from '../data/types';
 import { products } from '../data/products';
 import { categories } from '../data/categories';
-import { inquiryFamilies, inquiryCommon, inquiryTextFields, productOptionDefaults, productInquiry } from '../data/inquiry';
+import { inquiryFamilies, inquiryCommon, inquiryTextFields, productOptionDefaults, productProjectDefaults, productInquiry } from '../data/inquiry';
 import { ui } from '../data/ui';
 import { pages } from '../data/pages';
 import { site } from '../data/site';
@@ -61,7 +61,9 @@ const T = {
   },
   removePhoto: { bg: 'Премахни снимката {name}', en: 'Remove photo {name}' },
   tooMany: { bg: 'Можете да добавите до {n} снимки.', en: 'You can add up to {n} photos.' },
-  tooLarge: { bg: 'Файлът {name} е по‑голям от {n} MB.', en: '{name} is larger than {n} MB.' },
+  tooLarge: { bg: 'Файлът {name} е по‑голям от {n} МБ.', en: '{name} is larger than {n} MB.' },
+  mb: { bg: 'МБ', en: 'MB' },
+  kb: { bg: 'КБ', en: 'KB' },
   privacyLink: { bg: 'Как използваме данните Ви', en: 'How we use your details' },
   privacyText: {
     bg: 'Използваме името, телефона и имейла Ви само за да отговорим на това запитване и да подготвим оферта. В тази демо версия данните остават единствено във Вашия браузър и не се изпращат никъде.',
@@ -101,6 +103,37 @@ const T = {
   dec: { bg: 'Намали', en: 'Decrease' },
   inc: { bg: 'Увеличи', en: 'Increase' },
   fixErrors: { bg: 'Проверете отбелязаните полета.', en: 'Please check the highlighted fields.' },
+  /** step 3 lead: which contact field the chosen channel needs (JS swaps it when the channel changes) */
+  needPhone: {
+    bg: 'Телефонът е задължителен – на него ще Ви се обадим. Имейлът е по желание.',
+    en: 'A phone number is required so we can call you. Email is optional.',
+  },
+  needViber: {
+    bg: 'Телефонът е задължителен – на него ще Ви пишем във Viber. Имейлът е по желание.',
+    en: 'A phone number is required so we can message you on Viber. Email is optional.',
+  },
+  needEmail: {
+    bg: 'Имейлът е задължителен – на него ще Ви отговорим. Телефонът е по желание.',
+    en: 'An email address is required so we can reply. A phone number is optional.',
+  },
+  phoneMissing: {
+    bg: 'Въведете телефон, за да се свържем с Вас, или изберете „Имейл“ като начин за връзка.',
+    en: 'Enter a phone number so we can reach you, or choose “Email” as the way to contact you.',
+  },
+  emailMissing: {
+    bg: 'Въведете имейл, за да Ви отговорим, или изберете друг начин за връзка.',
+    en: 'Enter an email address so we can reply, or choose another way to contact you.',
+  },
+  switchedToEmail: {
+    bg: 'Ще Ви отговорим по имейл, защото не сте посочили телефон.',
+    en: 'We will reply by email, as no phone number was given.',
+  },
+  nameShort: { bg: 'Въведете поне 2 знака.', en: 'Enter at least 2 characters.' },
+  fixedByProduct: { bg: 'според избрания продукт', en: 'set by the chosen product' },
+  copyManual: {
+    bg: 'Копирането не успя. Маркирайте текста по-долу и го копирайте.',
+    en: 'Copying did not work. Select the text below and copy it.',
+  },
   secProduct: { bg: 'Продукт', en: 'Product' },
   secDims: { bg: 'Размери', en: 'Dimensions' },
   secPhotos: { bg: 'Снимки', en: 'Photos' },
@@ -126,6 +159,7 @@ const preselected = productId ? products.find((p) => p.id === productId) : undef
 const isCompact = compact && (!!preselected || !!runtimeProduct);
 const initialFamily = preselected?.family ?? 'pergola';
 const preset = (preselected && productOptionDefaults[preselected.id]) || {};
+const projPreset = (preselected && productProjectDefaults[preselected.id]) || {};
 
 const cats = [...categories].sort((a, b) => a.order - b.order);
 const byCat = (cid: string) => products.filter((p) => p.category === cid).sort((a, b) => a.order - b.order);
@@ -155,6 +189,9 @@ const config = {
   maxFiles: MAX_FILES,
   maxMb: MAX_MB,
   defaults: productOptionDefaults,
+  projDefaults: productProjectDefaults,
+  /** shared default of each "about the project" group */
+  projBase: Object.fromEntries(inquiryCommon.projectGroups.map((g) => [g.id, g.default])),
   dimSets: Object.keys(productInquiry),
   /** category names, for products added in the admin demo (merged in at runtime) */
   cats: Object.fromEntries(categories.map((c) => [c.id, t(c.name, lang)])),
@@ -201,6 +238,17 @@ const config = {
     channelShort: tx(T.channelShort),
     noneSelected: tx(ui.inquiry.noneSelected),
     copied: tx(T.copied),
+    copyManual: tx(T.copyManual),
+    needPhone: tx(T.needPhone),
+    needViber: tx(T.needViber),
+    needEmail: tx(T.needEmail),
+    phoneMissing: tx(T.phoneMissing),
+    emailMissing: tx(T.emailMissing),
+    switchedToEmail: tx(T.switchedToEmail),
+    nameShort: tx(T.nameShort),
+    fixedByProduct: tx(T.fixedByProduct),
+    mb: tx(T.mb),
+    kb: tx(T.kb),
   },
 };
 
@@ -208,8 +256,9 @@ const success = pages.inquiry.success;
 const nextSteps = success.next;
 const projectGroups = inquiryCommon.projectGroups;
 /** Current "more details" values shown on the collapsed summary row (JS keeps it in sync) */
+const projChoice = (g: OptionGroup) => projPreset[g.id] ?? g.default;
 const projectDefaults = projectGroups
-  .map((g) => t(g.choices.find((c) => c.id === g.default)?.label, lang))
+  .map((g) => t(g.choices.find((c) => c.id === projChoice(g))?.label, lang))
   .filter(Boolean)
   .join(' · ');
 const channel = inquiryCommon.contactChannel;
@@ -258,6 +307,16 @@ const optional = tx(ui.form.hints.optional);
   </div>
 
   <form class="iq-card iq-form" novalidate data-iq-form autocomplete="on">
+    <noscript>
+      <div class="iq-noscript">
+        <p>{tx(T.noscript)}</p>
+        <p class="iq-noscript-links">
+          {site.phones.map((p) => <a class="num" href={`tel:${p.e164}`}>{p.display}</a>)}
+          <a href={site.viberUrl}>Viber</a>
+          <a href={`mailto:${site.email}`}>{site.email}</a>
+        </p>
+      </div>
+    </noscript>
     <p class="iq-draft" data-iq-draft hidden>
       <span>{tx(T.draft)}</span>
       <span data-iq-draft-photos hidden>{tx(T.photosAgain)}</span>
@@ -471,6 +530,7 @@ const optional = tx(ui.form.hints.optional);
                         </label>
                       ))}
                     </div>
+                    <p class="iq-fixed-val" data-fixed-val hidden></p>
                   </fieldset>
                 ))}
                 <div class="iq-texts">
@@ -517,7 +577,7 @@ const optional = tx(ui.form.hints.optional);
                     <div class="chips">
                       {g.choices.map((c) => (
                         <label class="chip">
-                          <input type="radio" name={`proj.${g.id}`} value={c.id} checked={g.default === c.id} />
+                          <input type="radio" name={`proj.${g.id}`} value={c.id} checked={projChoice(g) === c.id} />
                           <span>{t(c.label, lang)}</span>
                         </label>
                       ))}
@@ -585,7 +645,7 @@ const optional = tx(ui.form.hints.optional);
           <span class="sr-only">{t(ui.inquiry.stepOf, lang).replace('{n}', '3').replace('{total}', '3')}: </span>
           {tx(T.step3)}
         </h3>
-        <p class="iq-step-lead">{tx(ui.form.hints.contactRequired)}</p>
+        <p class="iq-step-lead" data-iq-contact-lead>{tx(T.needPhone)}</p>
       </header>
 
       <div class="iq-s3">
@@ -701,16 +761,6 @@ const optional = tx(ui.form.hints.optional);
     {DEMO && <p class="iq-demo-hint" data-iq-demo-hint hidden>{tx(T.demoHint)}</p>}
     <p class="sr-only" aria-live="polite" data-iq-live></p>
 
-    <noscript>
-      <div class="iq-noscript">
-        <p>{tx(T.noscript)}</p>
-        <p class="iq-noscript-links">
-          {site.phones.map((p) => <a class="num" href={`tel:${p.e164}`}>{p.display}</a>)}
-          <a href={site.viberUrl}>Viber</a>
-          <a href={`mailto:${site.email}`}>{site.email}</a>
-        </p>
-      </div>
-    </noscript>
   </form>
 
   <!-- Success state -->
@@ -739,6 +789,10 @@ const optional = tx(ui.form.hints.optional);
             <Icon name="copy" size={16} />
             <span data-iq-copy-label>{tx(T.copySummary)}</span>
           </button>
+        </div>
+        <div class="iq-copy-fail" data-iq-copy-fail hidden>
+          <p class="hint" role="status">{tx(T.copyManual)}</p>
+          <textarea class="textarea" readonly rows="8" aria-label={tx(pages.inquiry.summaryTitle)} data-iq-copy-text></textarea>
         </div>
         <div data-iq-success-summary></div>
       </section>
@@ -864,9 +918,11 @@ const optional = tx(ui.form.hints.optional);
     text-decoration-thickness: 1px;
     text-underline-offset: 0.25em;
   }
-  .iq-textbtn:hover {
-    text-decoration-color: var(--yellow-deep);
-    text-decoration-thickness: 2px;
+  @media (hover: hover) {
+    .iq-textbtn:hover {
+      text-decoration-color: var(--yellow-deep);
+      text-decoration-thickness: 2px;
+    }
   }
 
   /* Progress */
@@ -1020,6 +1076,14 @@ const optional = tx(ui.form.hints.optional);
     margin-bottom: var(--s-3);
     font-size: var(--step--1);
     font-weight: 600;
+  }
+  /* an option the chosen product already decides: shown as text instead of chips */
+  .iq-fixed-val {
+    margin: 0;
+    font-weight: 600;
+  }
+  .iq-fixed-val .iq-opt {
+    font-weight: 400;
   }
   .iq-legend {
     position: absolute;
@@ -1232,8 +1296,10 @@ const optional = tx(ui.form.hints.optional);
     border-left: 0;
     border-radius: 0 var(--radius) var(--radius) 0;
   }
-  .iq-stepper-btn:hover {
-    background: var(--mist);
+  @media (hover: hover) {
+    .iq-stepper-btn:hover {
+      background: var(--mist);
+    }
   }
 
   /* Preview */
@@ -1430,8 +1496,10 @@ const optional = tx(ui.form.hints.optional);
   .iq-more-sum::-webkit-details-marker {
     display: none;
   }
-  .iq-more-sum:hover {
-    border-color: var(--ink);
+  @media (hover: hover) {
+    .iq-more-sum:hover {
+      border-color: var(--ink);
+    }
   }
   .iq-more-text {
     display: grid;
@@ -1485,10 +1553,15 @@ const optional = tx(ui.form.hints.optional);
       border-color 0.15s var(--ease),
       background-color 0.15s var(--ease);
   }
-  .iq-drop:hover,
   .iq-drop.is-over {
     border-color: var(--ink);
     background: color-mix(in srgb, var(--yellow) 12%, var(--paper));
+  }
+  @media (hover: hover) {
+    .iq-drop:hover {
+      border-color: var(--ink);
+      background: color-mix(in srgb, var(--yellow) 12%, var(--paper));
+    }
   }
   .iq-drop:focus-within {
     outline: 2px solid var(--focus);
@@ -1599,8 +1672,10 @@ const optional = tx(ui.form.hints.optional);
     background: none;
     color: var(--fg);
   }
-  .iq-thumb-rm:hover {
-    background: var(--mist);
+  @media (hover: hover) {
+    .iq-thumb-rm:hover {
+      background: var(--mist);
+    }
   }
 
   /* Step 3 */
@@ -1717,8 +1792,8 @@ const optional = tx(ui.form.hints.optional);
     grid-column: 2;
     grid-row: 1 / span 2;
     align-self: start;
-    min-height: 32px;
-    margin-top: -4px;
+    min-height: 44px;
+    margin-top: -10px;
   }
   .iq-sum-list {
     list-style: none;
@@ -1776,8 +1851,15 @@ const optional = tx(ui.form.hints.optional);
     color: var(--muted);
     text-align: right;
   }
+  html:not(.js) .iq-form > .iq-step {
+    display: none;
+  }
+  .iq-copy-fail {
+    display: grid;
+    gap: var(--s-2);
+    margin-bottom: var(--s-4);
+  }
   .iq-noscript {
-    margin-top: var(--s-6);
     padding: var(--s-4) var(--s-5);
     border-left: 3px solid var(--yellow);
     background: var(--mist);
@@ -1956,6 +2038,8 @@ const optional = tx(ui.form.hints.optional);
     maxFiles: number;
     maxMb: number;
     defaults: Record<string, Record<string, string | string[]>>;
+    projDefaults: Record<string, Record<string, string>>;
+    projBase: Record<string, string>;
     /** product ids with their own dimension set (otherwise the family's) */
     dimSets: string[];
     cats: Record<string, string>;
@@ -2012,7 +2096,10 @@ const optional = tx(ui.form.hints.optional);
   /** Bulgarian numbers (08X XXX XXXX, 02 XXX XXXX, +359 …) or any international E.164 number */
   function validPhone(raw: string): boolean {
     const s = normPhone(raw);
-    return /^0[2-9]\d{7,8}$/.test(s) || /^\+3590?[2-9]\d{7,8}$/.test(s) || /^\+(?!359)[1-9]\d{7,14}$/.test(s);
+    // mobiles (087/088/089/098/099) have exactly 10 digits; landlines (02, 032, 082 …) 7–9 digits after the 0
+    const national = s.startsWith('+359') ? s.slice(4).replace(/^0/, '') : s.startsWith('0') ? s.slice(1) : '';
+    if (national) return /^(8[789]|9[89])/.test(national) ? /^(8[789]|9[89])\d{7}$/.test(national) : /^[2-9]\d{6,8}$/.test(national);
+    return /^\+(?!359)[1-9]\d{7,14}$/.test(s);
   }
   function validEmail(raw: string): boolean {
     const s = raw.trim();
@@ -2052,39 +2139,59 @@ const optional = tx(ui.form.hints.optional);
     const runtimeParam = root.dataset.runtimeProduct;
     const params = new URLSearchParams(window.location.search);
     const requested = (runtimeParam && params.get(runtimeParam)) || params.get('product');
-    for (const p of loadCustomProducts()) {
-      if (!p.family || (p.hidden && p.id !== requested)) continue;
+    // Admin-demo data is this browser's own localStorage: a malformed entry is skipped, never allowed to stop the form.
+    const safeEach = <T>(load: () => T[], fn: (item: T) => void) => {
+      let list: T[] = [];
+      try {
+        list = load();
+      } catch {
+        return;
+      }
+      if (!Array.isArray(list)) return;
+      for (const item of list) {
+        try {
+          fn(item);
+        } catch {
+          /* skip a malformed entry */
+        }
+      }
+    };
+    safeEach(loadCustomProducts, (p) => {
+      if (!p.family || (p.hidden && p.id !== requested)) return;
       const name = (p.name?.[cfg.lang] || p.name?.bg || p.name?.en || p.id).trim();
       cfg.products[p.id] = { family: p.family, name, full: name, cat: cfg.cats?.[p.category] ?? '' };
-      if (select.querySelector(`option[value="${CSS.escape(p.id)}"]`)) continue;
+      if (select.querySelector(`option[value="${CSS.escape(p.id)}"]`)) return;
       const opt = document.createElement('option');
       opt.value = p.id;
       opt.dataset.family = p.family;
       opt.textContent = name;
       (select.querySelector(`optgroup[data-cat="${CSS.escape(p.category)}"]`) ?? select).appendChild(opt);
-    }
+    });
 
     // Admin-demo edits of catalogue products (this browser only): renamed products show their new name,
     // hidden ones leave the list unless this page or link asks for that very product.
     const ownProduct = root.dataset.product || new URLSearchParams(window.location.search).get('product') || '';
-    for (const [pid, o] of Object.entries(loadOverrides())) {
-      const opt = select.querySelector<HTMLOptionElement>(`option[value="${CSS.escape(pid)}"]`);
-      if (!opt || !cfg.products[pid] || pid.startsWith('c-')) continue;
-      const name = o.name?.[cfg.lang]?.trim();
-      if (name) {
-        const before = cfg.products[pid].name;
-        cfg.products[pid].name = name;
-        // the catalogue line in the summary ("… серия Balance") follows the new name too
-        if (before && cfg.products[pid].full) cfg.products[pid].full = cfg.products[pid].full.split(before).join(name);
-        opt.textContent = name;
-      }
-      if (o.hidden && pid !== ownProduct) {
-        const group = opt.parentElement;
-        opt.remove();
-        delete cfg.products[pid];
-        if (group instanceof HTMLOptGroupElement && !group.querySelector('option')) group.remove();
-      }
-    }
+    safeEach(
+      () => Object.entries(loadOverrides() ?? {}),
+      ([pid, o]) => {
+        const opt = select.querySelector<HTMLOptionElement>(`option[value="${CSS.escape(pid)}"]`);
+        if (!opt || !cfg.products[pid] || pid.startsWith('c-')) return;
+        const name = o.name?.[cfg.lang]?.trim();
+        if (name) {
+          const before = cfg.products[pid].name;
+          cfg.products[pid].name = name;
+          // the catalogue line in the summary ("… серия Balance") follows the new name too
+          if (before && cfg.products[pid].full) cfg.products[pid].full = cfg.products[pid].full.split(before).join(name);
+          opt.textContent = name;
+        }
+        if (o.hidden && pid !== ownProduct) {
+          const group = opt.parentElement;
+          opt.remove();
+          delete cfg.products[pid];
+          if (group instanceof HTMLOptGroupElement && !group.querySelector('option')) group.remove();
+        }
+      },
+    );
     const board = $('[data-iq-board]')!;
     const previewEl = $('[data-iq-preview]')!;
     const progressN = $('[data-iq-progress-n]');
@@ -2263,12 +2370,40 @@ const optional = tx(ui.form.hints.optional);
       $$('[data-family-block]').forEach((b) => toggle(b, b.dataset.familyBlock === fam));
       $$('[data-dims-block]').forEach((b) => toggle(b, b.dataset.dimsBlock === key));
     }
+    /** set once the visitor picks something under "more details"; product presets no longer overwrite it */
+    let projTouched = false;
     function applyPreset(id: string) {
       const preset = cfg.defaults[id];
-      if (!preset) return;
-      Object.entries(preset).forEach(([group, val]) => {
-        const vals = Array.isArray(val) ? val : [val];
-        $$<HTMLInputElement>(`input[name="opt.${family}.${group}"]`).forEach((i) => (i.checked = vals.includes(i.value)));
+      if (preset)
+        Object.entries(preset).forEach(([group, val]) => {
+          const vals = Array.isArray(val) ? val : [val];
+          $$<HTMLInputElement>(`input[name="opt.${family}.${group}"]`).forEach((i) => (i.checked = vals.includes(i.value)));
+        });
+      if (!projTouched) {
+        const pp = cfg.projDefaults?.[id] ?? {};
+        Object.entries(cfg.projBase ?? {}).forEach(([group, base]) => {
+          const v = pp[group] ?? base;
+          $$<HTMLInputElement>(`input[name="proj.${group}"]`).forEach((i) => (i.checked = i.value === v));
+        });
+        syncMore();
+      }
+    }
+    /** Option groups the chosen product decides (its preset) are shown as text, so step 2 cannot contradict step 1 */
+    function markFixed() {
+      const preset = (productId && cfg.defaults[productId]) || {};
+      $$<HTMLFieldSetElement>('fieldset[data-group]', optsBlock()).forEach((fs) => {
+        const val = preset[fs.dataset.group!];
+        const fixed = typeof val === 'string' && fs.dataset.type === 'single';
+        const chips = $('.chips', fs);
+        const out = $('[data-fixed-val]', fs);
+        const input = fixed ? $$<HTMLInputElement>('input', fs).find((i) => i.value === val) : undefined;
+        const on = !!(input && out);
+        if (chips) chips.hidden = on;
+        if (out) out.hidden = !on;
+        if (!on) return;
+        input!.checked = true;
+        const label = input!.nextElementSibling?.textContent?.replace(/\s+/g, ' ').trim() || val;
+        out!.innerHTML = `${esc(String(label))} <span class="iq-opt">· ${esc(S.fixedByProduct)}</span>`;
       });
     }
     function setProduct(id: string | null, applyDefaults: boolean) {
@@ -2278,6 +2413,7 @@ const optional = tx(ui.form.hints.optional);
       const key = keyFor(productId, fam);
       if (fam !== family || key !== dimKey) setFamily(fam, key);
       if (productId && applyDefaults) applyPreset(productId);
+      markFixed();
       if (fixedName && productId) fixedName.textContent = cfg.products[productId].name;
       if (productId) setError(select, '');
       draw();
@@ -2305,7 +2441,8 @@ const optional = tx(ui.form.hints.optional);
       const vd = preview === 'plan' ? (ds.depth ?? ds.height) : ds.height;
       if (!hd || !vd) return;
       // any active dimension empty or out of range → keep the last valid sketch, dimmed, and no area
-      const stale = activeDims().some((d) => !!dimError(d));
+      // also dimmed (and no area) while no product is chosen, so the default sketch never reads as a selection
+      const stale = !productId || activeDims().some((d) => !!dimError(d));
       previewEl.classList.toggle('is-stale', stale);
       const a = hd.last;
       const b = vd.last;
@@ -2505,7 +2642,9 @@ const optional = tx(ui.form.hints.optional);
     else addEventListener('resize', redraw);
 
     // ---------------------------------------------------------------- photos
-    const fmtSize = (b: number) => (b > 1e6 ? `${nf1.format(b / 1e6)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);
+    // one definition of a megabyte for the limit and the label: 1 MB = 1 000 000 bytes
+    const MB = 1e6;
+    const fmtSize = (b: number) => (b >= MB ? `${nf1.format(b / MB)} ${S.mb}` : `${Math.max(1, Math.round(b / 1e3))} ${S.kb}`);
     function renderThumbs() {
       thumbs.innerHTML = files
         .map(
@@ -2522,7 +2661,7 @@ const optional = tx(ui.form.hints.optional);
           errs.add(S.fileType);
           continue;
         }
-        if (f.size > cfg.maxMb * 1024 * 1024) {
+        if (f.size > cfg.maxMb * MB) {
           errs.add(fill(S.tooLarge, { name: f.name, n: cfg.maxMb }));
           continue;
         }
@@ -2588,6 +2727,19 @@ const optional = tx(ui.form.hints.optional);
       const em = $('[data-opt-mark="email"]');
       if (pm) pm.hidden = phoneReq;
       if (em) em.hidden = !phoneReq;
+      if (contactLead) contactLead.textContent = ch === 'email' ? S.needEmail : ch === 'viber' ? S.needViber : S.needPhone;
+    }
+    const contactLead = $('[data-iq-contact-lead]');
+    /** Only an email given while the channel is still phone/Viber: reply by email instead of blocking the request */
+    function preferEmailIfNoPhone() {
+      if (channelValue() === 'email' || phoneInput.value.trim() || !validEmail(emailInput.value)) return;
+      const r = $<HTMLInputElement>('[data-iq-channel][value="email"]');
+      if (!r) return;
+      r.checked = true;
+      updateRequired();
+      if (contactLead) contactLead.textContent = `${S.switchedToEmail} ${S.needEmail}`;
+      setError(phoneInput, '');
+      scheduleSave();
     }
     $$<HTMLInputElement>('[data-iq-channel]').forEach((r) =>
       r.addEventListener('change', () => {
@@ -2599,9 +2751,9 @@ const optional = tx(ui.form.hints.optional);
     function fieldError(el: HTMLInputElement): string {
       const v = el.value.trim();
       const ch = channelValue();
-      if (el === nameInput) return v.length >= 2 ? '' : S.required;
-      if (el === phoneInput) return v ? (validPhone(v) ? '' : S.phone) : ch !== 'email' ? S.required : '';
-      if (el === emailInput) return v ? (validEmail(v) ? '' : S.email) : ch === 'email' ? S.required : '';
+      if (el === nameInput) return v.length >= 2 ? '' : v ? S.nameShort : S.required;
+      if (el === phoneInput) return v ? (validPhone(v) ? '' : S.phone) : ch !== 'email' ? S.phoneMissing : '';
+      if (el === emailInput) return v ? (validEmail(v) ? '' : S.email) : ch === 'email' ? S.emailMissing : '';
       if (el === consent) return el.checked ? '' : S.consent;
       return '';
     }
@@ -2639,6 +2791,7 @@ const optional = tx(ui.form.hints.optional);
           if (!validateDim(d)) flag(d.input);
         });
       } else if (n === total) {
+        preferEmailIfNoPhone();
         [nameInput, phoneInput, emailInput, consent].forEach((el) => {
           if (!validateField(el)) flag(el);
         });
@@ -2867,9 +3020,12 @@ const optional = tx(ui.form.hints.optional);
           el.checked = Array.isArray(v) ? v.includes(el.value) : v === el.value;
         else if (typeof v === 'string') el.value = v;
       }
+      // a draft saved in the other language keeps its decimal separator ("3,5" ↔ "3.5"): show it in this page's format
       Object.values(dims)
         .flat()
-        .forEach((d) => validateDim(d, !!dimError(d)));
+        .forEach((d) => {
+          if (validateDim(d, !!dimError(d))) d.input.value = fmtN(d.last);
+        });
       syncMore();
       updateCount();
     }
@@ -2896,7 +3052,10 @@ const optional = tx(ui.form.hints.optional);
     form.addEventListener('change', (e) => {
       const el = e.target as HTMLElement;
       if (el.matches('input[name^="opt."]')) draw();
-      if (el.matches('input[name^="proj."]')) syncMore();
+      if (el.matches('input[name^="proj."]')) {
+        if (e.isTrusted) projTouched = true;
+        syncMore();
+      }
       scheduleSave();
     });
     /** Collapsed "more details" row lists the current choices */
@@ -2961,13 +3120,31 @@ const optional = tx(ui.form.hints.optional);
     $('[data-iq-copy-summary]')?.addEventListener('click', async () => {
       const label = $('[data-iq-copy-label]')!;
       const orig = label.textContent;
+      const fail = $('[data-iq-copy-fail]');
+      const area = $<HTMLTextAreaElement>('[data-iq-copy-text]');
+      let ok = false;
       try {
         await navigator.clipboard.writeText(lastSummaryText);
-        label.textContent = S.copied;
+        ok = true;
       } catch {
-        label.textContent = orig;
+        // older or locked-down browsers: copy from a selected textarea; if that fails too, leave it selected for the visitor
+        if (area && fail) {
+          area.value = lastSummaryText;
+          fail.hidden = false;
+          area.focus();
+          area.select();
+          try {
+            ok = document.execCommand('copy');
+          } catch {
+            ok = false;
+          }
+          if (ok) fail.hidden = true;
+        }
       }
-      window.setTimeout(() => (label.textContent = orig), 1800);
+      if (ok) {
+        label.textContent = S.copied;
+        window.setTimeout(() => (label.textContent = orig), 1800);
+      }
     });
 
     function resetForm(keepContact: boolean) {
@@ -2988,6 +3165,7 @@ const optional = tx(ui.form.hints.optional);
       setPendingPhotos(0);
       draftNote.hidden = true;
       submitted = false;
+      projTouched = false;
     }
     $('[data-iq-new]')?.addEventListener('click', () => {
       const last = productId;

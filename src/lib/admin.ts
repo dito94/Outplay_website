@@ -1,6 +1,8 @@
 // Admin demo helpers (pure, no DOM access): the data contract between the admin page and its client
 // script, inquiry formatting, the generated example inquiries and the admin icon set.
 import type { InquiryStatus, StoredInquiry } from './store';
+import { escapeHtml } from './search';
+import { fmt } from './i18n';
 
 export type Lang = 'bg' | 'en';
 export interface Pair {
@@ -90,13 +92,10 @@ export const STATUSES: InquiryStatus[] = ['new', 'in-progress', 'quoted', 'close
 // Text helpers
 // ---------------------------------------------------------------------------
 
-const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 /** Escape any value for safe use in HTML text and attribute values */
-export const esc = (v: unknown): string => String(v ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
+export const esc = (v: unknown): string => escapeHtml(String(v ?? ''));
 
-export function fmt(template: string, vars: Record<string, string | number>): string {
-  return template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
-}
+export { fmt };
 
 export function truncate(s: string, n: number): string {
   return s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s;
@@ -495,8 +494,6 @@ const ICONS: Record<string, string> = {
   image:
     '<rect x="3.5" y="4.5" width="17" height="15" rx="1"/><circle cx="9" cy="10" r="1.8"/><path d="m4 18 5.5-5.5 4 4 2.5-2.5 4.5 4.5"/>',
 };
-
-export type AdminIcon = keyof typeof ICONS;
 
 /** Inline SVG icon markup (decorative: aria-hidden) */
 export function icon(name: string, size = 18): string {

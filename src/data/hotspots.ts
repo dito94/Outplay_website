@@ -9,16 +9,16 @@ import type { Hotspot } from './types';
 export const diagramHotspots: Record<string, Hotspot[]> = {
   'balance': [
     { x: 6.6, y: 22.6, label: { bg: 'Висококачествена прахово боядисана алуминиева конструкция', en: 'High-grade powder-coated aluminium structure' } },
-    { x: 31.9, y: 8.9, label: { bg: 'Скрита система за водооттичане', en: 'Concealed drainage system' } },
+    { x: 31.9, y: 8.9, label: { bg: 'Скрита система за водооттичане', en: 'Hidden drainage system' } },
     { x: 53.0, y: 15.8, label: { bg: 'Интегрирани улуци', en: 'Integrated gutters' } },
-    { x: 71.6, y: 16.5, label: { bg: 'LED осветление от всички страни', en: 'LED lighting on all four sides' } },
+    { x: 71.6, y: 16.5, label: { bg: 'LED осветление от всички страни', en: 'LED lighting on all sides' } },
     { x: 92.6, y: 20.7, label: { bg: 'Автоматизирана ротация на ламелите от 0° до 120°', en: 'Motorised louvre rotation from 0° to 120°' } },
   ],
   'infinity': [
     { x: 6.6, y: 22.6, label: { bg: 'Висококачествена прахово боядисана алуминиева конструкция', en: 'High-grade powder-coated aluminium structure' } },
-    { x: 31.9, y: 8.9, label: { bg: 'Скрита система за водооттичане', en: 'Concealed drainage system' } },
+    { x: 31.9, y: 8.9, label: { bg: 'Скрита система за водооттичане', en: 'Hidden drainage system' } },
     { x: 53.0, y: 15.8, label: { bg: 'Интегрирани улуци', en: 'Integrated gutters' } },
-    { x: 71.6, y: 16.5, label: { bg: 'LED осветление от всички страни', en: 'LED lighting on all four sides' } },
+    { x: 71.6, y: 16.5, label: { bg: 'LED осветление от всички страни', en: 'LED lighting on all sides' } },
     { x: 92.6, y: 20.7, label: { bg: 'Автоматизирана ротация на ламелите от 0° до 120° с възможност за събирането им в края на конструкцията', en: 'Motorised louvre rotation from 0° to 120°, with the louvres able to stack at one end of the structure' } },
   ],
   'flat': [
@@ -26,18 +26,18 @@ export const diagramHotspots: Record<string, Hotspot[]> = {
     { x: 32.4, y: 20.1, label: { bg: 'Интегрирани улуци', en: 'Integrated gutters' } },
     { x: 53.0, y: 21.0, label: { bg: 'Водонепромокаемо и ветроустойчиво покритие', en: 'Waterproof, wind-resistant fabric roof' } },
     { x: 71.1, y: 11.8, label: { bg: 'Вградено LED осветление', en: 'Integrated LED lighting' } },
-    { x: 91.6, y: 8.3, label: { bg: 'Скрита система за водооттичане', en: 'Concealed drainage system' } },
+    { x: 91.6, y: 8.3, label: { bg: 'Скрита система за водооттичане', en: 'Hidden drainage system' } },
   ],
   'automatic-glass-roof': [
     { x: 13.7, y: 52.9, label: { bg: 'Интегрирани улуци', en: 'Integrated gutters' } },
     { x: 35.1, y: 34.9, label: { bg: 'Долно ламинирано стъкло', en: 'Laminated lower glass' } },
-    { x: 51.6, y: 24.4, label: { bg: 'Подвижни панели с висококачествени уплътнения за пълна водонепропускливост', en: 'Sliding panels with high-grade seals for complete watertightness' } },
+    { x: 51.6, y: 24.4, label: { bg: 'Подвижни панели с висококачествени уплътнения за пълна водонепропускливост', en: 'Moving panels with high-grade seals for complete watertightness' } },
     { x: 68.6, y: 9.0, label: { bg: 'Горно закалено стъкло „STOP RAY“', en: 'Tempered STOP RAY upper glass' } },
     { x: 86.4, y: 15.6, label: { bg: 'Прахово боядисана алуминиева конструкция', en: 'Powder-coated aluminium structure' } },
   ],
   'fixed-glass-roof': [
     { x: 11.2, y: 9.3, label: { bg: 'Интегрирани улуци', en: 'Integrated gutters' } },
-    { x: 30.6, y: 13.0, label: { bg: 'Скрита система за водооттичане', en: 'Concealed drainage system' } },
+    { x: 30.6, y: 13.0, label: { bg: 'Скрита система за водооттичане', en: 'Hidden drainage system' } },
     { x: 49.9, y: 19.5, label: { bg: 'Фиксирани стъклени панели с висококачествени уплътнения за пълна водонепропускливост', en: 'Fixed glass panels with high-grade seals for complete watertightness' } },
     { x: 69.8, y: 9.3, label: { bg: 'Наклонен или плосък вариант на изпълнение', en: 'Available sloped or flat' } },
     { x: 88.4, y: 9.3, label: { bg: 'Прахово боядисана алуминиева конструкция', en: 'Powder-coated aluminium structure' } },

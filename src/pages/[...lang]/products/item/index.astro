@@ -28,11 +28,11 @@ const T = {
   products: { bg: 'Продукти', en: 'Products' },
   crumbs: { bg: 'Навигационна пътека', en: 'Breadcrumb' },
   quote: { bg: 'Направете запитване', en: 'Request a quote' },
-  quoteShort: { bg: 'Запитване', en: 'Get a quote' },
+  quoteShort: { bg: 'Запитване', en: 'Request a quote' },
   navOverview: { bg: 'Описание', en: 'Overview' },
   navSpecs: { bg: 'Параметри', en: 'Specifications' },
   navGallery: { bg: 'Галерия', en: 'Gallery' },
-  navInquiry: { bg: 'Запитване', en: 'Inquiry' },
+  navInquiry: { bg: 'Запитване', en: 'Quote' },
   features: ui.product.features,
   specs: ui.product.specs,
   specsNote: ui.product.specsNote,
@@ -83,16 +83,18 @@ const cfg = {
 const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
 ---
 
-<Base lang={lang} title={S.metaTitle} description={S.metaDesc}>
+<Base lang={lang} title={S.metaTitle} description={S.metaDesc} noindex>
   <div class="ci" data-ci-hero>
     <section class="section wrap ci-loading">
+      <h1 id="ci-title" class="ci-h1">{S.metaTitle}</h1>
       <p class="muted" data-ci-loading>{S.loading}</p>
       <noscript><p>{S.noscript}</p></noscript>
     </section>
   </div>
   <script type="application/json" id="ci-data" is:inline set:html={json}></script>
   <script>
-    import { getCustomProduct, type CustomProduct } from '../../../../lib/store';
+    import { getCustomProduct, isDataImage, type CustomProduct } from '../../../../lib/store';
+    import { escapeHtml } from '../../../../lib/search';
 
     type Pair = { bg: string; en: string };
     interface Cfg {
@@ -108,8 +110,7 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
     const cfg = JSON.parse(document.getElementById('ci-data')?.textContent || '{}') as Cfg;
     const S = cfg.s;
     const L = cfg.lang;
-    const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-    const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
+    const esc = (v: unknown) => escapeHtml(String(v ?? ''));
     const fmt = (s: string, v: Record<string, string>) => s.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? '');
     /** Text in the page language; empty English falls back to Bulgarian (as the admin promises) */
     const pick = (p?: Partial<Pair>) => ((p?.[L] || p?.bg || p?.en || '') as string).trim();
@@ -192,7 +193,8 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
       const paragraphs = pickList((p.sections ?? []).flatMap((s) => s.paragraphs ?? []));
       const features = pickList(p.features);
       const specs = (p.specs ?? []).map((r) => ({ label: pick(r.label), value: pick(r.value) })).filter((r) => r.label || r.value);
-      const images = (p.images ?? []).filter((src) => typeof src === 'string' && src.startsWith('data:image/'));
+      // strict allow-list (base64 JPEG / PNG / WEBP) and escaped below: stored text never reaches the markup raw
+      const images = (p.images ?? []).filter(isDataImage);
       const hero = images[0];
       const rowImage = paragraphs.length ? images[1] : undefined;
       const galleryImages = images.slice(rowImage ? 2 : 1);
@@ -211,7 +213,7 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
               <h1 id="ci-title" class="ci-h1${name.length > 14 ? ' is-long' : ''}">${esc(name)}</h1>
               ${cat ? `<p class="ci-full">${esc(cat.name)}</p>` : ''}
             </div>
-            ${hero ? `<div class="ci-hero-media"><div class="media ci-hero-img"><img src="${hero}" alt="${esc(name)}" /></div></div>` : ''}
+            ${hero ? `<div class="ci-hero-media"><div class="media ci-hero-img"><img src="${esc(hero)}" alt="${esc(name)}" /></div></div>` : ''}
             <div class="ci-intro">
               ${tagline ? `<p class="ci-tagline">${esc(tagline)}</p>` : ''}
               ${summary ? `<p class="lead ci-sum">${esc(summary)}</p>` : ''}
@@ -239,7 +241,7 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
           <div class="wrap">${
             rowImage
               ? `<article class="ci-row"><div class="ci-row-text"><h2 id="ci-overview" class="h2 rule">${esc(S.navOverview)}</h2>${prose}</div>
-                 <div class="ci-row-media media"><img src="${rowImage}" alt="${esc(`${name}, ${S.photo} 2`)}" loading="lazy" /></div></article>`
+                 <div class="ci-row-media media"><img src="${esc(rowImage)}" alt="${esc(`${name}, ${S.photo} 2`)}" loading="lazy" /></div></article>`
               : `<article class="ci-solo"><h2 id="ci-overview" class="h2 rule">${esc(S.navOverview)}</h2>${prose}</article>`
           }</div>
         </section>`);
@@ -279,8 +281,8 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
                 const alt = `${name}, ${S.photo} ${first + i}`;
                 const wide = i === 0 || (wideLast && i === galleryImages.length - 1);
                 return `<li class="ci-tile${wide ? ' m-wide' : ''}" style="--c:${c};--r:${r}">
-                  <a class="ci-tile-link media" href="${src}" data-lightbox="custom-product" data-caption="${esc(alt)}">
-                    <img src="${src}" alt="${esc(alt)}" loading="lazy" />
+                  <a class="ci-tile-link media" href="${esc(src)}" data-lightbox="custom-product" data-caption="${esc(alt)}">
+                    <img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" />
                     <span class="ci-zoom" aria-hidden="true">${icon(I.expand, 18)}</span><span class="sr-only">${esc(S.open)}</span>
                   </a></li>`;
               })

@@ -81,12 +81,6 @@ export const inquiryCommon = {
   contactChannel,
   /** Groups for the "about your project" step, in display order */
   projectGroups: [propertyType, placeType, timeline] as OptionGroup[],
-  steps: [
-    { id: 'product', label: { bg: 'Продукт', en: 'Product' } },
-    { id: 'dimensions', label: { bg: 'Размери', en: 'Dimensions' } },
-    { id: 'options', label: { bg: 'Опции', en: 'Options' } },
-    { id: 'contact', label: { bg: 'Контакти', en: 'Contact details' } },
-  ],
   dimensionsTitle: { bg: 'Приблизителни размери', en: 'Approximate dimensions' },
   dimensionsNote: {
     bg: 'Приблизителните размери са достатъчни за ориентировъчна оферта. Точният замер правим при огледа на място.',
@@ -122,7 +116,7 @@ export const inquiryFamilies: Record<InquiryFamily, InquiryFamilyDef> = {
       {
         id: 'width',
         label: { bg: 'Ширина', en: 'Width' },
-        hint: { bg: 'По протежение на фасадата или по‑дългата страна', en: 'Along the façade or the longer side' },
+        hint: { bg: 'По протежение на фасадата или по-дългата страна', en: 'Along the façade or the longer side' },
         unit: 'm',
         min: 1,
         max: 30,
@@ -469,7 +463,7 @@ export const inquiryFamilies: Record<InquiryFamily, InquiryFamilyDef> = {
         type: 'multi',
         choices: [
           { id: 'sensors', label: { bg: 'Метеорологични датчици', en: 'Weather sensors' } },
-          { id: 'smart', label: { bg: 'Управление от телефон / SMART дом', en: 'Phone / SMART home control' } },
+          { id: 'smart', label: { bg: 'Управление от телефон / умен дом', en: 'Phone / smart-home control' } },
         ],
         default: [],
       },
@@ -560,6 +554,14 @@ export const productOptionDefaults: Record<string, Record<string, string | strin
   harmonia: { systemType: 'folding' },
   'vertical-zip': { zipType: 'vertical' },
   'roof-zip': { zipType: 'roof' },
+};
+
+/**
+ * "About the project" presets (keys are ids of inquiryCommon.projectGroups) for products whose usual
+ * setting differs from the shared defaults. Applied until the visitor picks something there.
+ */
+export const productProjectDefaults: Record<string, Record<string, string>> = {
+  'dormakaba-es-200': { propertyType: 'business', placeType: 'facade' },
 };
 
 /**

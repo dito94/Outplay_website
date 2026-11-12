@@ -38,7 +38,7 @@ export const gallery: GalleryItem[] = [
     image: 'products/telescopic-windbreak/hero.jpg',
     category: 'windbreaks',
     productId: 'telescopic-windbreak',
-    caption: { bg: 'Улична тераса с телескопични ветрозащити', en: 'Street terrace with telescopic windbreaks' },
+    caption: { bg: 'Улична тераса с телескопични ветрозащитни системи', en: 'Street terrace with telescopic windbreaks' },
   },
   {
     image: 'products/balance/hero.jpg',
@@ -86,7 +86,7 @@ export const gallery: GalleryItem[] = [
     image: 'products/telescopic-windbreak/gallery-01.jpg',
     category: 'windbreaks',
     productId: 'telescopic-windbreak',
-    caption: { bg: 'Ветрозащитни паравани на тераса край морето', en: 'Windbreaks on a seaside terrace' },
+    caption: { bg: 'Ветрозащитни системи на тераса край морето', en: 'Windbreaks on a seaside terrace' },
   },
   {
     image: 'products/compact/hero.jpg',
@@ -193,7 +193,7 @@ export const gallery: GalleryItem[] = [
     image: 'products/balance/gallery-01.jpg',
     category: 'bioclimatic-pergolas',
     productId: 'balance',
-    caption: { bg: 'Свободностояща пергола с ламели', en: 'Freestanding louvred pergola' },
+    caption: { bg: 'Самостоятелна пергола с ламели', en: 'Freestanding louvred pergola' },
   },
   {
     image: 'products/guillotine/gallery-02.jpg',

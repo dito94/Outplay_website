@@ -15,7 +15,7 @@ const modes = [
     id: 'rain',
     angle: 0,
     icon: 'rain',
-    label: { bg: 'Дъжд и сняг', en: 'Rain & snow' },
+    label: { bg: 'Дъжд и сняг', en: 'Rain and snow' },
     text: {
       bg: 'При 0° ламелите се затварят плътно. Водата се събира в интегрираните улуци и се отвежда скрито през колоните.',
       en: 'At 0° the louvres close tightly. Rainwater runs into the integrated gutters and drains invisibly through the posts.',
@@ -35,7 +35,7 @@ const modes = [
     id: 'light',
     angle: 60,
     icon: 'sun',
-    label: { bg: 'Светлина и сянка', en: 'Light & shade' },
+    label: { bg: 'Светлина и сянка', en: 'Light and shade' },
     text: {
       bg: 'Нагласете ъгъла и се наслаждавайте на нежна игра на светлини и сенки, защитени от преките лъчи.',
       en: 'Set the angle and enjoy a gentle play of light and shade while staying out of direct sun.',
@@ -78,8 +78,8 @@ const startMode = modes.find((m) => m.id === start)!;
 const L = {
   angle: { bg: 'Ъгъл на ламелите', en: 'Louvre angle' },
   modes: { bg: 'Изберете условия', en: 'Choose the conditions' },
-  balance: { bg: 'Balance · 1 мотор · 0–120°', en: 'Balance · 1 motor · 0–120°' },
-  infinity: { bg: 'Infinity · 2 мотора · 0–120° + прибиране', en: 'Infinity · 2 motors · 0–120° + retract' },
+  balance: { bg: 'Balance · 1 мотор · 0°–120°', en: 'Balance · 1 motor · 0°–120°' },
+  infinity: { bg: 'Infinity · 2 мотора · 0°–120° + прибиране', en: 'Infinity · 2 motors · 0°–120° + retract' },
   figure: {
     bg: 'Схема в разрез на покрив с алуминиеви ламели',
     en: 'Cross-section diagram of an aluminium louvre roof',

@@ -39,8 +39,8 @@ const items = hotspots.map((h, i) => {
     alignY: h.y > 58 ? 'up' : 'down',
   };
 });
-const more = lang === 'bg' ? 'Виж продукта' : 'View product';
-const moreCat = lang === 'bg' ? 'Виж системите' : 'View the systems';
+const more = lang === 'bg' ? 'Вижте продукта' : 'View product';
+const moreCat = lang === 'bg' ? 'Вижте системите' : 'View the systems';
 const meta = img(image);
 const ratio = meta ? `aspect-ratio:${meta.width}/${meta.height}` : undefined;
 // On a ~358px-wide phone image, would any two 30px dots overlap? Then phones rely on the numbered legend instead.

@@ -43,12 +43,12 @@ const category = categories.find((c) => c.id === product.category)!;
 const T = {
   products: { bg: 'Продукти', en: 'Products' },
   quote: { bg: 'Направете запитване', en: 'Request a quote' },
-  quoteShort: { bg: 'Запитване', en: 'Get a quote' },
+  quoteShort: { bg: 'Запитване', en: 'Request a quote' },
   navOverview: { bg: 'Описание', en: 'Overview' },
   navTech: { bg: 'Технология', en: 'Technology' },
   navSpecs: { bg: 'Параметри', en: 'Specifications' },
   navGallery: { bg: 'Галерия', en: 'Gallery' },
-  navInquiry: { bg: 'Запитване', en: 'Inquiry' },
+  navInquiry: { bg: 'Запитване', en: 'Quote' },
   techTitle: { bg: 'Конструкцията отблизо', en: 'The structure up close' },
   techIntroHotspots: {
     bg: 'Изберете номер върху схемата, за да видите какво е вградено в конструкцията.',
@@ -206,7 +206,7 @@ const jsonLd = {
   alternateName: name,
   description: t(product.summary, lang),
   ...(ldImage ? { image: [ldImage] } : {}),
-  brand: { '@type': 'Brand', name: 'OUTPLAY' },
+  brand: { '@type': 'Brand', name: product.brand ?? 'OUTPLAY' },
   category: t(category.name, lang),
   url: new URL(Astro.url.pathname, siteUrl).href,
 };
@@ -214,7 +214,7 @@ const jsonLd = {
 
 <Base
   lang={lang}
-  title={t(product.fullName, lang)}
+  title={t(product.metaTitle ?? product.fullName, lang)}
   description={t(product.summary, lang)}
   ogImage={hero}
   jsonLd={jsonLd}

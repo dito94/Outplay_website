@@ -111,7 +111,7 @@ export const imageMeta: Record<string, ImageMeta> = {
   },
   'categories/windbreaks.jpg': {
     alt: {
-      bg: 'Улична тераса на ресторант вечер, оградена със стъклени ветрозащитни паравани',
+      bg: 'Улична тераса на ресторант вечер, оградена със стъклени ветрозащитни системи',
       en: 'Restaurant street terrace in the evening, enclosed by glass windbreak screens',
     },
     focal: '50% 60%',
@@ -127,7 +127,7 @@ export const imageMeta: Record<string, ImageMeta> = {
   },
   'products/balance/gallery-01.jpg': {
     alt: {
-      bg: 'Свободностояща пергола с ламели в кремав цвят над лаундж до басейн, каменна стена и есенни дървета',
+      bg: 'Самостоятелна пергола с ламели в кремав цвят над лаундж до басейн, каменна стена и есенни дървета',
       en: 'Freestanding cream louvred pergola over a poolside lounge, with a dry-stone wall and autumn trees',
     },
   },
@@ -290,14 +290,14 @@ export const imageMeta: Record<string, ImageMeta> = {
   'products/automatic-glass-roof/diagram.jpg': {
     alt: {
       bg: 'Разрез на профилите и стъклата на автоматичен стъклен покрив',
-      en: 'Cutaway of the profiles and glazing of an automatic glass roof',
+      en: 'Cutaway of the profiles and glazing of a retractable glass roof',
     },
   },
 
   // ---------------------------------------------------------------- fixed glass roof
   'products/fixed-glass-roof/hero.jpg': {
     alt: {
-      bg: 'Свободностояща пергола със стъклен покрив в градина привечер, ZIP завеса от едната страна и бели мебели',
+      bg: 'Самостоятелна пергола със стъклен покрив в градина привечер, ZIP завеса от едната страна и бели мебели',
       en: 'Freestanding glass-roof pergola in a garden at dusk, with a ZIP screen on one side and white furniture',
     },
   },
@@ -322,7 +322,7 @@ export const imageMeta: Record<string, ImageMeta> = {
   },
   'products/fixed-glass-roof/diagram.jpg': {
     alt: {
-      bg: 'Техническа визуализация на черна свободностояща пергола с фиксиран стъклен покрив',
+      bg: 'Техническа визуализация на черна самостоятелна пергола с фиксиран стъклен покрив',
       en: 'Technical render of a black freestanding pergola with a fixed glass roof',
     },
   },
@@ -630,20 +630,20 @@ export const imageMeta: Record<string, ImageMeta> = {
   // ---------------------------------------------------------------- telescopic windbreak
   'products/telescopic-windbreak/hero.jpg': {
     alt: {
-      bg: 'Улична тераса на ресторант вечер с телескопични стъклени ветрозащитни паравани, чадъри и подредени маси',
+      bg: 'Улична тераса на ресторант вечер с телескопични стъклени ветрозащитни системи, чадъри и подредени маси',
       en: 'Restaurant street terrace in the evening with telescopic glass windbreaks, parasols and laid tables',
     },
     focal: '50% 60%',
   },
   'products/telescopic-windbreak/gallery-01.jpg': {
     alt: {
-      bg: 'Крайбрежна тераса с дървени маси и вдигнати стъклени ветрозащитни паравани, морски хоризонт',
+      bg: 'Крайбрежна тераса с дървени маси и вдигнати стъклени ветрозащитни системи, морски хоризонт',
       en: 'Seaside terrace with timber tables and raised glass windbreaks, sea horizon',
     },
   },
   'products/telescopic-windbreak/gallery-02.jpg': {
     alt: {
-      bg: 'Телескопични ветрозащитни паравани на различна височина с бежови, черни и сиви колони',
+      bg: 'Телескопични ветрозащитни системи на различна височина с бежови, черни и сиви колони',
       en: 'Telescopic windbreak units at different heights with beige, black and grey posts',
     },
   },

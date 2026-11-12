@@ -12,7 +12,7 @@ const T = {
   search: { bg: 'Търсене в сайта', en: 'Search the site' },
   products: { bg: 'Продукти', en: 'Products' },
   contact: { bg: 'Контакти', en: 'Contact' },
-  gallery: { bg: 'Галерия и проекти', en: 'Gallery & projects' },
+  gallery: { bg: 'Галерия и проекти', en: 'Gallery and projects' },
 };
 interface Props {
   /** languages rendered (both on the shared 404, one on a language-specific page) */
@@ -26,7 +26,6 @@ const linksFor = (l: Lang) => [
   { href: url(l, '/projects/'), label: t(T.gallery, l) },
   { href: url(l, '/contact/'), label: t(T.contact, l) },
 ];
-const titleOf = (l: Lang) => `${t(nf.title, l)} · OUTPLAY`;
 ---
 
 <section class="nf night" aria-labelledby="nf-title">
@@ -98,9 +97,10 @@ const titleOf = (l: Lang) => `${t(nf.title, l)} · OUTPLAY`;
     display: none;
   }
   .nf-title {
-    font-size: var(--step-3);
+    font-size: var(--h1-page);
     font-weight: 300;
-    line-height: 1.1;
+    line-height: 1.04;
+    letter-spacing: -0.015em;
     color: #fff;
   }
   .nf-text {

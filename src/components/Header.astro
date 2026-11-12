@@ -17,7 +17,7 @@ const route = routeOf(Astro.url.pathname);
 const L = {
   products: { bg: 'Продукти', en: 'Products' },
   projects: { bg: 'Галерия', en: 'Gallery' },
-  about: { bg: 'За нас', en: 'About' },
+  about: { bg: 'За нас', en: 'About us' },
   faq: { bg: 'Въпроси', en: 'FAQ' },
   contact: { bg: 'Контакти', en: 'Contact' },
   inquiry: { bg: 'Запитване', en: 'Request a quote' },
@@ -158,7 +158,7 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
               <ul>
                 <li>
                   <a href={categoryUrl(lang, c.id)} class="drawer-all">
-                    {lang === 'bg' ? 'Виж всички' : 'View all'}
+                    {lang === 'bg' ? 'Вижте всички' : 'View all'}
                   </a>
                 </li>
                 {byCat(c.id).map((p) => (

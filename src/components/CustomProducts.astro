@@ -15,13 +15,17 @@ const data = {
   item: { bg: url('bg', '/products/item/'), en: url('en', '/products/item/') },
   /** catalogue names, to rename them inside longer texts (page title, aria-labels) */
   names: Object.fromEntries(products.map((p) => [p.id, p.name])),
-  /** mid-sentence forms ("стационарен стъклен покрив") and full catalogue names, also renamed on the product's page */
+  /** mid-sentence forms ("стационарен стъклен покрив"), also renamed on the product's page */
   inline: Object.fromEntries(products.filter((p) => p.nameInline).map((p) => [p.id, p.nameInline])),
-  full: Object.fromEntries(products.map((p) => [p.id, p.fullName])),
   /** subgroups per category with their catalogue product ids (added products can join one) */
   subgroups: Object.fromEntries(
     categories.map((c) => [c.id, (c.subgroups ?? []).map((sg) => ({ id: sg.id, productIds: sg.productIds }))]),
   ),
+  /** shown on the page of a hidden catalogue product (same wording as the page of a hidden added product) */
+  hiddenNote: {
+    bg: 'Продуктът е скрит от списъците на сайта. Виждате страницата, защото я отваряте с директна връзка.',
+    en: 'This product is hidden from the site listings. You can see the page because you opened a direct link.',
+  },
 };
 ---
 
@@ -33,5 +37,18 @@ const data = {
     if (el) applyCatalogue(JSON.parse(el.textContent || '{}') as CustomProductsConfig);
   } catch {
     /* never break a page for a demo feature */
+  } finally {
+    // set by the inline check in Base.astro while stored changes are pending
+    document.documentElement.removeAttribute('data-cp');
   }
 </script>
+
+<style is:global>
+  .cp-notice {
+    margin-top: var(--s-5);
+    padding: 12px 16px;
+    background: var(--mist);
+    color: var(--graphite);
+    font-size: var(--step--1);
+  }
+</style>

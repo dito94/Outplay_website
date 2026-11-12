@@ -164,14 +164,14 @@ export const faq: FaqGroup[] = [
           en: 'Can the systems work automatically?',
         },
         a: {
-          bg: 'Автоматизираните перголи се управляват с дистанционно. Слънцезащитните системи могат да имат датчици за вятър, слънце и дъжд, които прибират платното при силен вятър или го разпъват при силно слънце, и да се включат в SMART система за умен дом. Тентите Shell се управляват и от мобилно устройство.',
-          en: 'Automated pergolas are operated by remote control. Sun protection systems can be fitted with wind, sun and rain sensors that retract the fabric in strong wind or extend it in strong sun, and can be connected to a SMART home system. Shell awnings can also be controlled from a mobile device.',
+          bg: 'Автоматизираните перголи се управляват с дистанционно. Слънцезащитните системи могат да имат датчици за вятър, слънце и дъжд, които прибират платното при силен вятър или го разпъват при силно слънце, и да се включат в SMART автоматизация. Тентите Shell се управляват и от мобилно устройство.',
+          en: 'Automated pergolas are operated by remote control. Sun protection systems can be fitted with wind, sun and rain sensors that retract the fabric in strong wind or extend it in strong sun, and can be connected to SMART automation. Shell awnings can also be controlled from a mobile device.',
         },
       },
       {
         q: {
           bg: 'Каква е разликата между перфорирана и Blackout материя при ZIP завесите?',
-          en: 'Perforated or blackout ZIP fabric: what is the difference?',
+          en: 'Perforated or Blackout ZIP fabric: what is the difference?',
         },
         a: {
           bg: 'Микроперфорираната материя разсейва слънцето, пропуска въздух и запазва видимостта отвътре навън, докато отвън пази от погледи. Blackout материите са непроницаеми и осигуряват пълно затъмняване – подходящи са, когато е нужна абсолютна тъмнина.',

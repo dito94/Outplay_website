@@ -97,7 +97,34 @@ export function deleteInquiry(id: string): boolean {
 }
 
 // Product overrides (admin demo edits applied on public pages)
-export const loadOverrides = (): Record<string, ProductOverride> => read(KEYS.overrides, {});
+const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+/** { bg, en } with string values only (anything else in storage becomes '') */
+const pairOf = (v: unknown): LPair => (isObj(v) ? { bg: str(v.bg), en: str(v.en) } : { bg: '', en: '' });
+
+/** Overrides keyed by product id; malformed entries (old schema, hand edits) are dropped or trimmed */
+export function loadOverrides(): Record<string, ProductOverride> {
+  const raw = read<unknown>(KEYS.overrides, {});
+  if (!isObj(raw)) return {};
+  const out: Record<string, ProductOverride> = {};
+  for (const [id, v] of Object.entries(raw)) {
+    if (!isObj(v)) continue;
+    const o: ProductOverride = {};
+    for (const f of ['name', 'tagline', 'summary'] as const) {
+      const p = v[f];
+      if (!isObj(p)) continue;
+      const t: { bg?: string; en?: string } = {};
+      if (typeof p.bg === 'string') t.bg = p.bg;
+      if (typeof p.en === 'string') t.en = p.en;
+      if (t.bg !== undefined || t.en !== undefined) o[f] = t;
+    }
+    if (v.hidden === true) o.hidden = true;
+    if (v.featured === true) o.featured = true;
+    if (typeof v.updatedAt === 'string') o.updatedAt = v.updatedAt;
+    out[id] = o;
+  }
+  return out;
+}
 /** Returns false when the browser refused the write (storage full or unavailable) */
 export function saveOverride(productId: string, patch: ProductOverride): boolean {
   const all = loadOverrides();
@@ -158,9 +185,42 @@ const isQuotaError = (e: unknown) =>
   e instanceof DOMException &&
   (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22 || e.code === 1014);
 
+/** Photos the admin stores: base64 JPEG / PNG / WEBP data URLs only (anything else is never put in a page) */
+export const DATA_IMAGE = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+export const isDataImage = (v: unknown): v is string => typeof v === 'string' && DATA_IMAGE.test(v);
+
+const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+
+/** One stored product with every field in shape (default arrays / strings), or null when unusable */
+function normalizeCustom(v: unknown): CustomProduct | null {
+  if (!isObj(v) || typeof v.id !== 'string' || !v.id) return null;
+  return {
+    ...(v as unknown as CustomProduct),
+    id: v.id,
+    category: str(v.category) as CustomProduct['category'],
+    ...(typeof v.subgroup === 'string' ? { subgroup: v.subgroup } : { subgroup: undefined }),
+    family: str(v.family) as CustomProduct['family'],
+    name: pairOf(v.name),
+    tagline: pairOf(v.tagline),
+    summary: pairOf(v.summary),
+    sections: arr(v.sections)
+      .filter(isObj)
+      .map((s) => ({ heading: pairOf(s.heading), paragraphs: arr(s.paragraphs).filter(isObj).map(pairOf) })),
+    features: arr(v.features).filter(isObj).map(pairOf),
+    specs: arr(v.specs)
+      .filter(isObj)
+      .map((r) => ({ label: pairOf(r.label), value: pairOf(r.value) })),
+    images: arr(v.images).filter(isDataImage),
+    hidden: v.hidden === true ? true : undefined,
+    createdAt: str(v.createdAt),
+    updatedAt: str(v.updatedAt),
+  };
+}
+
 export function loadCustomProducts(): CustomProduct[] {
-  const list = read<CustomProduct[]>(KEYS.customProducts, []);
-  return Array.isArray(list) ? list.filter((p) => p && typeof p === 'object' && typeof p.id === 'string') : [];
+  return arr(read<unknown>(KEYS.customProducts, []))
+    .map(normalizeCustom)
+    .filter((p): p is CustomProduct => !!p);
 }
 
 export const getCustomProduct = (id: string): CustomProduct | undefined => loadCustomProducts().find((p) => p.id === id);

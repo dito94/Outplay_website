@@ -1,10 +1,13 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import typography from './integrations/typography.mjs';
 
-// Parallel builds (one per agent) use their own output + cache folders: OUTPLAY_AGENT=name npx astro build
+// Parallel builds use their own output + cache folders: OUTPLAY_AGENT=name npx astro build
+// (output goes to $OUTPLAY_SCRATCH/build-<name>, or the system temp folder when OUTPLAY_SCRATCH is not set)
 const agent = process.env.OUTPLAY_AGENT;
-const scratch = '/tmp/claude-0/-home-user/bd9643c5-b0c8-52a9-94df-688b6b6403b0/scratchpad';
+const scratch = process.env.OUTPLAY_SCRATCH || join(tmpdir(), 'outplay-builds');
 
 export default defineConfig({
   site: 'https://dito94.github.io',

@@ -22,9 +22,10 @@ export interface CustomProductsConfig {
   /** catalogue product names */
   names?: Record<string, Pair>;
   inline?: Record<string, Pair>;
-  full?: Record<string, Pair>;
   /** subgroups per category with their catalogue product ids */
   subgroups?: Record<string, { id: string; productIds: string[] }[]>;
+  /** notice on the page of a hidden catalogue product (opened through a direct link) */
+  hiddenNote?: Pair;
 }
 
 type Lang = 'bg' | 'en';
@@ -116,25 +117,22 @@ function applyEdits(x: Ctx): void {
       // On the product's own page every visible mention follows the new name: the catalogue subtitle, spec plate,
       // inquiry heading and the sentences that mention the product.
       const next = ov[id].name![lang]!;
-      const olds = [cfg.full?.[id]?.[lang], cfg.inline?.[id]?.[lang], cfg.names![id][lang]].filter(
-        (v): v is string => !!v && v.length > 1,
-      );
+      // The full catalogue name is not replaced as a whole (it keeps its descriptor, only the name inside it
+      // changes), and all forms are swapped in one pass so the new name is never matched again.
+      const olds = [cfg.inline?.[id]?.[lang], cfg.names![id][lang]]
+        .filter((v): v is string => !!v && v.length > 1)
+        .sort((a, b) => b.length - a.length);
+      const re = new RegExp(olds.map((o) => o.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
       const main = document.querySelector('main');
-      if (main) {
+      if (main && olds.length) {
         const walker = document.createTreeWalker(main, NodeFilter.SHOW_TEXT);
         const nodes: Text[] = [];
         while (walker.nextNode()) nodes.push(walker.currentNode as Text);
         nodes.forEach((n) => {
           if (n.parentElement?.closest('script, style, [data-pfield], input, textarea, select, option')) return;
-          let v = n.nodeValue ?? '';
-          let changed = false;
-          for (const o of olds) {
-            if (v.includes(o)) {
-              v = v.split(o).join(next);
-              changed = true;
-            }
-          }
-          if (changed) n.nodeValue = v;
+          const v = n.nodeValue ?? '';
+          const nv = v.replace(re, () => next);
+          if (nv !== v) n.nodeValue = nv;
         });
       }
     }
@@ -149,8 +147,18 @@ function applyEdits(x: Ctx): void {
 }
 
 function hideProducts(x: Ctx): void {
-  const { hidden, cfg } = x;
+  const { hidden, cfg, lang } = x;
   if (!hidden.size) return;
+  // the hidden product's own page (direct link): say so, as the page of a hidden added product does
+  const h1 = document.querySelector<HTMLElement>('h1[data-pid][data-pfield="name"]');
+  const note = cfg.hiddenNote?.[lang];
+  if (h1 && hidden.has(h1.dataset.pid ?? '') && note && !document.querySelector('[data-cp-hidden-note]')) {
+    const p = document.createElement('p');
+    p.className = 'cp-notice';
+    p.dataset.cpHiddenNote = '';
+    p.textContent = note;
+    (h1.parentElement ?? h1).appendChild(p);
+  }
   // grid cards: the whole cell, so no empty cell is left
   document.querySelectorAll<HTMLElement>('[data-pcard][data-pid]').forEach((card) => {
     if (!hidden.has(card.dataset.pid ?? '')) return;
@@ -349,6 +357,10 @@ function addToLists(x: Ctx): void {
 /** ProductGrid promotes its first card depending on the count (no orphan rows); redo it for the visible cards */
 export function relayoutGrid(grid: HTMLElement): void {
   if (!grid.classList.contains('pgrid')) return;
+  // ProductGrid styles the lead card as :first-child, so hidden cells go to the end of the grid
+  (Array.from(grid.children) as HTMLElement[])
+    .filter((c) => c.hidden || c.querySelector<HTMLElement>('[data-pcard]')?.hidden)
+    .forEach((c) => grid.appendChild(c));
   const items = (Array.from(grid.children) as HTMLElement[]).filter(
     (c) => !c.hidden && !c.querySelector<HTMLElement>('[data-pcard]')?.hidden,
   );
@@ -472,6 +484,3 @@ export function applyCatalogue(cfg: CustomProductsConfig): void {
   // let page scripts (e.g. the products filter) re-check what is still on the page
   window.dispatchEvent(new CustomEvent('outplay:catalogue'));
 }
-
-/** Kept for older callers and the test harness */
-export const injectCustomProducts = applyCatalogue;

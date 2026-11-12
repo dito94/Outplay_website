@@ -55,7 +55,7 @@ export const categories: Category[] = [
         en: 'Sliding vertical glazing turns a courtyard or terrace into a garden room you can use in every season, sheltered from rain, wind, snow and cold. It can glaze large areas and saves space, because there are no conventional opening sashes.',
       },
       {
-        bg: 'Предлагаме два принципа на движение: хоризонтално плъзгащи се и сгъваеми панели с ръчно управление и автоматизирани решения – вертикалната система тип „гилотина“ и входните врати dormakaba ES 200.',
+        bg: 'Предлагаме два принципа на движение: ръчно управлявани хоризонтално плъзгащи се и сгъваеми панели, както и автоматизирани решения – вертикалната система тип „гилотина“ и входните врати dormakaba ES 200.',
         en: 'We offer two principles of movement: manually operated sliding and folding panels, and automated solutions such as the vertical guillotine system and dormakaba ES 200 entrance doors.',
       },
       {
@@ -93,7 +93,7 @@ export const categories: Category[] = [
     intro: [
       {
         bg: 'Покривните и вертикалните моторизирани системи са съвременният наследник на традиционните завеси, тенти и алуминиеви щори. Проектирани са за външен монтаж и засенчват големи площи – тераси, прозорци, витрини и зимни градини – в частни домове и търговски обекти.',
-        en: 'Motorised roof and vertical systems are the modern successor to traditional blinds, awnings and aluminium shutters. Designed for exterior use, they shade large areas such as terraces, windows, shopfronts and winter gardens, for homes and businesses alike.',
+        en: 'Motorised roof and vertical systems are the modern successor to traditional curtains, awnings and aluminium blinds. Designed for exterior use, they shade large areas such as terraces, windows, shopfronts and winter gardens, for homes and businesses alike.',
       },
       {
         bg: 'Могат да се монтират към съществуваща сграда или да се вградят в нова конструкция като алуминиева пергола или окачена фасада. Управляват се с бутон, дистанционно или чрез SMART автоматизация, а специален механизъм държи платното опънато по цялата му дължина, дори при силен вятър.',

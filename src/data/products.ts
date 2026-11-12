@@ -94,8 +94,9 @@ export const products: Product[] = [
     name: { bg: 'Balance', en: 'Balance' },
     fullName: {
       bg: 'Биоклиматична пергола с алуминиеви ламели, серия Balance',
-      en: 'Balance louvred bioclimatic pergola',
+      en: 'Balance series louvred bioclimatic pergola',
     },
+    metaTitle: { bg: 'Пергола с алуминиеви ламели, серия Balance', en: 'Balance series louvred bioclimatic pergola' },
     tagline: { bg: 'Геометрия на светлината.', en: 'The geometry of light.' },
     summary: {
       bg: 'Едномоторна биоклиматична пергола с алуминиеви ламели, които се завъртат от 0° до 120°. Светлина, сянка и проветрение с едно натискане на дистанционното.',
@@ -141,7 +142,7 @@ export const products: Product[] = [
           },
           {
             bg: 'По целия периметър има вградени алуминиеви улуци, а опорните колони служат като скрити водостоци за ефективно отводняване. В зависимост от площта перголата може да има различен брой колони и зони на задвижване.',
-            en: 'Aluminium gutters run around the whole perimeter, and the support posts double as concealed downpipes. Depending on the area, the pergola can have more posts and several drive zones.',
+            en: 'Aluminium gutters run around the whole perimeter, and the support posts double as concealed downpipes. Depending on the area, the pergola can have a different number of posts and drive zones.',
           },
           {
             bg: 'С добавяне на вертикално остъкляване перголата се превръща в зимна градина – място за сутрешно кафе, вечеря с приятели или уютна клиентска зона, независимо от сезона.',
@@ -151,7 +152,7 @@ export const products: Product[] = [
       },
     ],
     highlights: [
-      { value: '0–120°', label: { bg: 'ротация на ламелите', en: 'louvre rotation' } },
+      { value: '0°–120°', label: { bg: 'ротация на ламелите', en: 'louvre rotation' } },
       {
         value: '1',
         unit: { bg: 'мотор', en: 'motor' },
@@ -202,8 +203,9 @@ export const products: Product[] = [
     name: { bg: 'Infinity', en: 'Infinity' },
     fullName: {
       bg: 'Биоклиматична пергола с алуминиеви ламели, серия Infinity',
-      en: 'Infinity louvred bioclimatic pergola',
+      en: 'Infinity series louvred bioclimatic pergola',
     },
+    metaTitle: { bg: 'Пергола с алуминиеви ламели, серия Infinity', en: 'Infinity series louvred bioclimatic pergola' },
     tagline: { bg: 'Свобода без граници.', en: 'Freedom without limits.' },
     summary: {
       bg: 'Двумоторна биоклиматична пергола, чиито ламели се завъртат от 0° до 120° и се прибират напълно в единия край. С едно натискане покривът се отваря към небето.',
@@ -255,7 +257,7 @@ export const products: Product[] = [
       },
     ],
     highlights: [
-      { value: '0–120°', label: { bg: 'ротация на ламелите', en: 'louvre rotation' } },
+      { value: '0°–120°', label: { bg: 'ротация на ламелите', en: 'louvre rotation' } },
       {
         value: '2',
         unit: { bg: 'мотора', en: 'motors' },
@@ -307,6 +309,7 @@ export const products: Product[] = [
       bg: 'Биоклиматична пергола с подвижно поливинилно покритие, серия Flat',
       en: 'Flat series bioclimatic pergola with retractable PVC roof',
     },
+    metaTitle: { bg: 'Пергола с поливинилно покритие, серия Flat', en: 'Flat series pergola with retractable PVC roof' },
     tagline: { bg: 'Изчистен дизайн, безкомпромисна устойчивост.', en: 'Clean lines, uncompromising strength.' },
     summary: {
       bg: 'Пергола с плосък, леко наклонен подвижен покрив от трислойно Blackout платно. Устоява на вятър до 117 км/ч, спира до 89% от UV лъчите и е 100% водоустойчива.',
@@ -390,7 +393,7 @@ export const products: Product[] = [
       {
         title: { bg: 'Самостоятелна с четири колони', en: 'Freestanding on four posts' },
         text: {
-          bg: 'Изгражда се като самостоятелна конструкция, но може да се прилепи и до фасадата. Напълно автоматизирана, с два мотора и две самостоятелни покривни системи, които се събират в центъра.',
+          bg: 'Изгражда се винаги като самостоятелна конструкция, но може да се прилепи и до фасадата. Напълно автоматизирана, с два мотора и две самостоятелни покривни системи, които се събират в центъра.',
           en: 'Always built as a freestanding structure, though it can sit against a façade. Fully motorised, with two motors and two independent roof sections that gather in the centre.',
         },
       },
@@ -420,6 +423,7 @@ export const products: Product[] = [
       bg: 'Биоклиматична пергола с подвижно поливинилно покритие, серия Curved',
       en: 'Curved series bioclimatic pergola with retractable PVC roof',
     },
+    metaTitle: { bg: 'Пергола с поливинилно покритие, серия Curved', en: 'Curved series pergola with retractable PVC roof' },
     tagline: { bg: 'Извит покрив с мек силует.', en: 'An arched roof with a soft silhouette.' },
     summary: {
       bg: 'Пергола с извит покрив тип „арка“ от трислойно Blackout платно. Устоява на вятър до 117 км/ч, неутрализира до 89% от UV лъчението и е 100% водоустойчива.',
@@ -435,7 +439,7 @@ export const products: Product[] = [
           },
           {
             bg: 'Системата устоява на пориви на вятъра до 117 км/ч и неутрализира до 89% от вредното UV лъчение. Със своята 100-процентова водоустойчивост сводестият покрив осигурява комфорт, независимо от капризите на времето.',
-            en: 'It withstands gusts of up to 117 km/h and filters out up to 89% of harmful UV radiation. With a 100% waterproof canopy, the vaulted roof keeps you comfortable whatever the weather does.',
+            en: 'It withstands gusts of up to 117 km/h and filters out up to 89% of harmful UV radiation. With 100% waterproof fabric, the vaulted roof keeps you comfortable whatever the weather does.',
           },
           {
             bg: 'Арката се вписва естествено в класически и модерни екстериори, а вграденото LED осветление подчертава извивките на конструкцията вечер. Системата е напълно съвместима с решения за ветрозащита и остъкляване.',
@@ -534,6 +538,7 @@ export const products: Product[] = [
       bg: 'Биоклиматична алуминиева пергола с автоматичен стъклен покрив',
       en: 'Bioclimatic aluminium pergola with motorised retractable glass roof',
     },
+    metaTitle: { bg: 'Пергола с автоматичен стъклен покрив', en: 'Pergola with motorised retractable glass roof' },
     tagline: { bg: 'Светлина без граници, защита без компромиси.', en: 'Boundless light, complete protection.' },
     summary: {
       bg: 'Алуминиева пергола с хоризонтално прибиращи се стъклени панели от ламинирано и закалено STOP RAY стъкло, монтирана под наклон от 15% за мигновено отводняване.',
@@ -626,7 +631,8 @@ export const products: Product[] = [
       { bg: 'Нюансирани стъклопакети', en: 'Tinted glazing units' },
       { bg: 'Фиксирани стъклени зони', en: 'Fixed glass sections' },
       { bg: 'ZIP завеси за стъклени покриви', en: 'Roof ZIP screens' },
-      ...automatedPergolaOptions,
+      // the generic "ZIP sun screens" option is covered by the roof ZIP item above
+      ...automatedPergolaOptions.filter((o) => o.en !== 'ZIP sun screens'),
     ],
     related: ['fixed-glass-roof', 'roof-zip', 'guillotine'],
     video: {
@@ -654,6 +660,7 @@ export const products: Product[] = [
       bg: 'Биоклиматична алуминиева пергола със стационарен стъклен покрив',
       en: 'Bioclimatic aluminium pergola with fixed glass roof',
     },
+    metaTitle: { bg: 'Пергола със стационарен стъклен покрив', en: 'Bioclimatic aluminium pergola with fixed glass roof' },
     tagline: { bg: 'Стъклен покрив за светлина през цялата година.', en: 'A glass roof for daylight all year round.' },
     summary: {
       bg: 'Алуминиева пергола с фиксиран стъклен покрив в наклонен или плосък вариант. Дневна светлина през цялата година и защита от сняг и вятър, без движещи се части.',
@@ -765,9 +772,10 @@ export const products: Product[] = [
       bg: 'Биоклиматична алуминиева пергола със стационарен плътен покрив от термопанели',
       en: 'Bioclimatic aluminium pergola with fixed insulated-panel roof',
     },
-    tagline: { bg: 'Една конструкция – тераса или навес за кола.', en: 'One structure for a terrace or a carport.' },
+    metaTitle: { bg: 'Пергола с покрив от термопанели', en: 'Pergola with fixed insulated-panel roof' },
+    tagline: { bg: 'Една конструкция – тераса или навес за автомобил.', en: 'One structure for a terrace or a carport.' },
     summary: {
-      bg: 'Алуминиева пергола с плътен покрив от многослойни термопанели, която пази от прегряване през лятото и задържа топлината през зимата. За тераси, навеси за коли и зимни градини.',
+      bg: 'Алуминиева пергола с плътен покрив от многослойни термопанели, която пази от прегряване през лятото и задържа топлината през зимата. За тераси, навеси за автомобили и зимни градини.',
       en: 'An aluminium pergola with a solid multi-layer insulated roof that keeps heat out in summer and in during winter. For terraces, carports and winter gardens.',
     },
     sections: [
@@ -887,6 +895,7 @@ export const products: Product[] = [
       bg: 'Автоматична вертикално плъзгаща се стъклена система тип „гилотина“',
       en: 'Motorised vertical-sliding guillotine glass system',
     },
+    metaTitle: { bg: 'Стъклена система тип „гилотина“', en: 'Motorised vertical-sliding guillotine glass system' },
     tagline: { bg: 'От сигурна бариера до свободен хоризонт.', en: 'From secure barrier to open horizon.' },
     summary: {
       bg: 'Моторизирани стъклени панели, които се плъзгат вертикално и спират във всяко положение. Конфигурации с 2, 3 или 4 панела и патентован механизъм за лесно почистване.',
@@ -1008,6 +1017,8 @@ export const products: Product[] = [
       bg: 'Автоматични хоризонтално плъзгащи се стъклени входни врати dormakaba ES 200',
       en: 'dormakaba ES 200 automatic sliding glass entrance doors',
     },
+    metaTitle: { bg: 'Автоматични входни врати dormakaba ES 200', en: 'dormakaba ES 200 automatic sliding glass entrance doors' },
+    brand: 'dormakaba',
     tagline: { bg: 'Динамика в движението, съвършенство в детайла.', en: 'Smooth in motion, precise in detail.' },
     summary: {
       bg: 'Автоматични плъзгащи се стъклени врати със задвижване ES 200: плавно и безшумно движение, стандартни или телескопични крила и безконтактно отваряне.',
@@ -1019,7 +1030,7 @@ export const products: Product[] = [
         paragraphs: [
           {
             bg: 'Автоматичните хоризонтално плъзгащи се стъклени врати dormakaba, задвижвани от механизма ES 200, са съвременен стандарт за входни пространства. Модулната система осигурява плавно и безшумно движение и превръща всеки вход в приветлив портал с модерна визия.',
-            en: 'dormakaba automatic horizontal sliding glass doors, powered by the ES 200 drive, set the standard for contemporary entrances. The modular system moves smoothly and quietly, turning any entrance into a welcoming, modern threshold.',
+            en: 'The dormakaba automatic horizontal sliding glass doors, powered by the ES 200 drive, set the standard for contemporary entrances. The modular system moves smoothly and quietly, turning any entrance into a welcoming, modern threshold.',
           },
           {
             bg: 'Благодарение на гъвкавостта и елегантния си дизайн системата се вписва в търговски центрове, бизнес сгради и представителни обществени пространства, където първото впечатление е от решаващо значение.',
@@ -1044,7 +1055,7 @@ export const products: Product[] = [
         heading: { bg: 'Интелигентно управление за безкомпромисна хигиена', en: 'Touchless control for better hygiene' },
         paragraphs: [
           {
-            bg: 'Освен стандартната автоматизация предлагаме решения за безконтактно управление. Сензорът Magic Switch, базиран на радарна технология, отваря вратата с леко движение на ръката пред устройството, без физически допир. За среди, изискващи максимална стерилност, или когато хората минават с пълни ръце може да се интегрира и дискретен крачен бутон.',
+            bg: 'Освен стандартната автоматизация предлагаме решения за безконтактно управление. Сензорът Magic Switch, базиран на радарна технология, отваря вратата с леко движение на ръката пред устройството, без физически допир. За среди, изискващи максимална стерилност, или когато хората минават с пълни ръце, може да се интегрира и дискретен крачен бутон.',
             en: 'Beyond standard automation, we offer touchless control. The Magic Switch sensor uses radar technology to open the door with a simple wave of the hand, with no physical contact. Where sterility matters most, or where people pass with their hands full, a discreet foot button can be added.',
           },
           {
@@ -1509,8 +1520,8 @@ export const products: Product[] = [
     fullName: { bg: 'Вертикални слънцезащитни ZIP завеси', en: 'Vertical ZIP sun screens' },
     tagline: { bg: 'Сянка, която пропуска въздух и гледка.', en: 'Shade that lets the air and the view through.' },
     summary: {
-      bg: 'Моторизирани ZIP завеси с микроперфорирана материя, която разсейва слънцето и пропуска въздух, или с Blackout плат за пълна тъмнина. Вграден или външен монтаж.',
-      en: 'Motorised ZIP screens in micro-perforated fabric that diffuses sunlight and lets air through, or blackout fabric for total darkness. Recessed or surface-mounted.',
+      bg: 'Моторизирани ZIP завеси с микроперфорирана материя, която разсейва слънцето и пропуска въздух, или с Blackout материя за пълна тъмнина. Вграден или външен монтаж.',
+      en: 'Motorised ZIP screens in micro-perforated fabric that diffuses sunlight and lets air through, or Blackout fabric for total darkness. Recessed or surface-mounted.',
     },
     sections: [
       {
@@ -1544,7 +1555,7 @@ export const products: Product[] = [
         paragraphs: [
           {
             bg: 'Прецизното моторизирано задвижване се управлява с бутон, дистанционно или чрез SMART автоматизация. Специален механизъм фиксира плата по цялата му дължина и го държи опънат дори при силни пориви на вятъра.',
-            en: 'The precise motor drive is operated by switch, remote or SMART home automation. A dedicated mechanism holds the fabric along its full length, keeping it taut even in strong gusts.',
+            en: 'The precise motor drive is operated by switch, remote or smart-home automation. A dedicated mechanism holds the fabric along its full length, keeping it taut even in strong gusts.',
           },
           {
             bg: 'С датчици за вятър, слънце и дъжд завесата реагира сама – прибира се при опасен вятър или се спуска при силно слънце, дори когато не сте у дома. ZIP завесите са напълно съвместими с цялата гама биоклиматични перголи.',
@@ -1570,7 +1581,7 @@ export const products: Product[] = [
     specs: [
       { label: { bg: 'Задвижване', en: 'Drive' }, value: { bg: 'Моторизирано', en: 'Motorised' } },
       { label: { bg: 'Управление', en: 'Control' }, value: { bg: 'Бутон, дистанционно или SMART автоматизация', en: 'Switch, remote or SMART automation' } },
-      { label: { bg: 'Материя', en: 'Fabric' }, value: { bg: 'Микроперфорирана, с различна прозрачност, или Blackout', en: 'Micro-perforated in various openness levels, or blackout' } },
+      { label: { bg: 'Материя', en: 'Fabric' }, value: { bg: 'Микроперфорирана, с различна прозрачност, или Blackout', en: 'Micro-perforated in various openness levels, or Blackout' } },
       { label: { bg: 'Корпус', en: 'Cassette' }, value: { bg: 'Вграден или външен, с напълно скрит механизъм', en: 'Recessed or surface-mounted, fully concealed mechanism' } },
       { label: { bg: 'Монтаж', en: 'Installation' }, value: { bg: 'Външен или вътрешен', en: 'External or internal' } },
       { label: { bg: 'Датчици', en: 'Sensors' }, value: { bg: 'Вятър, слънце и дъжд (по избор)', en: 'Wind, sun and rain (optional)' } },
@@ -1584,7 +1595,7 @@ export const products: Product[] = [
       },
       {
         title: { bg: 'Външен монтаж', en: 'Surface installation' },
-        text: { bg: 'Външен корпус и релсов профил за съществуващи сгради.', en: 'Surface-mounted cassette and side rails for existing buildings.' },
+        text: { bg: 'Външен корпус и релсов профил.', en: 'Surface-mounted cassette and side rails.' },
       },
       {
         title: { bg: 'В пергола', en: 'In a pergola' },
@@ -1594,7 +1605,7 @@ export const products: Product[] = [
     options: [
       { bg: 'Blackout материя', en: 'Blackout fabric' },
       { bg: 'Датчици за вятър, слънце и дъжд', en: 'Wind, sun and rain sensors' },
-      { bg: 'SMART автоматизация', en: 'SMART home automation' },
+      { bg: 'SMART автоматизация', en: 'SMART automation' },
       { bg: 'Вграден корпус', en: 'Recessed cassette' },
     ],
     related: ['balance', 'roof-zip', 'shell-awning'],
@@ -1616,6 +1627,7 @@ export const products: Product[] = [
       bg: 'ZIP завеси за външен монтаж върху или под стъклени покриви',
       en: 'ZIP screens for mounting above or below glass roofs',
     },
+    metaTitle: { bg: 'ZIP завеси за стъклени покриви', en: 'ZIP screens for mounting above or below glass roofs' },
     tagline: { bg: 'Контрол в синхрон с времето.', en: 'Control in step with the weather.' },
     summary: {
       bg: 'Хоризонтални моторизирани ZIP завеси за стъклени покриви, зимни градини, капандури и перголи. Спират слънчевата топлина, преди тя да достигне стъклото.',
@@ -1725,7 +1737,7 @@ export const products: Product[] = [
             en: 'Shell is a fully automated awning. Its latest-generation motor drive gives smooth movement and perfect fabric tension every time it opens.',
           },
           {
-            bg: 'С метеорологични датчици тентата реагира сама на промените във времето – прибира се автоматично при влошаване и се разпъва при силно слънце. Така пази и себе си, без нужда от човешка намеса.',
+            bg: 'С метеорологични датчици тентата реагира сама на промените във времето – прибира се автоматично при влошаване на времето и се разпъва при силно слънце. Така пази и себе си, без нужда от човешка намеса.',
             en: 'With weather sensors, the awning reacts to changing conditions by itself, retracting automatically when the weather turns and extending in strong sun, protecting itself without anyone lifting a finger.',
           },
         ],
@@ -1748,7 +1760,7 @@ export const products: Product[] = [
         paragraphs: [
           {
             bg: 'Shell се синхронизира със SMART системите за управление на дома и се командва с дистанционни предаватели или мобилни устройства. Можете да настроите светлинния поток прецизно и да създадете свои сценарии за комфорт, а механизмите работят безшумно и са износоустойчиви.',
-            en: 'Shell connects to SMART home systems and can be controlled from a remote or a mobile device, so you can fine-tune the light and set up your own comfort scenes. The mechanisms are quiet and hard-wearing.',
+            en: 'Shell connects to smart-home systems and can be controlled from a remote or a mobile device, so you can fine-tune the light and set up your own comfort scenes. The mechanisms are quiet and hard-wearing.',
           },
           {
             bg: 'Касетата и рамената се боядисват прахово във всеки нюанс от каталога RAL, а платната се предлагат в широка палитра от цветове и текстури с висока водоотблъскваща способност и UV защита.',
@@ -1767,7 +1779,7 @@ export const products: Product[] = [
       { bg: 'Акрилни платна с водоотблъскващи и UV-защитни свойства', en: 'Acrylic fabrics, water-repellent and UV-protective' },
       { bg: 'Моторизирано задвижване с перфектно опъване', en: 'Motor drive with perfect fabric tension' },
       { bg: 'Метеорологични датчици за автоматично прибиране и разпъване', en: 'Weather sensors for automatic retraction and extension' },
-      { bg: 'Дистанционно, мобилно устройство или SMART дом', en: 'Remote, mobile device or SMART home control' },
+      { bg: 'Дистанционно, мобилно устройство или умен дом', en: 'Remote, mobile device or smart-home control' },
       { bg: 'Безшумна работа', en: 'Quiet operation' },
       { bg: 'Монтаж на стена или таван', en: 'Wall or ceiling mounting' },
     ],
@@ -1776,7 +1788,7 @@ export const products: Product[] = [
       { label: { bg: 'Рамена', en: 'Arms' }, value: { bg: 'Подсилени, алуминиеви', en: 'Reinforced aluminium' } },
       { label: { bg: 'Платно', en: 'Fabric' }, value: { bg: 'Акрилно, водоотблъскващо, с UV защита', en: 'Acrylic, water-repellent, UV-protective' } },
       { label: { bg: 'Задвижване', en: 'Drive' }, value: { bg: 'Моторизирано', en: 'Motorised' } },
-      { label: { bg: 'Управление', en: 'Control' }, value: { bg: 'Дистанционно, мобилно устройство, SMART дом', en: 'Remote, mobile device, SMART home' } },
+      { label: { bg: 'Управление', en: 'Control' }, value: { bg: 'Дистанционно, мобилно устройство, умен дом', en: 'Remote, mobile device, smart home' } },
       { label: { bg: 'Автоматизация', en: 'Automation' }, value: { bg: 'Метеорологични датчици', en: 'Weather sensors' } },
       { label: { bg: 'Монтаж', en: 'Mounting' }, value: { bg: 'На стена или на таван', en: 'Wall or ceiling' } },
       { label: { bg: 'Цвят', en: 'Colour' }, value: { bg: 'Касета и рамена – всеки цвят по RAL', en: 'Cassette and arms in any RAL colour' } },
@@ -1794,7 +1806,7 @@ export const products: Product[] = [
     options: [
       { bg: 'Метеорологични датчици', en: 'Weather sensors' },
       { bg: 'Управление от мобилно устройство', en: 'Mobile device control' },
-      { bg: 'Интеграция със SMART дом', en: 'SMART home integration' },
+      { bg: 'Интеграция с умен дом', en: 'Smart-home integration' },
     ],
     related: ['vertical-zip', 'telescopic-windbreak', 'flat'],
     keywords: [

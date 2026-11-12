@@ -27,7 +27,7 @@ export interface Category {
 
 /** A key fact taken from the catalogue text, shown in a spec strip. */
 export interface Highlight {
-  value: string; // "117", "0–120°", "2–4", "100%"
+  value: string; // "117", "0°–120°", "2–4", "100%"
   unit?: L; // "км/ч" / "km/h"
   label: L; // "устойчивост на вятър" / "wind resistance"
 }
@@ -55,6 +55,10 @@ export interface Product {
   nameInline?: L;
   /** Full catalogue name */
   fullName: L;
+  /** Shorter <title> text when fullName is too long for search results (h1 keeps fullName) */
+  metaTitle?: L;
+  /** Manufacturer brand for structured data, when the product is not OUTPLAY's own (defaults to OUTPLAY) */
+  brand?: string;
   /** Catalogue headline, e.g. "Геометрия на светлината." */
   tagline: L;
   /** 1–2 sentences for cards, meta description and search */

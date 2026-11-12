@@ -362,6 +362,23 @@ export function localizeIndex(index: SearchIndex): SearchIndex {
     const lastProduct = docs.map((d) => d.type).lastIndexOf('product');
     docs.splice(lastProduct + 1, 0, ...custom);
   }
+  // Category entries list their products by name: rebuild that list from what this browser shows
+  // (hidden products left out, new names, added products at the end)
+  const changed = added.length || Object.values(ov).some((o) => o?.hidden || o?.name?.[L]);
+  if (changed) {
+    const addedCat = new Map(added.map((p) => [p.id, p.category]));
+    for (const d of docs) {
+      if (d.type !== 'category' || !d.id) continue;
+      const names = docs
+        .filter(
+          (p) =>
+            p.type === 'product' &&
+            (addedCat.has(p.id ?? '') ? addedCat.get(p.id ?? '') === d.id : p.url.includes(`/products/${d.id}/`)),
+        )
+        .map((p) => p.title);
+      d.text = names.join(' · ');
+    }
+  }
   return { ...index, docs };
 }
 

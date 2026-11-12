@@ -2,7 +2,8 @@
 import type { Lang } from '../data/types';
 import { categories } from '../data/categories';
 import { site } from '../data/site';
-import { url, categoryUrl, switchLangUrl, routeOf, t } from '../lib/i18n';
+import { ui } from '../data/ui';
+import { url, categoryUrl, switchLangUrl, routeOf, isProductRoute, t } from '../lib/i18n';
 import Logo from './Logo.astro';
 import Icon from './Icon.astro';
 
@@ -16,7 +17,7 @@ const T = {
   company: { bg: 'Компания', en: 'Company' },
   contact: { bg: 'Контакти', en: 'Contact' },
   about: { bg: 'За нас', en: 'About us' },
-  gallery: { bg: 'Галерия и проекти', en: 'Gallery & projects' },
+  gallery: { bg: 'Галерия и проекти', en: 'Gallery and projects' },
   faq: { bg: 'Често задавани въпроси', en: 'FAQ' },
   inquiry: { bg: 'Направете запитване', en: 'Request a quote' },
   search: { bg: 'Търсене', en: 'Search' },
@@ -28,8 +29,8 @@ const T = {
   },
   partners: { bg: 'Работим със системи на', en: 'We work with systems by' },
 };
-const year = 2026;
-const isProductPage = /^\/products\/[^/]+\/[^/]+\/$/.test(routeOf(Astro.url.pathname));
+const year = new Date().getFullYear();
+const isProductPage = isProductRoute(routeOf(Astro.url.pathname));
 ---
 
 <footer class="site-footer night">
@@ -72,6 +73,7 @@ const isProductPage = /^\/products\/[^/]+\/[^/]+\/$/.test(routeOf(Astro.url.path
           <a href={site.mapsUrl} target="_blank" rel="noopener" class="row">
             <Icon name="pin" size={18} />
             <span>{t(site.address, lang)}</span>
+            <span class="sr-only">({t(ui.a11y.newWindow, lang)})</span>
           </a>
         </li>
         {
@@ -91,7 +93,7 @@ const isProductPage = /^\/products\/[^/]+\/[^/]+\/$/.test(routeOf(Astro.url.path
           </a>
         </li>
         <li>
-          <a href={`viber://chat?number=${encodeURIComponent(site.viber ?? site.phones[0].e164)}`} class="row">
+          <a href={site.viberUrl} class="row">
             <Icon name="viber" size={18} />
             <span>Viber</span>
           </a>
@@ -101,10 +103,10 @@ const isProductPage = /^\/products\/[^/]+\/[^/]+\/$/.test(routeOf(Astro.url.path
   </div>
   <div class="wrap bottom">
     <p>© {year} OUTPLAY. {t(T.rights, lang)}</p>
-    <p class="muted">{t(T.demo, lang)} <a href={url(lang, '/admin/')}>{t(T.admin, lang)}</a></p>
+    <p class="muted">{t(T.demo, lang)} <a href={url(lang, '/admin/')} data-astro-prefetch="false">{t(T.admin, lang)}</a></p>
     <p class="langs">
-      <a href={switchLangUrl(Astro.url.pathname, 'bg')} lang="bg" hreflang="bg" aria-label="Български" aria-current={lang === 'bg' ? 'true' : undefined}>BG</a>
-      <a href={switchLangUrl(Astro.url.pathname, 'en')} lang="en" hreflang="en" aria-label="English" aria-current={lang === 'en' ? 'true' : undefined}>EN</a>
+      <a href={switchLangUrl(Astro.url.pathname, 'bg')} lang="bg" hreflang="bg" data-astro-prefetch="false" aria-label="Български" aria-current={lang === 'bg' ? 'true' : undefined}>BG</a>
+      <a href={switchLangUrl(Astro.url.pathname, 'en')} lang="en" hreflang="en" data-astro-prefetch="false" aria-label="English" aria-current={lang === 'en' ? 'true' : undefined}>EN</a>
     </p>
   </div>
 </footer>
@@ -166,8 +168,10 @@ const isProductPage = /^\/products\/[^/]+\/[^/]+\/$/.test(routeOf(Astro.url.path
     gap: 0;
   }
   .col a {
-    display: inline-block;
-    padding: 0.62rem 0;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0.5rem 0;
     color: var(--fg);
     text-decoration: none;
     font-size: var(--step--1);
@@ -176,8 +180,8 @@ const isProductPage = /^\/products\/[^/]+\/[^/]+\/$/.test(routeOf(Astro.url.path
     text-decoration: underline;
     text-decoration-color: var(--yellow);
   }
-  .row {
-    display: flex !important;
+  .col .row {
+    display: flex;
     align-items: flex-start;
     gap: 0.6rem;
   }
@@ -198,6 +202,8 @@ const isProductPage = /^\/products\/[^/]+\/[^/]+\/$/.test(routeOf(Astro.url.path
   }
   .bottom a {
     color: var(--fg);
+    display: inline-block;
+    padding-block: 12px;
   }
   .langs {
     display: flex;

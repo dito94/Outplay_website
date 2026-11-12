@@ -23,6 +23,8 @@ interface Props {
   fab?: boolean;
   bodyClass?: string;
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  /** keep this page out of search engines for good (admin demo, browser-local pages), not just while staging */
+  noindex?: boolean;
 }
 
 const {
@@ -34,7 +36,10 @@ const {
   fab = true,
   bodyClass,
   jsonLd,
+  noindex = false,
 } = Astro.props;
+/** the whole site is a staging preview for now: drop this flag at launch, pages with `noindex` stay excluded */
+const STAGING = true;
 
 const site = Astro.site ?? new URL('https://dito94.github.io');
 const pathname = Astro.url.pathname;
@@ -60,9 +65,9 @@ const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
-    <meta name="robots" content="noindex, nofollow" />
+    {(noindex || STAGING) && <meta name="robots" content="noindex, nofollow" />}
     {
-      !is404 && (
+      !is404 && !noindex && (
         <>
           <link rel="canonical" href={canonical} />
           <link rel="alternate" hreflang="bg" href={altBg} />
@@ -87,6 +92,25 @@ const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     {ld.map((obj) => <script type="application/ld+json" set:html={JSON.stringify(obj)} />)}
     <script is:inline>
       document.documentElement.classList.add('js');
+    </script>
+    <script is:inline>
+      // Admin-demo changes stored in this browser (src/components/CustomProducts.astro): hide the elements they
+      // rewrite until the module has run, so the catalogue text never flashes first. No-op without stored data;
+      // a timer shows everything again if the module never runs.
+      try {
+        var cpS = window.localStorage;
+        if ((cpS.getItem('outplay.overrides.v1') || '').length > 2 || (cpS.getItem('outplay.customProducts.v1') || '').length > 2) {
+          var cpD = document.documentElement;
+          cpD.setAttribute('data-cp', 'pending');
+          var cpSt = document.createElement('style');
+          cpSt.textContent =
+            'html[data-cp=pending] :is([data-pfield],.p-full,.pgrid,.mega-col ul,.drawer-cats ul,.c-jump,[data-plist],[data-pcount],.hs-text){visibility:hidden!important}';
+          document.head.appendChild(cpSt);
+          setTimeout(function () {
+            cpD.removeAttribute('data-cp');
+          }, 1500);
+        }
+      } catch (e) {}
     </script>
     <slot name="head" />
   </head>

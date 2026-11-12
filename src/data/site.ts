@@ -33,8 +33,9 @@ export const site = {
     country: 'BG',
   },
   phones: [
-    { display: '087 981 12 59', e164: '+359879811259' },
-    { display: '088 998 69 69', e164: '+359889986969' },
+    // `intl` matches the international format integrations/typography.mjs writes into EN pages
+    { display: '087 981 12 59', intl: '+359 87 981 1259', e164: '+359879811259' },
+    { display: '088 998 69 69', intl: '+359 88 998 6969', e164: '+359889986969' },
   ],
   /** Viber number (E.164), the first phone */
   viber: '+359879811259',
