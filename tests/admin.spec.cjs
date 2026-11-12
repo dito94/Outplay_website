@@ -1562,6 +1562,8 @@ async function findPage(page, candidates, selector) {
       );
       await cf.locator("[data-cf-ok]").click();
       await cf.waitFor({ state: "hidden" });
+      // the dialog hides before its close event runs the reset: wait for the storage, not the dialog
+      await page.waitForFunction((k) => localStorage.getItem(k) === null, KEYS.overrides, { timeout: 5000 }).catch(() => {});
       assert.equal(await store(page, KEYS.overrides), null);
       assert.equal(await store(page, KEYS.faq), null);
       assert.equal(await store(page, KEYS.inquiries), null);
@@ -1688,6 +1690,7 @@ async function findPage(page, candidates, selector) {
       assert.equal(await p2.locator("[data-adm-confirm] [data-cf-check]").isVisible(), true);
       assert.equal(await p2.locator("[data-adm-confirm] [data-cf-check] input").isChecked(), false, "not pre-selected");
       await p2.click("[data-adm-confirm] [data-cf-ok]");
+      await p2.waitForSelector(".adm-toasts .adm-toast"); // the reset has run
       assert.equal((await p2.evaluate((k) => JSON.parse(localStorage.getItem(k) || "[]"), KEYS.inquiries)).length, 1, "inquiries kept");
       await c2.close();
     },

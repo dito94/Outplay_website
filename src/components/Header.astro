@@ -615,6 +615,30 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
   :global(body.drawer-lock) {
     overflow: hidden;
   }
+  /* print: header once at the top of the first page, dark-on-light */
+  @media print {
+    .site-header {
+      position: static !important;
+      transform: none !important;
+    }
+    .site-header[data-variant='overlay']:not(.is-solid):not(.mega-open) {
+      background: var(--paper);
+      color: var(--ink);
+    }
+    .site-header[data-variant='overlay']:not(.is-solid):not(.mega-open)::before {
+      display: none;
+    }
+    .site-header[data-variant='overlay']:not(.is-solid):not(.mega-open) .brand :global(.logo-on-dark) {
+      display: none !important;
+    }
+    .site-header[data-variant='overlay']:not(.is-solid):not(.mega-open) .brand :global(.logo-on-light) {
+      display: inline-flex !important;
+    }
+    .mega,
+    .icon-btn {
+      display: none !important;
+    }
+  }
 </style>
 
 <script>
