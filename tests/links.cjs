@@ -7,7 +7,8 @@
 //  3. ?product=<id> links name a real product, and loading them preselects that product in the inquiry form;
 //  4. every product page's quote CTAs ("Request a quote" / "Quote") preselect that product;
 //  5. the header/drawer/footer language switch goes to the same route in the other language;
-//  6. <link rel=canonical> and hreflang bg/en/x-default are absolute, correct and mutually consistent;
+//  6. <link rel=canonical> and hreflang bg/en/x-default are absolute, correct and mutually consistent
+//     (admin, search and the added-product template are never indexed and must carry neither);
 //  7. nothing points outside /Outplay_website/ except the allowed external hosts/schemes;
 //  8. every URL in search-index.json resolves.
 const { chromium } = require('playwright');
@@ -150,8 +151,14 @@ const inLang = (route, lang) => BASE + (lang === 'en' ? 'en/' : '') + route.repl
 
     // 404 pages (the shared 404.html and the English /en/not-found/) have no canonical, and their language switch goes home
     const is404 = route.endsWith('404.html') || /\/not-found\/$/.test(route);
+    // utility pages (admin, the added-product template, search) are never indexed: no canonical, no hreflang
+    const isUtility = /\/(admin|products\/item|search)\/$/.test(route);
     // ---- canonical / hreflang
-    if (!is404) {
+    if (isUtility) {
+      if (data.canonical) fail('canonical-noindex', route, `noindex page declares canonical ${data.canonical}`);
+      if (Object.keys(data.alternates).length) fail('hreflang-noindex', route, `noindex page declares hreflang ${JSON.stringify(data.alternates)}`);
+      if (data.ogUrl !== SITE + route) fail('og:url', route, `${data.ogUrl} ≠ ${SITE + route}`);
+    } else if (!is404) {
       const want = SITE + route;
       if (data.canonical !== want) fail('canonical', route, `${data.canonical} ≠ ${want}`);
       if (data.ogUrl !== want) fail('og:url', route, `${data.ogUrl} ≠ ${want}`);
