@@ -18,7 +18,7 @@ export const GET: APIRoute = () => {
     /** catalogue names, to rename them inside longer texts (page title, aria-labels) */
     names: Object.fromEntries(products.map((p) => [p.id, p.name])),
     /** mid-sentence forms ("стационарен стъклен покрив"), also renamed on the product's page */
-    inline: Object.fromEntries(products.filter((p) => p.nameInline).map((p) => [p.id, p.nameInline])),
+    inline: Object.fromEntries(products.flatMap((p) => (p.nameInline ? [[p.id, p.nameInline]] : []))),
     /** subgroups per category with their catalogue product ids (added products can join one) */
     subgroups: Object.fromEntries(
       categories.map((c) => [c.id, (c.subgroups ?? []).map((sg) => ({ id: sg.id, productIds: sg.productIds }))]),

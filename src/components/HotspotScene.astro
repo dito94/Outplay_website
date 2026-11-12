@@ -120,6 +120,8 @@ const minGap = hotspots.reduce(
   }
   .scene-stage {
     position: relative;
+    /* a size container, so the open card can be capped to the picture's height (cqh) */
+    container-type: size;
     aspect-ratio: 16 / 9;
     background: var(--mist);
   }
@@ -195,7 +197,7 @@ const minGap = hotspots.reduce(
   }
   .hs-card {
     position: absolute;
-    max-height: calc(100% - 40px);
+    max-height: calc(100cqh - 40px);
     overflow: auto;
     width: min(300px, 70vw);
     padding: var(--s-5);
@@ -363,7 +365,7 @@ const minGap = hotspots.reduce(
     const stage = scene.querySelector<HTMLElement>('.scene-stage');
     const gap = Number(stage?.dataset.minGap);
     if (stage && gap > 0 && 'ResizeObserver' in window) {
-      new ResizeObserver(() => scene.classList.toggle('dots-small', stage.clientWidth * gap < 48)).observe(stage);
+      new ResizeObserver(() => scene.classList.toggle('dots-small', stage.clientWidth * gap < 52)).observe(stage);
     }
     btns.forEach((b, i) => {
       b.addEventListener('click', () => {
