@@ -135,10 +135,12 @@ const rows = product.sections.map((s, i) => {
   const image = imageAt.get(i);
   const flip = image ? imageRow++ % 2 === 1 : false;
   const ratio = image ? Math.min(1.6, Math.max(0.95, ratioOf(image))) : 1;
-  // A small photo never grows past its own pixels: cap the box at the width the photo can fill (cover crop).
+  // A clearly too small photo never grows past its own pixels: cap the box at the width the photo can fill
+  // (cover crop). Photos that fill at least ~85% of the ~652px box (≥ 560px) are not capped, so the rows of
+  // one page keep equal gutters; the slight upscale is not visible.
   const w = img(image)?.width ?? 0;
   const fill = image ? Math.floor(ratioOf(image) > ratio ? (w * ratio) / ratioOf(image) : w) : 0;
-  const maxW = fill && fill < 660 ? fill : undefined;
+  const maxW = fill && fill < 560 ? fill : undefined;
   // The hero already shows the tagline; when the first section repeats it, open without a visible heading.
   const intro = i === 0 && norm(t(s.heading, lang)) === taglineKey;
   // Only a short opening paragraph is set as a display-type lead; long ones stay body text.

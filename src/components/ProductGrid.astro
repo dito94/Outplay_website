@@ -18,8 +18,10 @@ interface Props {
   /** the grid opens the page above the fold: the first photo is the LCP, the rest of the first row loads eagerly */
   priority?: boolean;
   class?: string;
+  /** per-product card photo instead of the product hero (product id → image path) */
+  images?: Record<string, string>;
 }
-const { lang, products: items, headingLevel = 'h3', compact = false, priority = false, class: cls } = Astro.props;
+const { lang, products: items, headingLevel = 'h3', compact = false, priority = false, class: cls, images } = Astro.props;
 const n = items.length;
 const lead3 = n % 3 === 2 ? 'span2' : n % 3 === 1 ? 'full' : 'none';
 const lead2 = n % 2 === 1 ? 'full' : 'none';
@@ -40,7 +42,7 @@ const BOX = {
   full: { xl: [751, 1.6], lg: [54, 1.6] }, // horizontal feature, 16:10 photo
 } satisfies Record<string, { xl: Box; lg: Box }>;
 function sizesFor(p: Product, i: number): string {
-  const m = img(productImages(p.id).hero);
+  const m = img(images?.[p.id] ?? productImages(p.id).hero);
   const ar = m ? m.width / m.height : 1.5;
   const need = ([w, r]: Box) => Math.ceil(w * Math.max(1, ar / r));
   const role = i === 0 && lead3 !== 'none' ? lead3 : i === 1 && lead3 === 'span2' ? 'beside' : 'normal';
@@ -57,6 +59,7 @@ function sizesFor(p: Product, i: number): string {
         <ProductCard
           lang={lang}
           product={p}
+          image={images?.[p.id]}
           size={i === 0 && hasLead ? 'large' : 'normal'}
           headingLevel={headingLevel}
           sizes={sizesFor(p, i)}

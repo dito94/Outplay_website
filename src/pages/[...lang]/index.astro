@@ -132,11 +132,9 @@ const tileCrop = { media: '(max-width: 480px)', ratio: 1.1 };
                 </h3>
                 <p class="tile-tag">{t(c.tagline, lang)}</p>
                 <p class="tile-list small" data-plist={c.id}>
-                  {productsOf(c.id).map((p, k) => (
-                    <Fragment>
-                      {k > 0 && '\u00a0· '}
-                      <span data-pid={p.id} data-pfield="name">{t(p.name, lang)}</span>
-                    </Fragment>
+                  {/* name and its following separator with no whitespace between, so a line can only break after "·" */}
+                  {productsOf(c.id).map((p, k, all) => (
+                    <Fragment><span data-pid={p.id} data-pfield="name">{t(p.name, lang)}</span>{k < all.length - 1 && '\u00a0· '}</Fragment>
                   ))}
                 </p>
               </div>

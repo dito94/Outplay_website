@@ -14,9 +14,11 @@ interface Props {
   priority?: boolean;
   /** above the fold but not the LCP: eager, normal priority */
   eager?: boolean;
+  /** card photo instead of the product hero */
+  image?: string;
 }
-const { lang, product, size = 'normal', headingLevel = 'h3', sizes = '(min-width: 1100px) 33vw, (min-width: 700px) 50vw, 100vw', priority = false, eager = false } = Astro.props;
-const { hero } = productImages(product.id);
+const { lang, product, size = 'normal', headingLevel = 'h3', sizes = '(min-width: 1100px) 33vw, (min-width: 700px) 50vw, 100vw', priority = false, eager = false, image } = Astro.props;
+const hero = image ?? productImages(product.id).hero;
 const Tag = headingLevel;
 ---
 <article class:list={['pcard', `pcard-${size}`]} data-pcard data-pid={product.id}>

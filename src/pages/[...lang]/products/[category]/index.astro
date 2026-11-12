@@ -46,7 +46,9 @@ const isBio = category.id === 'bioclimatic-pergolas';
 const inCat = products.filter((p) => p.category === category.id).sort((a, b) => a.order - b.order);
 
 // No photo twice on a page: when the category photo is the same file as a listed product's card photo,
-// the hero uses one of that product's gallery photos instead (wide ones first).
+// the hero uses one of that product's gallery photos instead (wide ones first). When none of them is wide
+// enough for a sharp full-bleed hero, the hero keeps the category photo and that product's card shows its
+// widest other photo instead (landscape first).
 const fingerprint = (p: string | undefined) => {
   if (!p) return '';
   try {
@@ -70,6 +72,14 @@ const swap =
       return r(b) - r(a);
     })[0];
 const heroImage = swap || catImage;
+const cardSwap =
+  clash && !swap
+    ? [...productImages(clash.id).gallery].sort((a, b) => {
+        const land = (x: string) => ((img(x)?.width ?? 0) > (img(x)?.height ?? 0) ? 1 : 0);
+        return land(b) - land(a) || (img(b)?.width ?? 0) - (img(a)?.width ?? 0);
+      })[0]
+    : undefined;
+const cardImages: Record<string, string> | undefined = clash && cardSwap ? { [clash.id]: cardSwap } : undefined;
 
 // `sizes` for cropped photos (object-fit: cover): a photo wider than its box must be rendered at
 // box height × photo ratio, or the browser picks a file that gets upscaled. Category photos are 2.4:1.
@@ -214,7 +224,7 @@ const othersBand = nextBand();
       <section class:list={['section', groupBands[i]]} id={g.id} aria-labelledby={`group-${g.id}`}>
         <div class="wrap">
           <SectionHead id={`group-${g.id}`} title={g.title} intro={g.intro} />
-          <ProductGrid lang={lang} products={g.items} headingLevel="h3" />
+          <ProductGrid lang={lang} products={g.items} headingLevel="h3" images={cardImages} />
         </div>
       </section>
     ))
