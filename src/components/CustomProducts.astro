@@ -2,45 +2,33 @@
 // Applies the admin demo's browser-local catalogue changes on public pages (see src/lib/custom-products.ts):
 // edited and hidden catalogue products, products added in the admin (cards, menu links), balanced product grids
 // and updated product counts. Included once per page by src/layouts/Base.astro.
-import { products } from '../data/products';
-import { categories } from '../data/categories';
-import { url } from '../lib/i18n';
-
-const data = {
-  /** catalogue product id → category id, to recognise which category a grid lists */
-  cats: Object.fromEntries(products.map((p) => [p.id, p.category])),
-  /** catalogue product ids per category */
-  byCat: Object.fromEntries(categories.map((c) => [c.id, products.filter((p) => p.category === c.id).map((p) => p.id)])),
-  /** public page of a custom product, per language: <item>?id=c-… */
-  item: { bg: url('bg', '/products/item/'), en: url('en', '/products/item/') },
-  /** catalogue names, to rename them inside longer texts (page title, aria-labels) */
-  names: Object.fromEntries(products.map((p) => [p.id, p.name])),
-  /** mid-sentence forms ("стационарен стъклен покрив"), also renamed on the product's page */
-  inline: Object.fromEntries(products.filter((p) => p.nameInline).map((p) => [p.id, p.nameInline])),
-  /** subgroups per category with their catalogue product ids (added products can join one) */
-  subgroups: Object.fromEntries(
-    categories.map((c) => [c.id, (c.subgroups ?? []).map((sg) => ({ id: sg.id, productIds: sg.productIds }))]),
-  ),
-  /** shown on the page of a hidden catalogue product (same wording as the page of a hidden added product) */
-  hiddenNote: {
-    bg: 'Продуктът е скрит от списъците на сайта. Виждате страницата, защото я отваряте с директна връзка.',
-    en: 'This product is hidden from the site listings. You can see the page because you opened a direct link.',
-  },
-};
+// Only a browser with admin-demo data stored loads the code and the catalogue map (src/pages/catalogue-config.json.ts);
+// for everyone else this is a few bytes of inline-checked script and nothing else.
+import { asset } from '../lib/i18n';
 ---
 
-<script type="application/json" id="cp-data" is:inline set:html={JSON.stringify(data)}></script>
+<template id="cp-data" data-src={asset('catalogue-config.json')}></template>
 <script>
-  import { applyCatalogue, type CustomProductsConfig } from '../lib/custom-products';
-  try {
-    const el = document.getElementById('cp-data');
-    if (el) applyCatalogue(JSON.parse(el.textContent || '{}') as CustomProductsConfig);
-  } catch {
-    /* never break a page for a demo feature */
-  } finally {
-    // set by the inline check in Base.astro while stored changes are pending
-    document.documentElement.removeAttribute('data-cp');
-  }
+  // same keys as KEYS.overrides / KEYS.customProducts in src/lib/store.ts (not imported, to keep this entry tiny)
+  const stored = (() => {
+    try {
+      const ls = window.localStorage;
+      return (ls.getItem('outplay.overrides.v1') || '').length > 2 || (ls.getItem('outplay.customProducts.v1') || '').length > 2;
+    } catch {
+      return false;
+    }
+  })();
+  // set by the inline check in Base.astro while stored changes are pending
+  const reveal = () => document.documentElement.removeAttribute('data-cp');
+  const src = document.getElementById('cp-data')?.dataset.src;
+  if (stored && src) {
+    Promise.all([import('../lib/custom-products'), fetch(src).then((r) => r.json())])
+      .then(([m, cfg]) => m.applyCatalogue(cfg as import('../lib/custom-products').CustomProductsConfig))
+      .catch(() => {
+        /* never break a page for a demo feature */
+      })
+      .finally(reveal);
+  } else reveal();
 </script>
 
 <style is:global>

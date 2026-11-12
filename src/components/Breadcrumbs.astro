@@ -57,8 +57,12 @@ const ld = {
     background: currentColor;
     opacity: 0.4;
   }
-  .crumbs a { text-decoration: none; opacity: 0.7; padding: 6px 0; }
-  .crumbs a:hover { opacity: 1; text-decoration: underline; }
+  .crumbs a { position: relative; text-decoration: none; opacity: 0.7; padding: 6px 0; }
+  /* 44px tap area without changing the trail's line height */
+  .crumbs a::after { content: ''; position: absolute; inset: -5px -4px; }
+  @media (hover: hover) {
+    .crumbs a:hover { opacity: 1; text-decoration: underline; }
+  }
   .crumbs span[aria-current] { opacity: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60vw; }
   .crumbs-light { color: #fff; }
   /* phones: home and the current page only, so the trail never wraps */

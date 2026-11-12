@@ -10,14 +10,18 @@ interface Props {
   size?: 'normal' | 'large';
   headingLevel?: 'h2' | 'h3';
   sizes?: string;
+  /** the page's likely LCP image: eager + high fetch priority */
+  priority?: boolean;
+  /** above the fold but not the LCP: eager, normal priority */
+  eager?: boolean;
 }
-const { lang, product, size = 'normal', headingLevel = 'h3', sizes = '(min-width: 1100px) 33vw, (min-width: 700px) 50vw, 100vw' } = Astro.props;
+const { lang, product, size = 'normal', headingLevel = 'h3', sizes = '(min-width: 1100px) 33vw, (min-width: 700px) 50vw, 100vw', priority = false, eager = false } = Astro.props;
 const { hero } = productImages(product.id);
 const Tag = headingLevel;
 ---
 <article class:list={['pcard', `pcard-${size}`]} data-pcard data-pid={product.id}>
   <div class="media pcard-media">
-    <Img src={hero} lang={lang} sizes={sizes} widths={[480, 768, 1080, 1440]} />
+    <Img src={hero} lang={lang} sizes={sizes} widths={[480, 768, 1080, 1440]} priority={priority} loading={eager ? 'eager' : undefined} />
   </div>
   <div class="pcard-body">
     <Tag class="pcard-title">
@@ -38,17 +42,20 @@ const Tag = headingLevel;
   .pcard-media { aspect-ratio: 3 / 2; }
   .pcard-large .pcard-media { aspect-ratio: 16 / 10; }
   .pcard-media :global(img) { transition: opacity 0.35s var(--ease); }
-  .pcard:hover .pcard-media :global(img) { opacity: 0.88; }
   .pcard-body { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); height: 100%; }
   .pcard-title {
     font-size: var(--step-2);
     font-weight: 400;
   }
   .pcard-title a { text-decoration: none; }
-  .pcard:hover .pcard-title a {
-    text-decoration: underline;
-    text-decoration-color: var(--yellow);
-    text-decoration-thickness: 2px;
+  @media (hover: hover) {
+    .pcard:hover .pcard-media :global(img) { opacity: 0.88; }
+    .pcard:hover .pcard-title a {
+      text-decoration: underline;
+      text-decoration-color: var(--yellow);
+      text-decoration-thickness: 2px;
+    }
+    .pcard:hover .pcard-more :global(svg) { transform: translateX(3px); }
   }
   .stretched::after { content: ''; position: absolute; inset: 0; z-index: 1; }
   .pcard-tag { font-family: var(--font-display); font-size: var(--step-0); color: var(--fg); opacity: 0.85; }
@@ -60,8 +67,8 @@ const Tag = headingLevel;
     font-size: var(--step--1); font-weight: 600;
   }
   .pcard-more :global(svg) { transition: transform 0.25s var(--ease); }
-  .pcard:hover .pcard-more :global(svg) { transform: translateX(3px); }
-  .pcard:focus-within { outline: 2px solid var(--focus); outline-offset: 6px; }
+  /* keyboard focus only (a mouse click on the card must not leave a ring) */
+  .pcard:has(.stretched:focus-visible) { outline: 2px solid var(--focus); outline-offset: 6px; }
   @media (max-width: 640px) {
     .pcard-sum { font-size: var(--step-0); }
   }

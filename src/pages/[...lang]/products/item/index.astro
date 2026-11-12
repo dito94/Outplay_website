@@ -310,6 +310,8 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
         const title = subnav.querySelector('.sn-title');
         if (title) title.textContent = name;
       }
+      const snWrap = document.querySelector<HTMLElement>('[data-ci-subnav]');
+      if (snWrap) snWrap.hidden = false;
       document.title = `${name} · OUTPLAY`;
       const desc = document.querySelector('meta[name="description"]');
       if (desc && (summary || tagline)) desc.setAttribute('content', summary || tagline);
@@ -319,6 +321,8 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
     else renderMissing();
   </script>
 
+  <!-- hidden until a product has loaded (without JavaScript its anchors would lead nowhere) -->
+  <div class="ci-sn" data-ci-subnav hidden>
   <SubNav
     lang={lang}
     items={[
@@ -330,6 +334,7 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
     title=" "
     cta={{ label: S.quoteShort, href: '#inquiry' }}
   />
+  </div>
   <div class="ci" data-ci-body></div>
   <section id="inquiry" data-sn-section="inquiry" data-sticky-cta-hide class="section ci-inquiry" aria-labelledby="ci-inquiry" hidden data-ci-inquiry>
     <div class="wrap ci-inq">
@@ -367,6 +372,13 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
 
 <style is:global>
   /* Mirrors the hero and section styles of the catalogue product page ([product].astro) */
+  /* the wrapper only toggles the sub-nav; display: contents keeps it sticky against the page */
+  .ci-sn {
+    display: contents;
+  }
+  .ci-sn[hidden] {
+    display: none;
+  }
   .ci-loading {
     min-height: 50vh;
   }

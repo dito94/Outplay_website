@@ -95,6 +95,18 @@ const Tag = headingLevel;
     max-width: 34ch;
   }
 
+  /* Side by side, the steps share their row tracks (number / node / title / text), so a title that wraps to
+     more lines pushes every text in that row down by the same amount and the texts start on one line. */
+  @media (min-width: 701px) {
+    @supports (grid-template-rows: subgrid) {
+      .tl-step {
+        grid-row: span 4;
+        grid-template-rows: subgrid;
+        row-gap: var(--s-3);
+      }
+    }
+  }
+
   @media (max-width: 1100px) {
     .tl {
       grid-template-columns: repeat(3, minmax(0, 1fr));

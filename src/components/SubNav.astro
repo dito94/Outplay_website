@@ -124,8 +124,10 @@ const pagePid = routeMatch && products.some((p) => p.category === routeMatch[1] 
     transform-origin: left;
     transition: transform 0.3s var(--ease);
   }
-  .sn-link:hover {
-    color: var(--ink);
+  @media (hover: hover) {
+    .sn-link:hover {
+      color: var(--ink);
+    }
   }
   .sn-link[aria-current='true'] {
     color: var(--ink);
@@ -185,6 +187,7 @@ const pagePid = routeMatch && products.some((p) => p.category === routeMatch[1] 
     );
     if (!sections.length) return;
 
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     let current = '';
     const setCurrent = (id: string) => {
       if (id === current) return;
@@ -198,7 +201,7 @@ const pagePid = routeMatch && products.some((p) => p.category === routeMatch[1] 
       if (list && active && list.scrollWidth > list.clientWidth) {
         const l = active.offsetLeft - list.offsetLeft;
         const target = l - (list.clientWidth - active.offsetWidth) / 2;
-        list.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
+        list.scrollTo({ left: Math.max(0, target), behavior: reduced.matches ? 'auto' : 'smooth' });
       }
     };
 
@@ -235,5 +238,44 @@ const pagePid = routeMatch && products.some((p) => p.category === routeMatch[1] 
     window.addEventListener('hashchange', schedule);
     window.addEventListener('load', update);
     update();
+
+    // Phones/tablets (≤ 900px): the header hides while scrolling down and returns on scroll up, so the CSS
+    // offset (html scroll-padding = header height) is only right half the time. Jumps to this page's
+    // sections are placed here instead, predicting the header state the way the header script decides it.
+    const small = window.matchMedia('(max-width: 900px)');
+    const jumpTop = (el: HTMLElement) => {
+      const y0 = el.getBoundingClientRect().top + window.scrollY;
+      const header = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 72;
+      const hidden = y0 - nav.offsetHeight; // header hidden: the bar sits at the top
+      const shown = hidden - header;
+      const y = window.scrollY;
+      if (hidden > 160 && hidden > y + 4) return hidden;
+      if (shown <= 160 || shown < y - 4) return shown;
+      return document.documentElement.classList.contains('header-hidden') ? hidden : shown;
+    };
+    const jump = (id: string, smooth: boolean) => {
+      const el = document.getElementById(id);
+      if (!el || !ids.includes(id)) return false;
+      window.scrollTo({ top: Math.max(0, jumpTop(el)), behavior: smooth && !reduced.matches ? 'smooth' : 'auto' });
+      // move the keyboard starting point to the section, as a native anchor jump would
+      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+      el.focus({ preventScroll: true });
+      return true;
+    };
+    document.addEventListener('click', (e) => {
+      if (!small.matches || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as HTMLElement).closest?.<HTMLAnchorElement>('a[href^="#"]');
+      const id = a?.getAttribute('href')?.slice(1) ?? '';
+      if (!id || !jump(id, true)) return;
+      e.preventDefault();
+      if (location.hash !== `#${id}`) history.pushState(history.state, '', `#${id}`);
+    });
+    // a deep link (/…/#specs) opened on a phone: correct the browser's jump once the page has laid out
+    const initial = location.hash.slice(1);
+    if (initial && ids.includes(initial)) {
+      window.addEventListener('load', () => {
+        if (small.matches) requestAnimationFrame(() => jump(initial, false));
+      });
+    }
   });
 </script>

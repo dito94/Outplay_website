@@ -1,7 +1,8 @@
 ---
 // Page-level lightbox. Include once per page: <Lightbox lang={lang} />
 // Any <a data-lightbox="group" href="FULL_IMAGE_URL" data-caption="…"> opens it; items in the same group
-// can be browsed with arrows / swipe. Use `lightboxSrc(path)` from src/lib/images.ts for the href.
+// can be browsed with arrows / swipe. Use `lightboxSrc(path)` from src/lib/images.ts for the href. When the link holds
+// the thumbnail <img>, the viewer loads the size it needs from that image's srcset (the same files, sizes 100vw).
 import type { Lang } from '../data/types';
 import Icon from './Icon.astro';
 interface Props {
@@ -103,13 +104,19 @@ const T = {
       background-color 0.2s var(--ease),
       border-color 0.2s var(--ease);
   }
-  .lb-btn:hover {
-    background: var(--yellow);
-    border-color: var(--yellow);
-    color: var(--ink);
+  @media (hover: hover) {
+    .lb-btn:hover {
+      background: var(--yellow);
+      border-color: var(--yellow);
+      color: var(--ink);
+    }
+  }
+  .lb {
+    /* dark viewer: the global focus ring colour would not show, so the brand yellow is used here */
+    --focus: var(--yellow);
   }
   .lb-btn:focus-visible {
-    outline: 2px solid var(--yellow);
+    outline: 2px solid var(--focus);
     outline-offset: 3px;
   }
   .lb-prev {
@@ -157,17 +164,31 @@ const T = {
     let opener: HTMLElement | null = null;
     let pushed = false;
 
+    const BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+    /** the thumbnail's srcset: the same files the page already uses, picked for the full-screen width */
+    const srcsetOf = (a: HTMLAnchorElement) => a.querySelector('img')?.getAttribute('srcset') || '';
+    const load = (target: HTMLImageElement, a: HTMLAnchorElement) => {
+      const set = srcsetOf(a);
+      // clear the old picture first, so a slow load never shows the previous photo under the new caption
+      target.removeAttribute('srcset');
+      target.src = BLANK;
+      if (set) {
+        target.sizes = '100vw';
+        target.srcset = set;
+      }
+      target.src = a.href;
+    };
     const show = (i: number) => {
       index = (i + items.length) % items.length;
       const a = items[index];
-      imgEl.src = a.href;
+      load(imgEl, a);
       imgEl.alt = a.querySelector('img')?.alt ?? a.dataset.caption ?? '';
       capEl.textContent = a.dataset.caption ?? imgEl.alt;
       countEl.textContent = items.length > 1 ? `${index + 1} / ${items.length}` : '';
       // preload neighbours
       [index + 1, index - 1].forEach((n) => {
         const b = items[(n + items.length) % items.length];
-        if (b) new Image().src = b.href;
+        if (b) load(new Image(), b);
       });
     };
 
@@ -175,8 +196,8 @@ const T = {
       const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[data-lightbox]');
       if (!a || e.metaKey || e.ctrlKey || e.shiftKey) return;
       e.preventDefault();
-      const group = a.dataset.lightbox;
-      items = Array.from(document.querySelectorAll<HTMLAnchorElement>(`a[data-lightbox="${group}"]`)).filter(
+      const group = a.dataset.lightbox ?? '';
+      items = Array.from(document.querySelectorAll<HTMLAnchorElement>(`a[data-lightbox="${CSS.escape(group)}"]`)).filter(
         // every item of the group except those switched off by a filter (data-lb-off), even if paged out of view
         (el) => el === a || !el.closest('[data-lb-off]'),
       );
@@ -184,6 +205,8 @@ const T = {
       dlg.toggleAttribute('data-single', items.length < 2);
       show(items.indexOf(a));
       dlg.showModal();
+      // showModal() focuses the first button (Previous); start on Close, which screen readers then announce first
+      dlg.querySelector<HTMLButtonElement>('[data-lb-close]')?.focus();
       document.body.style.overflow = 'hidden';
       // a history entry so the phone Back gesture closes the viewer instead of leaving the page
       try {
@@ -209,7 +232,8 @@ const T = {
         if (history.state?.outplayLightbox) history.back();
       }
       document.body.style.overflow = '';
-      imgEl.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+      imgEl.removeAttribute('srcset');
+      imgEl.src = BLANK;
       opener?.focus();
     });
     dlg.addEventListener('click', (e) => {

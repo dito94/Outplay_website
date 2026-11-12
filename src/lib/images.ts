@@ -59,11 +59,16 @@ export function focalOf(path: string | undefined): string | undefined {
   return imageMeta[path]?.focal;
 }
 
-/** URL of a large WebP rendition for lightboxes (call from component frontmatter) */
-export async function lightboxSrc(path: string | undefined, width = 2000): Promise<string | undefined> {
+/**
+ * URL of a large WebP rendition for lightbox links (call from component frontmatter). It is the no-JS target and
+ * the fallback; the lightbox itself loads the size it needs from the thumbnail's srcset. Same format, quality and
+ * widths as Img.astro (1920, or the photo's own width when smaller), so the file is shared with the page images
+ * instead of being generated and downloaded a second time.
+ */
+export async function lightboxSrc(path: string | undefined, width = 1920): Promise<string | undefined> {
   const meta = img(path);
   if (!meta) return undefined;
   const { getImage } = await import('astro:assets');
-  const out = await getImage({ src: meta, width: Math.min(width, meta.width), format: 'webp', quality: 82 });
+  const out = await getImage({ src: meta, width: meta.width > width ? width : meta.width, format: 'webp', quality: 80 });
   return out.src;
 }

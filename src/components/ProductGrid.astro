@@ -15,13 +15,17 @@ interface Props {
   headingLevel?: 'h2' | 'h3';
   /** phones: compact row list instead of full-width cards */
   compact?: boolean;
+  /** the grid opens the page above the fold: the first photo is the LCP, the rest of the first row loads eagerly */
+  priority?: boolean;
   class?: string;
 }
-const { lang, products: items, headingLevel = 'h3', compact = false, class: cls } = Astro.props;
+const { lang, products: items, headingLevel = 'h3', compact = false, priority = false, class: cls } = Astro.props;
 const n = items.length;
 const lead3 = n % 3 === 2 ? 'span2' : n % 3 === 1 ? 'full' : 'none';
 const lead2 = n % 2 === 1 ? 'full' : 'none';
 const hasLead = lead3 !== 'none' || lead2 !== 'none';
+// cards in the first desktop row (3 columns): 1 when the lead spans the row, 2 beside a 2-column lead, else 3
+const firstRow = lead3 === 'full' ? 1 : lead3 === 'span2' ? 2 : 3;
 
 /**
  * `sizes` per card. Photos are cropped (object-fit: cover), so a photo wider than its box must be rendered
@@ -56,6 +60,8 @@ function sizesFor(p: Product, i: number): string {
           size={i === 0 && hasLead ? 'large' : 'normal'}
           headingLevel={headingLevel}
           sizes={sizesFor(p, i)}
+          priority={priority && i === 0}
+          eager={priority && i > 0 && i < firstRow}
         />
       </div>
     ))
@@ -142,7 +148,7 @@ function sizesFor(p: Product, i: number): string {
     .pgrid.compact > .pg-item :global(.pcard-more) {
       display: none;
     }
-    .pgrid.compact > .pg-item :global(.pcard:focus-within) {
+    .pgrid.compact > .pg-item :global(.pcard:has(.stretched:focus-visible)) {
       outline-offset: 2px;
     }
   }

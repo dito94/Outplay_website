@@ -12,7 +12,7 @@ export const T = {
   banner: A.banner,
   brand: { bg: 'OUTPLAY Админ', en: 'OUTPLAY Admin' },
   adminNav: { bg: 'Навигация в админ панела', en: 'Admin navigation' },
-  reset: { bg: 'Нулирай демо данните', en: 'Reset demo data' },
+  reset: A.actions.resetDemo,
   logout: A.nav.logout,
   viewSite: A.nav.viewSite,
   role: { bg: 'Администратор', en: 'Administrator' },
@@ -26,7 +26,7 @@ export const T = {
   cancel: A.actions.cancel,
   dismiss: { bg: 'Затвори известието', en: 'Dismiss notification' },
   saveFailed: {
-    bg: 'Промените не бяха запазени — паметта на браузъра е недостъпна или пълна.',
+    bg: 'Промените не бяха запазени – паметта на браузъра е недостъпна или пълна.',
     en: 'Your changes were not saved: browser storage is unavailable or full.',
   },
   leaveTitle: { bg: 'Незапазени промени', en: 'Unsaved changes' },
@@ -43,7 +43,7 @@ export const T = {
   loginLead: A.login.title,
   username: A.login.username,
   password: A.login.password,
-  submit: { bg: 'Влез', en: 'Sign in' },
+  submit: A.login.submit,
   loginHint: A.login.hint,
   loginError: A.login.error,
   loginEmpty: { bg: 'Въведете потребителско име и парола.', en: 'Enter your username and password.' },
@@ -89,8 +89,8 @@ export const T = {
   qaSite: { bg: 'Отвори сайта', en: 'Open the website' },
   howTitle: { bg: 'Как работи демото', en: 'How the demo works' },
   howText: {
-    bg: 'Промените се записват в паметта на този браузър и се виждат на публичните страници само тук. В реалната версия се записват на сървъра и всеки посетител ги вижда веднага.',
-    en: 'Changes are saved in this browser’s storage and show on the public pages only here. In the live version they are saved on the server and every visitor sees them straight away.',
+    bg: 'Промените се записват в паметта на този браузър. Редакциите и добавените продукти се виждат на публичните страници само тук, а редакциите на въпросите остават в админ панела. В реалната версия всичко се записва на сървъра и всеки посетител го вижда веднага.',
+    en: 'Changes are saved in this browser’s storage. Product edits and added products show on the public pages only here; FAQ edits stay in the admin panel. In the live version everything is saved on the server and every visitor sees it straight away.',
   },
 
   // Inquiries
@@ -132,7 +132,7 @@ export const T = {
   phone: ui.form.labels.phone,
   email: ui.form.labels.email,
   city: ui.form.labels.city,
-  channel: ui.form.labels.contactChannel,
+  channel: { bg: 'Предпочитан канал', en: 'Preferred channel' },
   call: { bg: 'Обади се', en: 'Call' },
   viber: { bg: 'Viber', en: 'Viber' },
   writeEmail: { bg: 'Пиши', en: 'Email' },
@@ -203,7 +203,7 @@ export const T = {
   },
   revertConfirm: { bg: 'Върни оригинала', en: 'Restore original' },
   savedToast: {
-    bg: 'Запазено — промените се виждат на сайта в този браузър',
+    bg: 'Запазено – промените се виждат на сайта в този браузър',
     en: 'Saved. The changes show on the site in this browser',
   },
   viewPage: { bg: 'Виж страницата', en: 'View page' },
@@ -320,8 +320,30 @@ export const T = {
     en: 'This browser does not allow saving (for example in private mode). Nothing was saved.',
   },
   cpStorage: { bg: 'Памет на браузъра: {used} от около {total}', en: 'Browser storage: {used} of about {total}' },
+  cpStorageDraft: {
+    bg: 'Памет на браузъра заедно с този продукт: {used} от около {total}',
+    en: 'Browser storage including this product: {used} of about {total}',
+  },
+  cpStorageWarn: {
+    bg: 'Паметта е почти пълна и продуктът може да не се запази. Премахнете снимка или качете по-малки.',
+    en: 'Storage is almost full and the product may not save. Remove a photo or upload smaller ones.',
+  },
+  cpGone: {
+    bg: 'Продуктът е изтрит в друг раздел. Текстът и снимките Ви са запазени тук като нов продукт – запишете, ако искате да го възстановите.',
+    en: 'This product was deleted in another tab. Your text and photos are kept here as a new product – save to restore it.',
+  },
+  edStale: {
+    bg: 'Продуктът е променен в друг раздел. При запис се обновяват само полетата, които Вие сте редактирали тук.',
+    en: 'This product was changed in another tab. Saving updates only the fields you have edited here.',
+  },
+  emptyHint: { bg: 'Оставете празно, за да се покаже оригиналният текст.', en: 'Leave empty to show the original text.' },
+  deletedProduct: { bg: 'Изтрит продукт', en: 'Deleted product' },
+  noStorage: {
+    bg: 'Този браузър не позволява запис (например в частен режим). Можете да разгледате панела, но промените няма да се запазят.',
+    en: 'This browser does not allow saving (for example in private mode). You can look around, but changes will not be saved.',
+  },
   cpNoImages: { bg: 'Още няма снимки. Без снимка картата показва тъмен фон.', en: 'No photos yet. Without one the card shows a dark plate.' },
-  cpCreated: { bg: 'Продуктът е добавен — вижда се на сайта в този браузър', en: 'Product added. It shows on the site in this browser' },
+  cpCreated: { bg: 'Продуктът е добавен – вижда се на сайта в този браузър', en: 'Product added. It shows on the site in this browser' },
   cpDelete: { bg: 'Изтрий продукта', en: 'Delete product' },
   cpDeleteTitle: { bg: 'Изтриване на продукта', en: 'Delete this product' },
   cpDeleteText: {

@@ -2,7 +2,8 @@
 import type { Lang } from '../data/types';
 import { categories } from '../data/categories';
 import { products } from '../data/products';
-import { url, categoryUrl, productUrl, switchLangUrl, routeOf, t } from '../lib/i18n';
+import { site } from '../data/site';
+import { url, categoryUrl, productUrl, switchLangUrl, routeOf, isProductRoute, t } from '../lib/i18n';
 import Logo from './Logo.astro';
 import Icon from './Icon.astro';
 import Img from './Img.astro';
@@ -28,6 +29,7 @@ const L = {
   home: { bg: 'OUTPLAY – начало', en: 'OUTPLAY – home' },
   lang: { bg: 'Език', en: 'Language' },
   callUs: { bg: 'Обадете се', en: 'Call us' },
+  menu: { bg: 'Меню', en: 'Menu' },
   systems: { bg: 'системи', en: 'systems' },
 };
 
@@ -41,8 +43,7 @@ const nav = [
 ];
 const isProducts = route.startsWith('/products/');
 // On a product page the quote buttons jump to that product's own inquiry form
-// /products/<category>/<id>/ and the admin-added product page /products/item/ both embed an #inquiry form
-const isProductPage = /^\/products\/[^/]+\/[^/]+\/$/.test(route) || route === '/products/item/';
+const isProductPage = isProductRoute(route);
 const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
 ---
 
@@ -66,6 +67,10 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
             {t(L.products, lang)}
             <Icon name="chevron-down" size={16} />
           </button>
+          <!-- without JavaScript the menu can't open: a plain link instead -->
+          <a class="nav-link nojs-only" href={url(lang, '/products/')} aria-current={isProducts ? 'page' : undefined}>
+            {t(L.products, lang)}
+          </a>
         </li>
         {
           nav.map((n) => (
@@ -80,15 +85,15 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     </nav>
 
     <div class="tools">
-      <button class="icon-btn search-btn" type="button" data-search-open aria-label={t(L.search, lang)}>
+      <a class="icon-btn search-btn" href={url(lang, '/search/')} data-search-open aria-haspopup="dialog" aria-label={t(L.search, lang)}>
         <Icon name="search" size={20} />
-      </button>
+      </a>
       <div class="lang" role="group" aria-label={t(L.lang, lang)}>
-        <a href={switchLangUrl(Astro.url.pathname, 'bg')} hreflang="bg" lang="bg" aria-current={lang === 'bg' ? 'true' : undefined}
+        <a href={switchLangUrl(Astro.url.pathname, 'bg')} hreflang="bg" lang="bg" data-astro-prefetch="false" aria-current={lang === 'bg' ? 'true' : undefined}
           >BG</a
         >
         <span aria-hidden="true">/</span>
-        <a href={switchLangUrl(Astro.url.pathname, 'en')} hreflang="en" lang="en" aria-current={lang === 'en' ? 'true' : undefined}
+        <a href={switchLangUrl(Astro.url.pathname, 'en')} hreflang="en" lang="en" data-astro-prefetch="false" aria-current={lang === 'en' ? 'true' : undefined}
           >EN</a
         >
       </div>
@@ -97,6 +102,11 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
         <Icon name="menu" size={24} />
         <span class="sr-only">{t(L.openMenu, lang)}</span>
       </button>
+      <!-- without JavaScript the drawer can't open: jump to the full navigation in the footer -->
+      <a class="icon-btn burger nojs-only" href="#site-footer">
+        <Icon name="menu" size={24} />
+        <span class="sr-only">{t(L.menu, lang)}</span>
+      </a>
     </div>
   </div>
 
@@ -148,7 +158,7 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     </button>
     <ul class="drawer-cats">
       {
-        cats.map((c, i) => (
+        cats.map((c) => (
           <li>
             <details name="drawer-cat">
               <summary>
@@ -183,12 +193,12 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     </ul>
     <div class="drawer-actions">
       <a class="btn" href={quoteHref} data-drawer-link>{t(L.inquiry, lang)} <Icon name="arrow-right" class="arrow" /></a>
-      <a class="btn btn-viber" href="viber://chat?number=%2B359879811259"><Icon name="viber" /> Viber</a>
-      <a class="btn btn-ghost" href="tel:+359879811259"><Icon name="phone" /> 087 981 12 59</a>
+      <a class="btn btn-viber" href={site.viberUrl}><Icon name="viber" /> Viber</a>
+      <a class="btn btn-ghost" href={`tel:${site.phones[0].e164}`}><Icon name="phone" /> {site.phones[0].display}</a>
     </div>
     <div class="drawer-lang">
-      <a href={switchLangUrl(Astro.url.pathname, 'bg')} lang="bg" hreflang="bg" aria-current={lang === 'bg' ? 'true' : undefined}>Български</a>
-      <a href={switchLangUrl(Astro.url.pathname, 'en')} lang="en" hreflang="en" aria-current={lang === 'en' ? 'true' : undefined}>English</a>
+      <a href={switchLangUrl(Astro.url.pathname, 'bg')} lang="bg" hreflang="bg" data-astro-prefetch="false" aria-current={lang === 'bg' ? 'true' : undefined}>Български</a>
+      <a href={switchLangUrl(Astro.url.pathname, 'en')} lang="en" hreflang="en" data-astro-prefetch="false" aria-current={lang === 'en' ? 'true' : undefined}>English</a>
     </div>
   </nav>
 </div>
@@ -296,7 +306,11 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     transform-origin: left;
     transition: transform 0.3s var(--ease);
   }
-  .nav-link:hover::after,
+  @media (hover: hover) {
+    .nav-link:hover::after {
+      transform: scaleX(1);
+    }
+  }
   .nav-link[aria-current='page']::after,
   .mega-toggle[aria-expanded='true']::after {
     transform: scaleX(1);
@@ -325,8 +339,18 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     color: inherit;
     border-radius: var(--radius);
   }
-  .icon-btn:hover {
-    background: color-mix(in srgb, currentColor 8%, transparent);
+  @media (hover: hover) {
+    .icon-btn:hover {
+      background: color-mix(in srgb, currentColor 8%, transparent);
+    }
+  }
+  /* no-JS fallbacks (Base adds .js to <html> before first paint) */
+  :global(html.js) .nojs-only {
+    display: none !important;
+  }
+  :global(html:not(.js)) .mega-toggle,
+  :global(html:not(.js)) [data-drawer-open] {
+    display: none !important;
   }
   .lang {
     display: flex;
@@ -358,6 +382,10 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     left: 0;
     right: 0;
     top: 100%;
+    /* the header is fixed/sticky, so a tall panel must scroll itself on short screens */
+    max-height: calc(100dvh - var(--header-h));
+    overflow-y: auto;
+    overscroll-behavior: contain;
     background: var(--paper);
     color: var(--ink);
     border-top: 1px solid var(--line);
@@ -428,6 +456,11 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
   .mega-foot {
     padding-bottom: var(--s-6);
   }
+  @media (max-height: 760px) {
+    .mega-thumb {
+      display: none;
+    }
+  }
 
   /* Drawer */
   .drawer {
@@ -457,9 +490,6 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     top: 0;
     background: var(--ink);
     z-index: 1;
-  }
-  .drawer-head :global(.logo) {
-    height: 40px;
   }
   .drawer-body {
     padding-top: var(--s-5);
@@ -516,7 +546,9 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     display: grid;
   }
   .drawer details a {
-    display: block;
+    display: flex;
+    align-items: center;
+    min-height: 44px;
     padding: 0.55rem 0;
     color: var(--alu);
     text-decoration: none;
@@ -616,10 +648,12 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
         pinned = true;
         return;
       }
-      pinned = false;
+      clearTimeout(hoverTimer);
       hoverOpen = false;
       const open = toggle.getAttribute('aria-expanded') !== 'true';
       setMega(open);
+      // opened by a click: stays open until a click, Escape, focus leaving or an outside click
+      pinned = open;
       // opened from the keyboard: move focus into the panel
       if (open && (e as MouseEvent).detail === 0) mega?.querySelector<HTMLElement>('a')?.focus();
     });
@@ -698,14 +732,38 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
   const drawer = document.querySelector<HTMLElement>('[data-drawer]');
   const openBtn = document.querySelector<HTMLButtonElement>('[data-drawer-open]');
   const closeBtn = document.querySelector<HTMLButtonElement>('[data-drawer-close]');
+  // aria-modal: everything else on the page is inert while the drawer is open (only what this script made inert is
+  // restored, so elements that manage their own inert state, e.g. the sticky bar, keep it)
+  let inerted: HTMLElement[] = [];
+  const setPageInert = (on: boolean) => {
+    if (on) {
+      inerted = Array.from(document.body.children).filter(
+        (el): el is HTMLElement => el instanceof HTMLElement && el !== drawer && !el.inert && !['SCRIPT', 'TEMPLATE', 'DIALOG'].includes(el.tagName),
+      );
+      inerted.forEach((el) => (el.inert = true));
+    } else {
+      inerted.forEach((el) => (el.inert = false));
+      inerted = [];
+    }
+  };
   const setDrawer = (open: boolean) => {
     if (!drawer || !openBtn) return;
     drawer.hidden = !open;
     openBtn.setAttribute('aria-expanded', String(open));
     document.body.classList.toggle('drawer-lock', open);
+    setPageInert(open);
     if (open) closeBtn?.focus();
     else openBtn.focus();
   };
+  // the drawer only exists below the desktop breakpoint: close it if the window grows past it while open
+  window.matchMedia('(max-width: 1080px)').addEventListener('change', (e) => {
+    if (!e.matches && drawer && !drawer.hidden) {
+      drawer.hidden = true;
+      openBtn?.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('drawer-lock');
+      setPageInert(false);
+    }
+  });
   openBtn?.addEventListener('click', () => setDrawer(true));
   // Restored from the back/forward cache: never come back with the drawer open
   window.addEventListener('pageshow', (e) => {
@@ -713,6 +771,7 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
       drawer.hidden = true;
       openBtn?.setAttribute('aria-expanded', 'false');
       document.body.classList.remove('drawer-lock');
+      setPageInert(false);
     }
   });
   closeBtn?.addEventListener('click', () => setDrawer(false));
@@ -740,4 +799,16 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
       if (u.pathname === location.pathname && u.search === location.search) setDrawer(false);
     }),
   );
+
+  // Language switch (header, drawer, footer): keep the query and the hash the page has at the moment the link is used
+  // (/contact/?product=x#inquiry, /admin/#products/x, search filters), since both can change after load. Runs in the
+  // bubble phase, so it has the last word over any capture-phase handler that only carries the query.
+  const syncLangLink = (e: Event) => {
+    const a = (e.target as HTMLElement | null)?.closest?.<HTMLAnchorElement>('.lang a, .drawer-lang a, .langs a');
+    if (!a) return;
+    const base = a.dataset.base ?? (a.getAttribute('href') ?? '').split(/[?#]/)[0];
+    a.dataset.base = base;
+    a.setAttribute('href', base + location.search + location.hash);
+  };
+  ['pointerdown', 'focusin', 'click', 'mouseover'].forEach((t) => document.addEventListener(t, syncLangLink));
 </script>

@@ -33,7 +33,7 @@ const year = new Date().getFullYear();
 const isProductPage = isProductRoute(routeOf(Astro.url.pathname));
 ---
 
-<footer class="site-footer night">
+<footer class="site-footer night" id="site-footer">
   <div class="wrap top">
     <div class="brandcol">
       <a href={url(lang, '/')} class="f-logo" aria-label="OUTPLAY"><Logo tone="light" /></a>
@@ -202,8 +202,13 @@ const isProductPage = isProductRoute(routeOf(Astro.url.pathname));
   }
   .bottom a {
     color: var(--fg);
-    display: inline-block;
-    padding-block: 12px;
+    position: relative;
+  }
+  /* 44px tap area without changing the line */
+  .bottom p:not(.langs) a::after {
+    content: '';
+    position: absolute;
+    inset: -13px 0;
   }
   .langs {
     display: flex;

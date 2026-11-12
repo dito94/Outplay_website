@@ -41,7 +41,7 @@ const T = {
   step3: { bg: 'Контакти', en: 'Contact details' },
   progress: { bg: 'Стъпки на запитването', en: 'Request steps' },
   productHint: {
-    bg: 'Не сте сигурни? Изберете най‑близкия продукт и опишете идеята си в следващата стъпка.',
+    bg: 'Не сте сигурни? Изберете най-близкия продукт и опишете идеята си в следващата стъпка.',
     en: 'Not sure? Pick the closest product and describe your idea in the next step.',
   },
   multi: { bg: 'изберете колкото желаете', en: 'choose any' },
@@ -92,7 +92,7 @@ const T = {
     en: 'Sending the request online needs JavaScript. You can call us, message us on Viber or email:',
   },
   storageFailed: {
-    bg: 'Не успяхме да запазим запитването в този браузър – съхранението на данни може да е изключено. Обобщението по‑долу е пълно: копирайте го или ни се обадете.',
+    bg: 'Не успяхме да запазим запитването в този браузър – съхранението на данни може да е изключено. Обобщението по-долу е пълно: копирайте го или ни се обадете.',
     en: 'We could not save the request in this browser; site storage may be turned off. The summary below is complete: copy it or give us a call.',
   },
   copySummary: { bg: 'Копирай обобщението', en: 'Copy summary' },
@@ -2140,7 +2140,7 @@ const optional = tx(ui.form.hints.optional);
     const params = new URLSearchParams(window.location.search);
     const requested = (runtimeParam && params.get(runtimeParam)) || params.get('product');
     // Admin-demo data is this browser's own localStorage: a malformed entry is skipped, never allowed to stop the form.
-    const safeEach = <T>(load: () => T[], fn: (item: T) => void) => {
+    const safeEach = <T extends unknown>(load: () => T[], fn: (item: T) => void) => {
       let list: T[] = [];
       try {
         list = load();
@@ -3170,6 +3170,7 @@ const optional = tx(ui.form.hints.optional);
     $('[data-iq-new]')?.addEventListener('click', () => {
       const last = productId;
       resetForm(true);
+      $('[data-iq-copy-fail]')?.setAttribute('hidden', '');
       if (last && !initialProduct()) setProduct(last, true);
       successEl.hidden = true;
       form.hidden = false;

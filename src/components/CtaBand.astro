@@ -17,7 +17,7 @@ const T = {
   cta: { bg: 'Направете запитване', en: 'Request a quote' },
 };
 const href = url(lang, `/contact/${productId ? `?product=${productId}` : ''}#inquiry`);
-const viber = `viber://chat?number=${encodeURIComponent(site.viber ?? site.phones[0].e164)}`;
+const viber = site.viberUrl;
 ---
 <section class="cta-band" aria-labelledby="cta-band-title">
   <div class="wrap inner">
@@ -55,12 +55,13 @@ const viber = `viber://chat?number=${encodeURIComponent(site.viber ?? site.phone
   .actions { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center; justify-content: flex-end; }
   .phone {
     display: inline-flex; align-items: center; gap: 0.5rem;
-    min-height: 52px; padding: 0 0.5rem;
+    min-height: 52px; padding: 0 0.5rem; margin-right: -0.5rem;
     font-weight: 600; text-decoration: none;
   }
   .phone:hover { text-decoration: underline; }
   @media (max-width: 900px) {
     .inner { grid-template-columns: minmax(0, 1fr); align-items: start; }
     .actions { justify-content: flex-start; }
+    .phone { margin-right: 0; margin-left: -0.5rem; }
   }
 </style>

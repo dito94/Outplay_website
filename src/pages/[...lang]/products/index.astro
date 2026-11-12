@@ -9,7 +9,7 @@ import { categories } from '../../../data/categories';
 import { products } from '../../../data/products';
 import { pages } from '../../../data/pages';
 import { ui } from '../../../data/ui';
-import { langParams, getLang, url, categoryUrl, t, fmt } from '../../../lib/i18n';
+import { langParams, getLang, categoryUrl, t, fmt } from '../../../lib/i18n';
 
 export function getStaticPaths() {
   return langParams();
@@ -31,7 +31,6 @@ const groups = cats.map((c) => ({
   items: products.filter((p) => p.category === c.id).sort((a, b) => a.order - b.order),
 }));
 const total = products.length;
-const statusText = (n: number) => (n === 1 ? t(T.showingOne, lang) : fmt(t(T.showing, lang), { count: n }));
 const countText = (n: number) => (n === 1 ? t(ui.category.productOne, lang) : fmt(t(ui.category.productCount, lang), { count: n }));
 
 const itemList = {
@@ -90,7 +89,7 @@ const itemList = {
               <span class="muted small" data-pcount={g.cat.id} data-pcount-n={g.items.length}>{countText(g.items.length)}</span>
             </p>
           </SectionHead>
-          <ProductGrid lang={lang} products={g.items} headingLevel="h3" compact />
+          <ProductGrid lang={lang} products={g.items} headingLevel="h3" compact priority={i === 0} />
         </div>
       </section>
     ))
@@ -113,7 +112,16 @@ const itemList = {
       groups().forEach((g) => {
         g.hidden = key !== 'all' && g.dataset.group !== key;
       });
+      // keep the grey / white bands alternating over the groups that are shown
+      groups()
+        .filter((g) => !g.hidden)
+        .forEach((g, i) => g.classList.toggle('mist', i % 2 === 0));
       const active = btns.find((b) => b.dataset.filterBtn === key);
+      // phones: the chip strip scrolls sideways, so bring the selected chip into view (the page itself stays put)
+      const seg = active?.parentElement;
+      if (active && seg && seg.scrollWidth > seg.clientWidth) {
+        seg.scrollLeft = active.offsetLeft - seg.offsetLeft - (seg.clientWidth - active.offsetWidth) / 2;
+      }
       const n = Number(active?.dataset.count ?? 0);
       if (announce && status) status.textContent = n === 1 ? texts.one : texts.many.replace('{count}', String(n));
       const u = new URL(window.location.href);
@@ -138,10 +146,11 @@ const itemList = {
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
     gap: var(--s-5) var(--s-8);
     align-items: end;
-    padding-bottom: clamp(2rem, 1.5rem + 2.5vw, 3.5rem);
   }
+  /* the filter adds its own gap, so without JS (no filter) the head matches the other page heads */
   .pi-filter {
     display: none;
+    margin-top: clamp(2rem, 1.5rem + 2.5vw, 3.5rem);
   }
   :global(html.js) .pi-filter {
     display: block;
@@ -180,9 +189,11 @@ const itemList = {
   .seg-btn:last-child {
     border-right: 0;
   }
-  .seg-btn:hover {
-    color: var(--ink);
-    background: var(--mist);
+  @media (hover: hover) {
+    .seg-btn:hover {
+      color: var(--ink);
+      background: var(--mist);
+    }
   }
   .seg-btn[aria-pressed='true'] {
     background: var(--ink);

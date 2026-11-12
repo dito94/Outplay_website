@@ -18,7 +18,7 @@ const T = {
   viber: { bg: 'Пишете ни във Viber', en: 'Message us on Viber' },
   bar: { bg: 'Бързи действия', en: 'Quick actions' },
 };
-const viber = site.viberUrl ?? `viber://chat?number=${encodeURIComponent(site.viber ?? site.phones[0].e164)}`;
+const viber = site.viberUrl;
 ---
 
 <div class="scta" data-scta role="region" aria-label={T.bar[lang]} inert>

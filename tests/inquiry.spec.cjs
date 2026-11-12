@@ -1,5 +1,5 @@
 // End-to-end checks for the inquiry form, the search palette and the /search/ page.
-// Usage: DIST=<build dir> [SHOTS=<dir>] node tests/inquiry.spec.cjs
+// Usage: DIST=<build dir> [SHOTS=<dir>] [PORT=<port>] node tests/inquiry.spec.cjs
 // Serves the build under the real base path, drives Chromium with Playwright and exits 1 on any failure.
 const { chromium } = require('playwright');
 const http = require('http');
@@ -44,7 +44,7 @@ const server = http.createServer((req, res) => {
   fs.createReadStream(f).pipe(res);
 });
 
-server.listen(0, async () => {
+server.listen(Number(process.env.PORT) || 0, async () => {
   const origin = `http://localhost:${server.address().port}`;
   const browser = await chromium.launch();
   // Block third-party requests (map iframe) so the run is deterministic offline
@@ -73,6 +73,11 @@ server.listen(0, async () => {
     check((await page.locator('h1').count()) === 1, 'one h1 on the contact page');
     check(await page.locator('section#inquiry').isVisible(), 'section#inquiry exists');
     check((await page.locator(`${F} [data-iq-steptext]`).textContent()).includes('1 от 3'), 'step text shows "1 от 3"');
+    check(
+      (await page.locator(`${F} [data-iq-preview]`).evaluate((el) => el.classList.contains('is-stale'))) &&
+        (await page.locator(`${F} [data-iq-area]`).textContent()) === '—',
+      'no product chosen: sketch dimmed, no area',
+    );
 
     await page.click(`${F} [data-iq-next]`);
     const prodErr = await page.locator('#inquiry-form-product-err').textContent();
@@ -148,6 +153,13 @@ server.listen(0, async () => {
     check((await stored(page)).length === 0, 'nothing stored before submit');
 
     check(await page.isChecked(`${F} input[name="opt.pergola.roofType"][value="lamellas"]`), 'Balance preselects aluminium louvres');
+    const roofFs = `${F} fieldset[data-group="roofType"]`;
+    check(
+      !(await page.locator(`${roofFs} .chips`).isVisible()) &&
+        ((await page.locator(`${roofFs} [data-fixed-val]`).textContent()) || '').includes('Алуминиеви ламели'),
+      'roof type is fixed by Balance: shown as text, no chips',
+    );
+    check(await page.locator(`${F} input[name="opt.pergola.mounting"][value="freestanding"]`).isVisible(), 'groups the product does not decide stay editable');
     const s2 = `${F} section[data-step="2"]`;
     check((await page.locator(`${s2} h3, ${s2} h4`).count()) === 1, 'step 2 has a single heading');
     // property type, place and timeline are folded into "More details (optional)"
@@ -199,21 +211,33 @@ server.listen(0, async () => {
     const sum = await page.locator(`${F} [data-iq-summary]`).textContent();
     check(sum.includes('Balance') && sum.includes('Ширина 5 м') && sum.includes('антрацит') && sum.includes('LED'), 'summary lists product, size and options');
     check(sum.includes('terrace-1.png'), 'summary lists the photo name');
+    check(sum.split('Алуминиеви ламели').length === 2, 'fixed roof type listed once in the summary');
     check(sum.includes('Двор или градина'), 'summary lists the folded project choice');
     const consentText = await page.locator(`${F} label[for="inquiry-form-consent"]`).textContent();
     check(consentText.includes('Съгласявам се') && !consentText.includes('/на'), `gender-neutral consent ("${consentText.trim().slice(0, 30)}…")`);
 
+    const lead = () => page.locator(`${F} [data-iq-contact-lead]`).textContent();
+    check((await lead()).includes('Телефонът е задължителен'), `step 3 lead names the required field (${(await lead()).trim()})`);
     await page.click(`${F} [data-iq-submit]`);
     check((await page.locator('#inquiry-form-name-err').textContent()).length > 0, 'name required');
-    check((await page.locator('#inquiry-form-phone-err').textContent()).length > 0, 'phone required for the phone channel');
+    check((await page.locator('#inquiry-form-phone-err').textContent()).includes('Въведете телефон'), 'phone error names what is missing');
     check((await page.locator('#inquiry-form-consent-err').textContent()).includes('съгласието'), 'consent required');
     check((await page.evaluate(() => document.activeElement?.id)) === 'inquiry-form-name', 'focus on the first invalid field (name)');
 
+    await page.fill('#inquiry-form-name', 'М');
+    await page.locator('#inquiry-form-name').blur();
+    check((await page.locator('#inquiry-form-name-err').textContent()).includes('поне 2 знака'), 'one-letter name: "at least 2 characters"');
     await page.fill('#inquiry-form-name', 'Мария Петрова');
+    check((await page.locator('#inquiry-form-name-err').textContent()) === '', 'name error clears');
+    for (const bad of ['0888 123 45', '0888 123 4567', '+359 88 812 345']) {
+      await page.fill('#inquiry-form-phone', bad);
+      await page.locator('#inquiry-form-phone').blur();
+      check((await page.locator('#inquiry-form-phone-err').textContent()).includes('валиден телефонен'), `mobile with the wrong length rejected: ${bad}`);
+    }
     await page.fill('#inquiry-form-phone', '12345');
     await page.locator('#inquiry-form-phone').blur();
     check((await page.locator('#inquiry-form-phone-err').textContent()).includes('валиден телефонен'), 'invalid phone rejected');
-    for (const ok of ['0888 123 456', '+359 88 812 3456', '02 987 6543', '0879811259']) {
+    for (const ok of ['0888 123 456', '+359 88 812 3456', '02 987 6543', '0879811259', '082 123 456', '+44 20 7946 0958']) {
       await page.fill('#inquiry-form-phone', ok);
       await page.locator('#inquiry-form-phone').blur();
       check((await page.locator('#inquiry-form-phone-err').textContent()) === '', `phone accepted: ${ok}`);
@@ -301,10 +325,11 @@ server.listen(0, async () => {
     await page.click(`${F} [data-iq-next]`);
     await page.check(`${F} input[name="contact.channel"][value="email"]`);
     check(!(await page.locator(`${F} [data-opt-mark="phone"]`).isHidden()), 'phone marked optional for the email channel');
+    check(((await page.locator(`${F} [data-iq-contact-lead]`).textContent()) || '').includes('An email address is required'), 'EN lead follows the email channel');
     await page.fill('#inquiry-form-name', 'John Smith');
     await page.check('#inquiry-form-consent');
     await page.click(`${F} [data-iq-submit]`);
-    check((await page.locator('#inquiry-form-email-err').textContent()).includes('fill in'), 'email required for the email channel');
+    check((await page.locator('#inquiry-form-email-err').textContent()).includes('Enter an email address'), 'email required for the email channel');
     check((await page.locator('#inquiry-form-phone-err').textContent()) === '', 'phone not required for the email channel');
     await page.fill('#inquiry-form-email', 'john@example.com');
     await page.click(`${F} [data-iq-submit]`);
@@ -394,6 +419,72 @@ server.listen(0, async () => {
     await page.click(`${F} [data-iq-submit]`);
     check(await page.locator(`${F} [data-iq-success]`).isVisible(), 'success summary shown even when storage fails');
     check(await page.locator(`${F} [data-iq-storage-note]`).isVisible(), 'storage warning shown');
+    await ctx.close();
+
+    // ------------------------------------------------------------------ 4b. Contact rule, fixed options, admin data, drafts
+    console.log('\n4b. Email-only request, fixed options, malformed admin data, draft language');
+    ctx = await newCtx();
+    // malformed admin-demo data must never stop the form
+    await ctx.addInitScript(() => {
+      try {
+        localStorage.setItem('outplay.overrides.v1', '{"balance":null,"guillotine":{"name":null}}');
+        localStorage.setItem('outplay.customProducts.v1', '[null,{"id":"c-x"}]');
+      } catch {
+        /* storage blocked */
+      }
+    });
+    page = await ctx.newPage();
+    watch(page);
+    await page.goto(`${origin}${BASE}contact/?product=guillotine`, { waitUntil: 'networkidle' });
+    check(await page.locator('[data-inquiry].is-ready').count() === 1, 'form starts despite malformed admin overrides');
+    check((await page.inputValue('#inquiry-form-product')) === 'guillotine', 'product still preselected');
+    await page.click(`${F} [data-iq-next]`);
+    const sys = `${F} fieldset[data-group="systemType"]`;
+    check(
+      !(await page.locator(`${sys} .chips`).isVisible()) && ((await page.locator(`${sys} [data-fixed-val]`).textContent()) || '').includes('Гилотина'),
+      'guillotine: system type fixed, folding/sliding cannot be chosen',
+    );
+    await page.click(`${F} [data-iq-back]`);
+    await page.selectOption('#inquiry-form-product', 'telescopic-windbreak');
+    await page.selectOption('#inquiry-form-product', 'sliding-glass');
+    await page.click(`${F} [data-iq-next]`);
+    check(((await page.locator(`${sys} [data-fixed-val]`).textContent()) || '').includes('Хоризонтално'), 'switching product updates the fixed value');
+    await page.click(`${F} [data-iq-next]`);
+    // only an email while the channel is still "phone": the request goes through by email
+    await page.fill('#inquiry-form-name', 'Иван');
+    await page.fill('#inquiry-form-email', 'ivan@example.bg');
+    await page.check('#inquiry-form-consent');
+    await page.click(`${F} [data-iq-submit]`);
+    check(await page.locator(`${F} [data-iq-success]`).isVisible(), 'email only on the default channel: request accepted');
+    let last = (await stored(page))[0];
+    check(last && last.contact.channel === 'email' && last.options.systemType === 'sliding', `channel switched to email, fixed option stored (${last && last.contact.channel})`);
+    await ctx.close();
+
+    ctx = await newCtx();
+    page = await ctx.newPage();
+    watch(page);
+    await page.goto(`${origin}${BASE}contact/?product=dormakaba-es-200`, { waitUntil: 'networkidle' });
+    check(
+      (await page.isChecked(`${F} input[name="proj.placeType"][value="facade"]`)) &&
+        (await page.isChecked(`${F} input[name="proj.propertyType"][value="business"]`)),
+      'entrance doors default to façade / office',
+    );
+    // a BG draft opened on the English page shows English decimals
+    await page.goto(`${origin}${BASE}contact/?product=balance`, { waitUntil: 'networkidle' });
+    await page.fill('#inquiry-form-pergola-depth', '3,5');
+    await page.locator('#inquiry-form-pergola-depth').blur();
+    await page.waitForTimeout(500);
+    await page.goto(`${origin}${BASE}en/contact/`, { waitUntil: 'networkidle' });
+    check((await page.inputValue('#inquiry-form-pergola-depth')) === '3.5', `BG draft restored with English decimals (${await page.inputValue('#inquiry-form-pergola-depth')})`);
+    // photo sizes in decimal MB, limit uses the same unit; Bulgarian units
+    await page.goto(`${origin}${BASE}contact/?product=balance`, { waitUntil: 'networkidle' });
+    await page.click(`${F} [data-iq-next]`);
+    await page.setInputFiles(`${F} [data-iq-file]`, [
+      { name: 'big.png', mimeType: 'image/png', buffer: Buffer.alloc(15_400_000) },
+      { name: 'ok.png', mimeType: 'image/png', buffer: Buffer.alloc(2_500_000) },
+    ]);
+    check((await page.locator('#inquiry-form-photos-err').textContent()).includes('15 МБ'), 'a 15.4 MB file is over the 15 MB limit (МБ in Bulgarian)');
+    check(((await page.locator(`${F} .iq-thumb-size`).first().textContent()) || '').trim() === '2,5 МБ', 'thumbnail size in МБ');
     await ctx.close();
 
     // ------------------------------------------------------------------ 5. Search palette
@@ -629,7 +720,7 @@ server.listen(0, async () => {
     const mBox = await page.locator('.c-map').boundingBox();
     check(Math.abs(dBox.y - mBox.y) < 2 && mBox.x > dBox.x, 'desktop: details and map side by side');
     check((await page.locator('#inquiry').boundingBox()).y > mBox.y, 'desktop: form below details and map');
-    check((await page.locator('a', { hasText: /Отвори в Google Maps/ }).count()) === 1, '"Отвори в Google Maps" appears once');
+    check((await page.locator('a', { hasText: /Отворете в Google Maps/ }).count()) === 1, '"Отворете в Google Maps" appears once');
     check((await page.locator('.c-map-fallback').evaluate((el) => getComputedStyle(el).backgroundImage)) === 'none', 'map placeholder has a plain surface');
     check(await page.locator('.c-hero.page-hero').count() === 1, 'contact hero uses .page-hero');
     await page.goto(`${origin}${BASE}search/`, { waitUntil: 'networkidle' });

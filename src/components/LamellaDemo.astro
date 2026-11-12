@@ -85,6 +85,13 @@ const L = {
     en: 'Cross-section diagram of an aluminium louvre roof',
   },
 };
+// series lines: the series name is the product name, marked so an admin rename shows here too
+const seriesLine = (s: string) => {
+  const i = s.indexOf(' · ');
+  return i > 0 ? { name: s.slice(0, i), rest: s.slice(i) } : { name: '', rest: s };
+};
+const lineBalance = seriesLine(L.balance[lang]);
+const lineInfinity = seriesLine(L.infinity[lang]);
 const N = 10;
 const lamellas = Array.from({ length: N }, (_, i) => 112 + i * 64);
 const drops = Array.from({ length: 26 }, (_, i) => ({
@@ -124,7 +131,7 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
       <p class="lam-text" data-lam-text aria-live="polite">{startMode.text[lang]}</p>
     </div>
 
-    <label class="lam-range-wrap" for={`${id}-range`}>
+    <label class="lam-range-wrap" for={`${id}-range`} data-fab-avoid>
       <span class="lam-k">{L.angle[lang]}</span>
       <input
         id={`${id}-range`}
@@ -141,8 +148,8 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
     </label>
 
     <ul class="lam-series small">
-      <li class:list={{ dim: series === 'infinity' }}>{L.balance[lang]}</li>
-      <li class:list={{ dim: series === 'balance' }}>{L.infinity[lang]}</li>
+      <li class:list={{ dim: series === 'infinity' }}><span data-pid="balance" data-pfield="name">{lineBalance.name}</span>{lineBalance.rest}</li>
+      <li class:list={{ dim: series === 'balance' }}><span data-pid="infinity" data-pfield="name">{lineInfinity.name}</span>{lineInfinity.rest}</li>
     </ul>
   </div>
 
@@ -159,6 +166,8 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
           <stop offset="1" stop-color="#3d4146"></stop>
         </linearGradient>
         <clipPath id={`${id}-clip`}><rect x="0" y="0" width="800" height="440"></rect></clipPath>
+        <!-- light only falls between the posts -->
+        <clipPath id={`${id}-under`}><rect x="82" y="200" width="636" height="212"></rect></clipPath>
       </defs>
       <rect x="0" y="0" width="800" height="440" fill={`url(#${id}-sky)`}></rect>
       <g clip-path={`url(#${id}-clip)`}>
@@ -166,7 +175,7 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
         <g class="fx-sun">
           <circle cx="120" cy="58" r="26" fill="#f9c823"></circle>
         </g>
-        <g class="fx-rays">
+        <g class="fx-rays" clip-path={`url(#${id}-under)`}>
           {
             lamellas.map((x) => (
               <polygon
@@ -178,7 +187,7 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
           }
         </g>
         <!-- light stripes on the floor -->
-        <g class="fx-floor">
+        <g class="fx-floor" clip-path={`url(#${id}-under)`}>
           {lamellas.map((x) => <rect class="spot" x={x + 70 + 20} y="404" width="36" height="6" fill="#f9c823" />)}
         </g>
         <!-- rain -->
@@ -314,7 +323,8 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
   .lam-range {
     width: 100%;
     accent-color: var(--yellow);
-    height: 28px;
+    height: 44px;
+    margin-block: -8px;
   }
   .lam-scale {
     display: flex;
@@ -401,13 +411,20 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
     opacity: 0.9;
     transform: scaleX(1.6);
   }
+  /* the loops run only in their own mode and only while the demo is on screen (.is-off set by the script) */
   @media (prefers-reduced-motion: no-preference) {
-    .fx-rain line {
+    [data-mode='rain'] .fx-rain line {
       animation: fall 0.9s linear infinite;
     }
     .fx-air path {
       stroke-dasharray: 18 14;
+    }
+    [data-mode='air'] .fx-air path {
       animation: rise 2.2s linear infinite;
+    }
+    .is-off .fx-rain line,
+    .is-off .fx-air path {
+      animation-play-state: paused;
     }
   }
   @keyframes fall {
@@ -491,5 +508,11 @@ const drops = Array.from({ length: 26 }, (_, i) => ({
 
     const initial = btns.find((b) => b.getAttribute('aria-checked') === 'true');
     if (initial) select(initial);
+
+    // pause the rain/air loops while the demo is off screen
+    if ('IntersectionObserver' in window) {
+      root.classList.add('is-off');
+      new IntersectionObserver(([e]) => root.classList.toggle('is-off', !e.isIntersecting)).observe(root);
+    }
   });
 </script>

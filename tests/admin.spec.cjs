@@ -110,7 +110,7 @@ async function injectCustomProducts(page, cfg) {
     harnessCode = out.output[0].code;
   }
   await page.addScriptTag({
-    content: `${harnessCode}\nCPX.injectCustomProducts(${JSON.stringify(cfg)});`,
+    content: `${harnessCode}\nCPX.applyCatalogue(${JSON.stringify(cfg)});`,
   });
   return "harness";
 }
@@ -418,7 +418,7 @@ async function findPage(page, candidates, selector) {
       await toast.waitFor();
       assert.ok(
         (await toast.textContent()).includes(
-          "Запазено — промените се виждат на сайта в този браузър",
+          "Запазено – промените се виждат на сайта в този браузър",
         ),
       );
       assert.ok(
@@ -1614,6 +1614,80 @@ async function findPage(page, candidates, selector) {
         ).trim(),
         "4.5 × 3.2 m · 14.4 m²",
       );
+    },
+  );
+
+  await step(
+    "QA: stored data cannot inject markup, break pages or the grid layout; the reset dialog does not pre-select deletion",
+    async () => {
+      // a fresh browser context, so the deliberately broken data below cannot leak into other steps
+      const c2 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const p2 = await c2.newPage();
+      const errs = [];
+      p2.on("pageerror", (e) => errs.push(`${p2.url()} ${e.message}`));
+      const seed = (entries) =>
+        p2.evaluate((e) => {
+          localStorage.clear();
+          for (const [k, v] of Object.entries(e)) localStorage.setItem(k, v);
+        }, entries);
+      await p2.goto(`${origin}${BASE}`, { waitUntil: "domcontentloaded" });
+      const t = new Date().toISOString();
+      const evil = `data:image/x" onerror="document.title='PWNED'" x="`;
+      const cp = (extra) =>
+        JSON.stringify([
+          {
+            id: "c-qa", category: "windbreaks", family: "windbreak",
+            name: { bg: "QA продукт", en: "" }, tagline: { bg: "", en: "" }, summary: { bg: "", en: "" },
+            sections: [{ heading: { bg: "a", en: "a" }, paragraphs: [{ bg: "p", en: "" }] }],
+            features: [], specs: [], images: [], createdAt: t, updatedAt: t, ...extra,
+          },
+        ]);
+      // #1 an image value that is not a plain base64 data URL never reaches the markup
+      await seed({ [KEYS.customProducts]: cp({ images: [evil, evil, evil] }) });
+      await p2.goto(`${origin}${BASE}products/item/?id=c-qa`, { waitUntil: "networkidle" });
+      assert.notEqual(await p2.title(), "PWNED", "no handler from a stored image value");
+      assert.equal(await p2.locator("main img[onerror], main [onerror]").count(), 0);
+      assert.equal((await p2.textContent("h1")).trim(), "QA продукт");
+      // #6 malformed data: no crash on public pages or in the admin
+      await seed({ [KEYS.customProducts]: cp({ images: null, specs: [null], features: null }), [KEYS.overrides]: '{"balance":null,"flat":"x"}', [KEYS.session]: '{"user":"demo"}' });
+      await p2.goto(`${origin}${BASE}products/item/?id=c-qa`, { waitUntil: "networkidle" });
+      assert.equal((await p2.textContent("h1")).trim(), "QA продукт", "item page with malformed fields");
+      await p2.goto(`${origin}${BASE}contact/`, { waitUntil: "networkidle" });
+      for (const h of ["dashboard", "products", "settings"]) {
+        await p2.goto(`${origin}${BASE}admin/#${h}`, { waitUntil: "networkidle" });
+        assert.ok((await p2.locator(`[data-view="${h}"] [data-slot]`).innerHTML()).length > 50, `admin #${h} renders`);
+      }
+      await seed({ [KEYS.overrides]: "null", [KEYS.customProducts]: '{"a":1}' });
+      await p2.goto(`${origin}${BASE}contact/`, { waitUntil: "networkidle" });
+      assert.deepEqual(errs, [], "no page errors with malformed storage");
+      // #5 a rename keeps the catalogue descriptor and is applied once
+      await seed({});
+      await p2.goto(`${origin}${BASE}en/products/bioclimatic-pergolas/balance/`, { waitUntil: "networkidle" });
+      const full = (await p2.textContent(".p-full")).trim();
+      await seed({ [KEYS.overrides]: JSON.stringify({ balance: { name: { en: "Balance PRO" } } }) });
+      await p2.reload({ waitUntil: "networkidle" });
+      assert.equal((await p2.textContent(".p-full")).trim(), full.split("Balance").join("Balance PRO"), "subtitle renamed once");
+      // #3 the first visible card of a grid is its first child (ProductGrid styles the lead card as :first-child)
+      await seed({ [KEYS.overrides]: JSON.stringify({ balance: { hidden: true } }) });
+      await p2.goto(`${origin}${BASE}products/bioclimatic-pergolas/`, { waitUntil: "networkidle" });
+      const grid = await p2.evaluate(() => {
+        const g = document.querySelector('[data-pcard][data-pid="infinity"]').closest(".pgrid");
+        const first = g.firstElementChild;
+        const rows = new Set([...g.children].filter((c) => !c.hidden).map((c) => Math.round(c.getBoundingClientRect().top)));
+        return { firstHidden: first.hidden, firstPid: first.querySelector("[data-pcard]").dataset.pid, lead: g.dataset.lead3, rows: rows.size, n: [...g.children].filter((c) => !c.hidden).length };
+      });
+      assert.equal(grid.firstHidden, false, "hidden cell moved out of the lead slot");
+      assert.equal(grid.firstPid, "infinity");
+      assert.ok(!(grid.lead === "full" && grid.rows > 2), `no orphan row: ${JSON.stringify(grid)}`);
+      // #13 reset: deleting the form inquiries is opt-in
+      await seed({ [KEYS.session]: '{"user":"demo"}', [KEYS.inquiries]: JSON.stringify([{ ...seeded, id: "qa-real" }]) });
+      await p2.goto(`${origin}${BASE}admin/#settings`, { waitUntil: "networkidle" });
+      await p2.click('[data-view="settings"] [data-action="reset"]');
+      assert.equal(await p2.locator("[data-adm-confirm] [data-cf-check]").isVisible(), true);
+      assert.equal(await p2.locator("[data-adm-confirm] [data-cf-check] input").isChecked(), false, "not pre-selected");
+      await p2.click("[data-adm-confirm] [data-cf-ok]");
+      assert.equal((await p2.evaluate((k) => JSON.parse(localStorage.getItem(k) || "[]"), KEYS.inquiries)).length, 1, "inquiries kept");
+      await c2.close();
     },
   );
 

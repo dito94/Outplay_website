@@ -194,13 +194,17 @@ const config = {
     border: 0;
     background: none;
     font-size: var(--step-1);
-    outline: none;
+    /* the bar shows focus (below); a transparent outline still appears in forced-colours mode */
+    outline: 2px solid transparent;
+  }
+  .sp-bar:has(.sp-input:focus-visible) {
+    box-shadow: inset 0 -2px 0 var(--ink);
   }
   .sp-input::-webkit-search-cancel-button {
     display: none;
   }
   .sp-input::placeholder {
-    color: color-mix(in srgb, var(--steel) 80%, transparent);
+    color: var(--steel);
   }
   .sp-clear,
   .sp-close {
@@ -374,7 +378,11 @@ const config = {
   .sp-none {
     padding: var(--s-5);
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--s-2);
+  }
+  .sp-none p {
+    overflow-wrap: anywhere;
   }
   .sp-none p:first-child {
     font-family: var(--font-display);
@@ -449,7 +457,12 @@ const config = {
 </style>
 
 <script>
-  import { loadIndex, search, groupHits, highlight, snippet, escapeHtml, type Prepared, type SearchHit } from '../lib/search';
+  // The search module is loaded on first use (open, hover/focus on an opener), not with every page
+  import type { Prepared, SearchHit } from '../lib/search';
+  type SearchLib = typeof import('../lib/search');
+  let lib: SearchLib | null = null;
+  const escapeHtml = (s: string) =>
+    s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
 
   interface Cfg {
     index: string;
@@ -502,7 +515,11 @@ const config = {
     const load = () => {
       if (prepared) return Promise.resolve();
       if (!loading) {
-        loading = loadIndex(cfg.index)
+        loading = import('../lib/search')
+          .then((m) => {
+            lib = m;
+            return m.loadIndex(cfg.index);
+          })
           .then((p) => {
             prepared = p;
           })
@@ -552,6 +569,7 @@ const config = {
           });
         return;
       }
+      const { search, groupHits } = lib!;
       const hits = search(prepared, q);
       const groups = groupHits(hits);
       if (!groups.length) {
@@ -584,6 +602,7 @@ const config = {
     }
 
     function option(h: SearchHit, q: string, i: number): string {
+      const { highlight, snippet } = lib!;
       const d = h.doc;
       const lead = d.img
         ? `<img class="sp-thumb" src="${escapeHtml(d.img)}" alt="" width="64" height="48" loading="lazy" decoding="async">`

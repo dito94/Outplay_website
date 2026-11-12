@@ -595,7 +595,9 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
   }
   .adm-side {
     position: sticky;
-    top: var(--header-h);
+    /* follows the site header, which slides away on phones while scrolling down */
+    top: var(--header-offset, var(--header-h));
+    transition: top 0.3s var(--ease);
     align-self: start;
     display: flex;
     flex-direction: column;
@@ -1713,6 +1715,10 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
     width: min(420px, calc(100vw - 32px));
     pointer-events: none;
   }
+  /* keep toasts clear of the custom product editor's sticky Save bar */
+  html:has(.adm-view[data-view='custom']:not([hidden])) .adm-toasts:not(.adm-toasts-dlg) {
+    bottom: 96px;
+  }
   .adm-toasts-dlg {
     position: absolute;
     left: 16px;
@@ -2079,7 +2085,7 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
   }
   .adm-pv-wrap {
     position: sticky;
-    top: calc(var(--header-h) + 24px);
+    top: calc(var(--header-offset, var(--header-h)) + 24px);
     display: grid;
     gap: 12px;
   }
@@ -2369,6 +2375,40 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
   .adm-cp-storage {
     padding: 14px 20px 18px;
   }
+  .adm-cp-storage.is-warn {
+    color: var(--danger);
+  }
+  .adm-ed-stale {
+    margin: 16px 20px 0;
+  }
+  .adm-nostore {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin: 0;
+    padding: 12px var(--adm-pad);
+    background: #fdf4f3;
+    color: var(--danger);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  .adm-nostore .adm-ic {
+    flex: none;
+    margin-top: 1px;
+  }
+  /* modal panels: the page behind does not scroll */
+  html:has(dialog.adm-drawer[open], dialog.adm-confirm[open]) {
+    overflow: hidden;
+  }
+  /* a focused field scrolls clear of the sticky Save bar (bottom) and the sticky admin tabs (top, phones) */
+  html:has(.adm-view[data-view='custom']:not([hidden])) {
+    scroll-padding-bottom: 96px;
+  }
+  @media (max-width: 959px) {
+    html:has(.adm-body) {
+      scroll-padding-top: calc(var(--header-offset, var(--header-h)) + 64px);
+    }
+  }
   .adm-cp-error {
     padding: 12px 14px;
     border-left: 3px solid var(--danger);
@@ -2592,7 +2632,7 @@ const fmt = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+
       background: none;
     }
     .adm-side {
-      top: var(--header-h);
+      top: var(--header-offset, var(--header-h));
       height: auto;
       flex-direction: row;
       align-items: center;

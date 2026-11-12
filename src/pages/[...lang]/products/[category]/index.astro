@@ -16,6 +16,7 @@ import { pages } from '../../../../data/pages';
 import { ui } from '../../../../data/ui';
 import { LANGS, DEFAULT_LANG, getLang, url, categoryUrl, productUrl, t } from '../../../../lib/i18n';
 import { productImages, img } from '../../../../lib/images';
+import { preloadImage } from '../../../../lib/responsive';
 
 export function getStaticPaths() {
   return LANGS.flatMap((l) =>
@@ -59,13 +60,16 @@ const fingerprint = (p: string | undefined) => {
 const catImage = `categories/${category.id}.jpg`;
 const catPrint = fingerprint(catImage);
 const clash = catPrint ? inCat.find((p) => fingerprint(productImages(p.id).hero) === catPrint) : undefined;
-const heroImage =
-  (clash &&
-    [...productImages(clash.id).gallery].sort((a, b) => {
+// a swap must still fill a full-bleed hero sharply: only photos at least 1920px wide qualify
+const swap =
+  clash &&
+  [...productImages(clash.id).gallery]
+    .filter((x) => (img(x)?.width ?? 0) >= 1920)
+    .sort((a, b) => {
       const r = (x: string) => (img(x)?.width ?? 1) / (img(x)?.height ?? 1);
       return r(b) - r(a);
-    })[0]) ||
-  catImage;
+    })[0];
+const heroImage = swap || catImage;
 
 // `sizes` for cropped photos (object-fit: cover): a photo wider than its box must be rendered at
 // box height × photo ratio, or the browser picks a file that gets upscaled. Category photos are 2.4:1.
@@ -80,6 +84,9 @@ const heroSizes = [
   `(min-width: ${Math.ceil(860 * heroAr)}px) 100vw`,
   `${Math.ceil(82 * heroAr)}vh`,
 ].join(', ');
+// Phones get a portrait crop (0.9:1, at most the source height) instead of a 2.4:1 photo that is 70% cropped away
+const heroCrop = { media: '(max-width: 600px)', ratio: 0.9 };
+const heroPreload = await preloadImage(heroImage, { sizes: heroSizes, crop: heroCrop });
 // "Other categories" tiles: 3 columns from 901px (427px × clamp(280px, 24vw, 360px) at 1440),
 // one column below (content width × min 240px)
 const tileSizes = (p: string) => {
@@ -111,6 +118,20 @@ if (rest.length) groups.push({ id: 'more', title: t(ui.category.productsIn, lang
 
 const others = categories.filter((c) => c.id !== category.id).sort((a, b) => a.order - b.order);
 const [introLead, ...introRest] = category.intro;
+// Meta description: tagline + as many whole sentences of the intro as fit in ~160 characters (never cut mid-word)
+const metaDescription = (() => {
+  const sentences = t(introLead, lang).match(/[^.!?]+[.!?]+(?=\s|$)/g) ?? [t(introLead, lang)];
+  let out = t(category.tagline, lang);
+  for (const raw of sentences) {
+    const next = `${out} ${raw.trim()}`;
+    if (next.length > 160 && out !== t(category.tagline, lang)) break;
+    out = next;
+    if (out.length > 160) break;
+  }
+  if (out.length <= 170) return out;
+  const cut = out.slice(0, 159);
+  return `${cut.slice(0, cut.lastIndexOf(' ')).replace(/[\s,;:–-]+$/, '')}…`;
+})();
 const options = pages.home.options;
 
 // Alternate grey / white after the intro
@@ -128,14 +149,15 @@ const othersBand = nextBand();
 <Base
   lang={lang}
   title={t(category.title, lang)}
-  description={`${t(category.tagline, lang)} ${t(introLead, lang)}`.slice(0, 300)}
+  description={metaDescription}
   ogImage={`categories/${category.id}.jpg`}
   header="overlay"
+  preload={heroPreload}
 >
   <!-- Hero -->
   <section class="c-hero night" aria-labelledby="c-title">
     <div class="c-media">
-      <Img src={heroImage} lang={lang} priority sizes={heroSizes} class="c-img" />
+      <Img src={heroImage} lang={lang} priority sizes={heroSizes} crop={heroCrop} class="c-img" />
       <div class="c-scrim" aria-hidden="true"></div>
     </div>
     <div class="wrap c-content">
@@ -341,11 +363,13 @@ const othersBand = nextBand();
     text-decoration: none;
     border-bottom: 1px solid transparent;
   }
-  .c-jump a:hover {
-    color: #fff;
-    text-decoration: underline;
-    text-decoration-color: var(--yellow);
-    text-decoration-thickness: 2px;
+  @media (hover: hover) {
+    .c-jump a:hover {
+      color: #fff;
+      text-decoration: underline;
+      text-decoration-color: var(--yellow);
+      text-decoration-thickness: 2px;
+    }
   }
   @media (max-width: 700px) {
     .c-jump {
@@ -422,9 +446,11 @@ const othersBand = nextBand();
     text-decoration-thickness: 1px;
     text-underline-offset: 0.3em;
   }
-  .c-more:hover {
-    text-decoration-color: var(--yellow);
-    text-decoration-thickness: 2px;
+  @media (hover: hover) {
+    .c-more:hover {
+      text-decoration-color: var(--yellow);
+      text-decoration-thickness: 2px;
+    }
   }
   .c-more :global(svg) {
     transition: transform 0.25s var(--ease);
@@ -517,8 +543,10 @@ const othersBand = nextBand();
     background: linear-gradient(to top, rgba(10, 10, 8, 0.85) 0%, rgba(10, 10, 8, 0.35) 55%, rgba(10, 10, 8, 0.1) 100%);
     transition: background-color 0.3s var(--ease);
   }
-  .other:hover .other-media::after {
-    background-color: rgba(10, 10, 8, 0.12);
+  @media (hover: hover) {
+    .other:hover .other-media::after {
+      background-color: rgba(10, 10, 8, 0.12);
+    }
   }
   .other-body {
     display: grid;
@@ -541,7 +569,8 @@ const othersBand = nextBand();
   .other-link:focus-visible {
     outline: none;
   }
-  .other:focus-within {
+  /* keyboard focus only (a mouse click on the tile must not leave a ring) */
+  .other:has(.other-link:focus-visible) {
     outline: 2px solid var(--focus);
     outline-offset: 4px;
   }
@@ -562,8 +591,10 @@ const othersBand = nextBand();
     color: var(--ink);
     transition: transform 0.3s var(--ease);
   }
-  .other:hover .other-go {
-    transform: rotate(45deg);
+  @media (hover: hover) {
+    .other:hover .other-go {
+      transform: rotate(45deg);
+    }
   }
   @media (max-width: 900px) {
     .others {

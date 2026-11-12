@@ -112,9 +112,12 @@ const landscape = (p: string) => ratioOf(p) >= 1.1;
 const sectionCount = product.sections.length;
 const maxRows = Math.min(sectionCount, gallery.length);
 const rowCount = gallery.length - maxRows >= 3 ? maxRows : gallery.length >= 4 ? gallery.length - 3 : maxRows;
-// Rows prefer landscape photos (stable order); everything else is left for the gallery.
-const rowImages = [...gallery].sort((a, b) => Number(landscape(b)) - Number(landscape(a))).slice(0, rowCount);
-const leftover = gallery.filter((p) => !rowImages.includes(p));
+// Rows prefer photos sharp enough for the ≈660px row box on 2× screens, then landscape ones (stable order);
+// everything else is left for the gallery, whose large first tile gets the sharpest of the rest.
+const sharp = (p: string) => (img(p)?.width ?? 0) >= 1100;
+const rowRank = (p: string) => Number(sharp(p)) * 2 + Number(landscape(p));
+const rowImages = [...gallery].sort((a, b) => rowRank(b) - rowRank(a)).slice(0, rowCount);
+const leftover = gallery.filter((p) => !rowImages.includes(p)).sort((a, b) => (img(b)?.width ?? 0) - (img(a)?.width ?? 0));
 // every photo not used above is shown (the gallery lays out 1, 2 or more tiles)
 const galleryImages = leftover.length >= 1 ? leftover : [];
 const unusedImages = galleryImages.length ? [] : leftover;
@@ -130,11 +133,15 @@ const rows = product.sections.map((s, i) => {
   const image = imageAt.get(i);
   const flip = image ? imageRow++ % 2 === 1 : false;
   const ratio = image ? Math.min(1.6, Math.max(0.95, ratioOf(image))) : 1;
+  // A small photo never grows past its own pixels: cap the box at the width the photo can fill (cover crop).
+  const w = img(image)?.width ?? 0;
+  const fill = image ? Math.floor(ratioOf(image) > ratio ? (w * ratio) / ratioOf(image) : w) : 0;
+  const maxW = fill && fill < 660 ? fill : undefined;
   // The hero already shows the tagline; when the first section repeats it, open without a visible heading.
   const intro = i === 0 && norm(t(s.heading, lang)) === taglineKey;
   // Only a short opening paragraph is set as a display-type lead; long ones stay body text.
   const lead = intro && t(s.paragraphs[0], lang).length <= LEAD_MAX;
-  return { ...s, image, flip, ratio, intro, lead };
+  return { ...s, image, flip, ratio, maxW, intro, lead };
 });
 
 // every photo on the page (hero, editorial rows, gallery) opens full size in one lightbox group
@@ -146,6 +153,9 @@ for (const path of [hero, ...rows.map((r) => r.image)].filter((x): x is string =
 const hasZoom = Object.keys(zoomHref).length > 0;
 
 const hasTech = !!diagram;
+// Diagram column from 1001px: minmax(0, natural width) beside a ≥300px legend, ≈ 89vw − 316px (969px at 1440)
+const dw = img(diagram)?.width ?? 860;
+const diagramSizes = `(min-width: 1440px) ${Math.min(dw, 970)}px, (min-width: ${Math.ceil((dw + 316) / 0.89)}px) ${dw}px, (min-width: 1001px) calc(89vw - 316px), 92vw`;
 const techWithHotspots = hasTech && hotspots.length > 0;
 const featuresInTech = hasTech && !techWithHotspots;
 const lamellaSeries = product.id === 'balance' ? 'balance' : product.id === 'infinity' ? 'infinity' : undefined;
@@ -285,7 +295,7 @@ const jsonLd = {
                   ))}
                 </div>
               </div>
-              <div class="row-media media" style={`aspect-ratio:${r.ratio.toFixed(3)}`}>
+              <div class="row-media media" style={`aspect-ratio:${r.ratio.toFixed(3)}${r.maxW ? `;max-width:${r.maxW}px` : ''}`}>
                 <a class="zoom" href={zoomHref[r.image] ?? '#'} data-lightbox="product" data-caption={altOf(r.image, lang) || name}>
                   <Img
                     src={r.image}
@@ -325,12 +335,12 @@ const jsonLd = {
                 id={`${product.id}-diagram`}
                 image={diagram}
                 hotspots={hotspots}
-                sizes="(min-width: 1440px) 860px, (min-width: 1000px) 62vw, 100vw"
+                sizes={diagramSizes}
               />
             ) : (
               <div class="tech-split">
                 <div class="tech-diagram" style={`aspect-ratio:${ratioOf(diagram).toFixed(3)}`}>
-                  <Img src={diagram} lang={lang} sizes="(min-width: 1440px) 860px, (min-width: 1000px) 62vw, 100vw" />
+                  <Img src={diagram} lang={lang} sizes={diagramSizes} />
                 </div>
                 <ul class="ticks tech-ticks">
                   {product.features.map((f) => (
@@ -602,8 +612,10 @@ const jsonLd = {
     font-weight: 600;
     text-decoration: none;
   }
-  .p-phone:hover {
-    text-decoration: underline;
+  @media (hover: hover) {
+    .p-phone:hover {
+      text-decoration: underline;
+    }
   }
 
   /* Hero photo: flush with the content grid; the brand bracket is drawn on the photo's own corners
@@ -721,6 +733,10 @@ const jsonLd = {
   [data-sn-section] {
     scroll-margin-top: 46px;
   }
+  /* sections take focus after a sub-nav jump (SubNav.astro) only to move the keyboard starting point */
+  [data-sn-section]:focus {
+    outline: none;
+  }
   @media (max-width: 900px) {
     [data-sn-section] {
       scroll-margin-top: 40px;
@@ -753,6 +769,14 @@ const jsonLd = {
   }
   .row.flip .row-media {
     grid-column: 1 / span 6;
+  }
+  /* a capped (small) photo sits against the outer edge, like a full-size one */
+  .row-media {
+    width: 100%;
+    justify-self: end;
+  }
+  .row.flip .row-media {
+    justify-self: start;
   }
   .row .prose,
   .row-solo .prose {
@@ -814,9 +838,11 @@ const jsonLd = {
       grid-column: 1;
       grid-row: auto;
     }
-    .row-media {
+    .row-media,
+    .row.flip .row-media {
       order: -1;
       max-height: 70vh;
+      justify-self: start;
     }
   }
 
@@ -829,7 +855,7 @@ const jsonLd = {
     gap: var(--s-6);
   }
   .tech-diagram {
-    background: #eaeae8;
+    background: var(--line);
     max-width: var(--dw);
   }
   .tech-diagram :global(img) {
@@ -837,7 +863,7 @@ const jsonLd = {
     height: 100%;
     object-fit: contain;
   }
-  @media (min-width: 1000px) {
+  @media (min-width: 1001px) {
     .tech-visual :global(.scene),
     .tech-split {
       grid-template-columns: minmax(0, var(--dw)) minmax(300px, 1fr);
@@ -1043,8 +1069,10 @@ const jsonLd = {
     font-weight: 600;
     text-decoration: none;
   }
-  .inq-contacts a:hover {
-    text-decoration: underline;
+  @media (hover: hover) {
+    .inq-contacts a:hover {
+      text-decoration: underline;
+    }
   }
   .inq-form {
     min-width: 0;
@@ -1068,8 +1096,13 @@ const jsonLd = {
     height: 100%;
     object-fit: cover;
   }
+  /* on a photo: yellow ring with a dark inner edge, visible on light and dark images */
+  .zoom {
+    --focus: var(--yellow);
+  }
   .zoom:focus-visible {
-    outline: 3px solid var(--yellow);
-    outline-offset: -3px;
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+    box-shadow: inset 0 0 0 4px var(--ink);
   }
 </style>

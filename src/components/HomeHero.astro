@@ -80,7 +80,14 @@ const SLATS = 12;
   .hero-title {
     max-width: 15ch;
     color: #fff;
-    font-size: clamp(2.7rem, 1.6rem + 4.8vw, 6rem);
+    /* 12svh only bites below 800px of height (short laptops), where three lines would push the buttons off screen */
+    font-size: max(2.7rem, min(var(--h1-hero), 12svh));
+  }
+  @media (max-height: 700px) and (min-width: 721px) {
+    .hero-content {
+      padding-top: calc(var(--header-h) + var(--s-6));
+      padding-bottom: var(--s-7);
+    }
   }
   .hero-lead {
     max-width: 52ch;
@@ -97,10 +104,24 @@ const SLATS = 12;
     --btn-fg: #fff;
     --btn-bd: rgba(255, 255, 255, 0.5);
   }
-  .hero .btn-ghost:hover {
-    --btn-bg: #fff;
-    --btn-fg: var(--ink);
-    --btn-bd: #fff;
+  @media (hover: hover) {
+    .hero .btn-ghost:hover {
+      --btn-bg: #fff;
+      --btn-fg: var(--ink);
+      --btn-bd: #fff;
+    }
+  }
+  @media print {
+    .hero {
+      min-height: 0;
+    }
+    .hero-media {
+      display: none;
+    }
+    .hero-title,
+    .hero-lead {
+      color: var(--ink);
+    }
   }
 
   .roof {
@@ -267,7 +288,15 @@ const SLATS = 12;
       requestAnimationFrame(frame);
     };
 
-    const start = () => {
+    const start = (fromBackground = false) => {
+      // the CSS safety net already revealed the hero (script arrived late, e.g. on a slow connection): don't close
+      // the roof over content the visitor has seen; keep the page as it is. A tab opened in the background has not
+      // been seen yet, so it still gets the opening.
+      if (!fromBackground && cover && getComputedStyle(cover).opacity !== '1') {
+        window.removeEventListener('resize', size);
+        roof.remove();
+        return;
+      }
       size();
       draw(0, 0.5, 1); // identical to the CSS cover, so the hand-over is invisible
       if (content) content.style.opacity = '0'; // hidden until the roof has opened
@@ -276,7 +305,7 @@ const SLATS = 12;
     };
     window.addEventListener('resize', size, { passive: true });
     // a tab opened in the background starts the opening when it is first shown
-    if (document.hidden) document.addEventListener('visibilitychange', start, { once: true });
+    if (document.hidden) document.addEventListener('visibilitychange', () => start(true), { once: true });
     else start();
   } else {
     roof?.remove();

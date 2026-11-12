@@ -204,8 +204,10 @@ const jsonLd = {
   .c-hero-cta :global(svg) {
     transform: rotate(90deg);
   }
-  .c-hero-cta:hover :global(svg) {
-    transform: rotate(90deg) translateX(3px);
+  @media (hover: hover) {
+    .c-hero-cta:hover :global(svg) {
+      transform: rotate(90deg) translateX(3px);
+    }
   }
   @media (max-width: 860px) {
     .c-hero-grid {
@@ -276,11 +278,13 @@ const jsonLd = {
     display: inline-flex;
     align-items: center;
   }
-  .c-big:hover,
-  .c-mid:hover {
-    text-decoration: underline;
-    text-decoration-color: var(--yellow-deep);
-    text-decoration-thickness: 2px;
+  @media (hover: hover) {
+    .c-big:hover,
+    .c-mid:hover {
+      text-decoration: underline;
+      text-decoration-color: var(--yellow-deep);
+      text-decoration-thickness: 2px;
+    }
   }
   .c-mid {
     font-family: var(--font-display);
@@ -307,6 +311,16 @@ const jsonLd = {
   .c-address {
     font-size: var(--step-0);
     line-height: 1.45;
+    /* the copy button stays beside the address it copies, even when the address wraps on a phone */
+    flex-wrap: nowrap;
+    align-items: flex-start;
+  }
+  .c-address > span {
+    min-width: 0;
+    padding-top: 0.6rem;
+  }
+  .c-address :global(.copy-btn) {
+    flex: none;
   }
   @media (max-width: 520px) {
     .c-row {
@@ -363,9 +377,13 @@ const jsonLd = {
     filter: grayscale(0.92) contrast(1.04);
     transition: filter 0.3s var(--ease);
   }
-  .c-map-frame:hover iframe,
   .c-map-frame:focus-within iframe {
     filter: grayscale(0.2);
+  }
+  @media (hover: hover) {
+    .c-map-frame:hover iframe {
+      filter: grayscale(0.2);
+    }
   }
   .c-map-cap {
     padding-top: var(--s-3);

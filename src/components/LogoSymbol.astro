@@ -1,0 +1,18 @@
+---
+// The logo's path data, emitted once per page (by src/layouts/Base.astro) as a hidden <symbol>; every <Logo>
+// references it with <use>. The dark parts take `--logo-ink` (set per tone by Logo.astro), the yellow stays fixed.
+const svgs = import.meta.glob<string>('/src/assets/img/brand/logo.svg', { query: '?raw', import: 'default', eager: true });
+const raw = svgs['/src/assets/img/brand/logo.svg'] ?? '';
+const viewBox = raw.match(/viewBox="([^"]+)"/)?.[1] ?? '0 0 317.23 187.77';
+const inner = raw
+  .replace(/^[\s\S]*?<svg[^>]*>/, '')
+  .replace(/<\/svg>\s*$/, '')
+  .replace(/<title>[\s\S]*?<\/title>/, '')
+  .replace(/<!--[\s\S]*?-->/g, '')
+  // the ink group (#0A0A08 in the file) follows the variable; the brand yellow is shared by both tones
+  .replace(/<g fill="#0A0A08">/i, '<g style="fill:var(--logo-ink,#0A0A08)">');
+---
+
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute;overflow:hidden">
+  <symbol id="op-logo" viewBox={viewBox} set:html={inner} />
+</svg>

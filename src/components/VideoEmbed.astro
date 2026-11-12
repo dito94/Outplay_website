@@ -124,9 +124,11 @@ const T = {
     text-decoration-thickness: 1px;
     text-underline-offset: 0.3em;
   }
-  .vid-row-link:hover {
-    text-decoration-color: var(--yellow);
-    text-decoration-thickness: 2px;
+  @media (hover: hover) {
+    .vid-row-link:hover {
+      text-decoration-color: var(--yellow);
+      text-decoration-thickness: 2px;
+    }
   }
   .vid-frame {
     display: block;
@@ -189,9 +191,11 @@ const T = {
     font-weight: 600;
     letter-spacing: 0.02em;
   }
-  .vid-play:hover .vid-disc {
-    transform: scale(1.06);
-    background: #fff;
+  @media (hover: hover) {
+    .vid-play:hover .vid-disc {
+      transform: scale(1.06);
+      background: #fff;
+    }
   }
   .vid-play:focus-visible {
     outline: none;

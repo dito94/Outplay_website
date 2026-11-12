@@ -1,7 +1,7 @@
 ---
-import { Image } from 'astro:assets';
 import type { Lang } from '../data/types';
-import { img, altOf, focalOf } from '../lib/images';
+import { altOf, focalOf } from '../lib/images';
+import { responsive, DEFAULT_WIDTHS, type Crop } from '../lib/responsive';
 
 interface Props {
   src: string | undefined;
@@ -9,9 +9,12 @@ interface Props {
   alt?: string;
   sizes?: string;
   widths?: number[];
+  /** cropped rendition for small screens (see src/lib/responsive.ts); renders a <picture> */
+  crop?: Crop;
   loading?: 'lazy' | 'eager';
   priority?: boolean;
   class?: string;
+  /** class of the <picture> wrapper (only rendered with `crop`) */
   pictureClass?: string;
   position?: string;
 }
@@ -21,7 +24,8 @@ const {
   lang,
   alt,
   sizes = '100vw',
-  widths = [480, 768, 1080, 1440, 1920, 2400],
+  widths = DEFAULT_WIDTHS,
+  crop,
   loading,
   priority = false,
   class: cls,
@@ -29,34 +33,44 @@ const {
   position,
 } = Astro.props;
 
-const image = img(src);
-const usable = image ? widths.filter((w) => w <= image.width) : [];
-if (image && (usable.length === 0 || usable[usable.length - 1] < image.width)) usable.push(image.width);
+const r = await responsive(src, { sizes, widths, crop });
 const focal = position ?? focalOf(src);
 const altText = alt ?? altOf(src, lang);
+const attrs = r && {
+  src: r.main.src,
+  srcset: r.main.srcSet.attribute,
+  sizes,
+  alt: altText,
+  loading: priority ? 'eager' : (loading ?? 'lazy'),
+  decoding: priority ? 'sync' : 'async',
+  fetchpriority: priority ? 'high' : 'auto',
+  style: focal ? `object-position:${focal}` : undefined,
+  width: r.main.attributes.width,
+  height: r.main.attributes.height,
+  class: cls,
+};
 ---
 
 {
-  image ? (
-    <Image
-      src={image}
-      format="webp"
-      quality={80}
-      widths={usable}
-      sizes={sizes}
-      alt={altText}
-      loading={priority ? 'eager' : (loading ?? 'lazy')}
-      decoding={priority ? 'sync' : 'async'}
-      fetchpriority={priority ? 'high' : 'auto'}
-      class={cls}
-      style={focal ? `object-position:${focal}` : undefined}
-    />
+  r && attrs ? (
+    r.crop ? (
+      <picture class={pictureClass}>
+        <source media={r.crop.media} srcset={r.crop.srcset} sizes={r.crop.sizes} type="image/webp" />
+        <img {...attrs} />
+      </picture>
+    ) : (
+      <img {...attrs} />
+    )
   ) : (
     <div class:list={['img-missing', cls]} role="img" aria-label={altText} />
   )
 }
 
 <style>
+  /* the wrapper must not change layout: the <img> keeps sizing against the same parent as without a crop */
+  picture {
+    display: contents;
+  }
   .img-missing {
     width: 100%;
     height: 100%;

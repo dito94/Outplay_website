@@ -118,7 +118,7 @@ export const GET: APIRoute = async ({ params }) => {
       alias: t(pg.title, o),
       kw: [
         PAGE_KW[pg.id],
-        pg.id === 'contact' ? [t(site.address, lang), ...site.phones.map((p) => p.display), site.email].join(' ') : '',
+        pg.id === 'contact' ? [t(site.address, lang), ...site.phones.map((p) => (lang === 'en' ? p.intl : p.display)), site.email].join(' ') : '',
         pg.id === 'contact' || pg.id === 'inquiry' ? t(ui.nav.inquiry, lang) : '',
       ].join(' '),
       url: url(lang, pg.path),

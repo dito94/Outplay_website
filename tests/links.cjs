@@ -5,7 +5,7 @@
 //  1. every internal href/src-like link resolves to a file in DIST (query strings stripped);
 //  2. every #fragment exists as an id/name on the target page (same-page and cross-page);
 //  3. ?product=<id> links name a real product, and loading them preselects that product in the inquiry form;
-//  4. every product page's quote CTAs ("Request a quote" / "Get a quote" / "Inquiry") preselect that product;
+//  4. every product page's quote CTAs ("Request a quote" / "Quote") preselect that product;
 //  5. the header/drawer/footer language switch goes to the same route in the other language;
 //  6. <link rel=canonical> and hreflang bg/en/x-default are absolute, correct and mutually consistent;
 //  7. nothing points outside /Outplay_website/ except the allowed external hosts/schemes;
@@ -35,7 +35,7 @@ const ALLOWED_EXTERNAL = [
   /^https:\/\/(www\.)?youtube(-nocookie)?\.com\//,
   /^https:\/\/youtu\.be\//,
 ];
-const QUOTE_TEXT = /^(Направете запитване|Запитване|Изпратете запитване|Request a quote|Get a quote|Inquiry|Send an inquiry)$/i;
+const QUOTE_TEXT = /^(Направете запитване|Запитване|Изпратете запитване|Request a quote|Quote)$/i;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml',

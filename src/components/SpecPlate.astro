@@ -1,8 +1,8 @@
 ---
 // Product highlights as an aluminium data plate: a riveted hairline panel, big light numerals with units,
 // labels underneath, hairline separators. 2–4 cells; on phones the cells become rows (value | label).
-// Only real figures are shown: a value must contain a digit and not be a bare "0" (so "RAL", "LED" or
-// "0 floor guides" stay in the copy, not on the plate). With fewer than 2 figures the plate is not rendered.
+// Only real figures are shown: a value must start with a digit and not be a bare "0" (so "RAL", "LED",
+// a model name like "ES 200" or "0 floor guides" stay in the copy, not on the plate). With fewer than 2 figures the plate is not rendered.
 import type { Highlight, Lang } from '../data/types';
 import { t } from '../lib/i18n';
 
@@ -16,7 +16,7 @@ interface Props {
   id?: string;
 }
 const { lang, highlights: all, name, title, id = 'spec-plate' } = Astro.props;
-const isFigure = (v: string) => /\d/.test(v) && !/^\s*0\s*$/.test(v);
+const isFigure = (v: string) => /^\s*\d/.test(v) && !/^\s*0\s*$/.test(v);
 const highlights = all.filter((h) => isFigure(h.value)).slice(0, 4);
 const n = Math.max(1, highlights.length);
 ---

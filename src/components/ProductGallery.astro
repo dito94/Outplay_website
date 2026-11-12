@@ -138,8 +138,10 @@ const tiles = await Promise.all(
     object-fit: cover;
     transition: opacity 0.35s var(--ease);
   }
-  .pg-link:hover :global(img) {
-    opacity: 0.88;
+  @media (hover: hover) {
+    .pg-link:hover :global(img) {
+      opacity: 0.88;
+    }
   }
   .pg-zoom {
     position: absolute;
@@ -159,14 +161,17 @@ const tiles = await Promise.all(
       transform 0.25s var(--ease),
       background-color 0.2s var(--ease);
   }
-  .pg-link:hover .pg-zoom,
   .pg-link:focus-visible .pg-zoom {
     opacity: 1;
     transform: none;
   }
-  .pg-link:hover .pg-zoom {
-    background: var(--yellow);
-    color: var(--ink);
+  @media (hover: hover) {
+    .pg-link:hover .pg-zoom {
+      opacity: 1;
+      transform: none;
+      background: var(--yellow);
+      color: var(--ink);
+    }
   }
   .pg-link:focus-visible {
     outline: 2px solid var(--focus);

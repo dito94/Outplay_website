@@ -112,6 +112,7 @@ const jump = [
               <BeforeAfter
                 lang={lang}
                 pair={lead}
+                priority
                 sizes={baSizes(lead, [
                   ['(min-width: 1440px)', '880px', +ratio(lead, 1.4, 1.9)],
                   ['(min-width: 901px)', '62vw', +ratio(lead, 1.4, 1.9)],
@@ -193,7 +194,7 @@ const jump = [
                     src={r.image}
                     lang={lang}
                     sizes="(min-width: 1440px) 430px, (min-width: 901px) 30vw, 47vw"
-                    widths={[480, 768]}
+                    widths={[480, 600, 768, 1080]}
                   />
                 </div>
                 <h3 class="ref-name">{lang === 'en' && r.nameEn ? r.nameEn : r.name}</h3>
@@ -226,16 +227,21 @@ const jump = [
 </Base>
 
 <style>
-  /* Page head: compact, so the first before/after shows on the first screen (spacing from the shared .page-hero) */
-  .ph {
-    padding-bottom: 0;
-  }
+  /* Page head: spacing and H1 size from the shared .page-hero, as on /faq/ and /about/. Where the jump row shows,
+     it takes the place of the hero's bottom padding (same gap above it) and its rule closes the head. */
   .ph-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
     gap: var(--s-5) var(--s-8);
     align-items: end;
-    padding-bottom: clamp(2rem, 1.5rem + 2vw, 3rem);
+  }
+  @media (min-width: 721px) {
+    .ph:has(.ph-jump) {
+      padding-bottom: 0;
+    }
+    .ph-jump {
+      margin-top: clamp(2.5rem, 2rem + 3vw, 4.5rem);
+    }
   }
   .ph-jump ul {
     list-style: none;
@@ -260,11 +266,13 @@ const jump = [
     text-decoration: none;
     white-space: nowrap;
   }
-  .ph-jump a:hover span:first-child {
-    text-decoration: underline;
-    text-decoration-color: var(--yellow);
-    text-decoration-thickness: 2px;
-    text-underline-offset: 0.3em;
+  @media (hover: hover) {
+    .ph-jump a:hover span:first-child {
+      text-decoration: underline;
+      text-decoration-color: var(--yellow);
+      text-decoration-thickness: 2px;
+      text-underline-offset: 0.3em;
+    }
   }
   .ph-n {
     color: var(--muted);

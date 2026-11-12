@@ -295,13 +295,19 @@ const jsonLd = {
     -webkit-appearance: none;
     appearance: none;
   }
-  .fs-input:hover {
-    border-color: color-mix(in srgb, var(--fg) 45%, transparent);
+  @media (hover: hover) {
+    .fs-input:hover {
+      border-color: color-mix(in srgb, var(--fg) 45%, transparent);
+    }
   }
   .fs-input:focus {
-    outline: none;
+    /* transparent outline keeps a ring in forced-colours mode; matches .input:focus in global.css */
+    outline: 2px solid transparent;
+    outline-offset: 2px;
     border-color: var(--fg);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--yellow) 70%, transparent);
+    box-shadow:
+      0 0 0 1px var(--fg),
+      0 0 0 4px color-mix(in srgb, var(--yellow) 70%, transparent);
   }
   .fs-clear {
     position: absolute;
@@ -317,9 +323,11 @@ const jsonLd = {
     background: none;
     color: var(--muted);
   }
-  .fs-clear:hover {
-    color: var(--fg);
-    background: var(--mist);
+  @media (hover: hover) {
+    .fs-clear:hover {
+      color: var(--fg);
+      background: var(--mist);
+    }
   }
   .fs-hint {
     font-size: var(--step--1);
@@ -693,6 +701,15 @@ const jsonLd = {
     const terms = fold(query).split(/\s+/).filter(Boolean);
     const active = query.length >= 2;
     if (clearBtn) clearBtn.hidden = raw.length === 0;
+    // keep the filter in the address (?q=), so a filtered list can be shared and survives a reload
+    try {
+      const u = new URL(window.location.href);
+      if (active) u.searchParams.set('q', query);
+      else u.searchParams.delete('q');
+      if (u.href !== window.location.href) history.replaceState(history.state, '', u);
+    } catch {
+      /* history unavailable: filtering still works */
+    }
     let shown = 0;
     for (const it of items) {
       const hay = it.fields.map((f) => f.folded.out).join(' \n ');

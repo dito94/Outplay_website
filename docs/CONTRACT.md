@@ -1,6 +1,6 @@
 # OUTPLAY site — build contract (read before touching code)
 
-Stack: **Astro 5.18 static site**, vanilla TypeScript islands, no UI framework. Deployed to GitHub Pages at
+Stack: **Astro 7 static site**, vanilla TypeScript islands, no UI framework. Deployed to GitHub Pages at
 `https://dito94.github.io/Outplay_website/` → Astro `base: '/Outplay_website'`, `trailingSlash: 'always'`.
 Always build internal links with the helpers in `src/lib/i18n.ts` (`url(lang, path)`), never hardcode the base.
 

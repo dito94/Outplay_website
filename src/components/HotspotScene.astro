@@ -2,7 +2,7 @@
 import type { Hotspot, Lang } from '../data/types';
 import { products } from '../data/products';
 import { categories } from '../data/categories';
-import { productUrl, categoryUrl, url, t } from '../lib/i18n';
+import { productUrl, categoryUrl, t } from '../lib/i18n';
 import Img from './Img.astro';
 import { img } from '../lib/images';
 import Icon from './Icon.astro';
@@ -20,6 +20,8 @@ interface Props {
   fallbackLabel?: string;
 }
 const { lang, image, hotspots, legend = true, sizes = '100vw', id, fallbackHref, fallbackLabel } = Astro.props;
+// product diagrams have no fallback link; their category points show only the label and the link (no intro sentence)
+const isDiagram = !fallbackHref;
 
 const items = hotspots.map((h, i) => {
   const p = h.productId ? products.find((x) => x.id === h.productId) : undefined;
@@ -28,7 +30,7 @@ const items = hotspots.map((h, i) => {
     ...h,
     n: i + 1,
     title: t(h.label, lang),
-    text: p ? t(p.summary, lang) : c ? (t(c.intro[0], lang).split(/(?<=\.)\s/)[0] ?? t(c.tagline, lang)) : '',
+    text: p ? t(p.summary, lang) : c && !isDiagram ? (t(c.intro[0], lang).split(/(?<=\.)\s/)[0] ?? t(c.tagline, lang)) : '',
     // points without their own page: the scene's fallback (home villa → company page) or no link at all (diagrams)
     href: p ? productUrl(lang, p.category, p.id) : c ? categoryUrl(lang, c.id) : fallbackHref,
     linkLabel: p ? t(p.name, lang) : c ? t(c.name, lang) : (fallbackLabel ?? ''),
@@ -49,10 +51,16 @@ const W = 358;
 const crowded = hotspots.some((a, i) =>
   hotspots.slice(i + 1).some((b) => Math.hypot(((a.x - b.x) / 100) * W, ((a.y - b.y) / 100) * (W / aspect)) < 34),
 );
+// Closest pair of dots as a fraction of the stage width: the script switches to the smaller dot whenever the stage is
+// too narrow for two 44px dots to stay apart (product diagrams on tablets and laptops), whatever the viewport width.
+const minGap = hotspots.reduce(
+  (m, a, i) => hotspots.slice(i + 1).reduce((mm, b) => Math.min(mm, Math.hypot((a.x - b.x) / 100, (a.y - b.y) / 100 / aspect)), m),
+  Infinity,
+);
 ---
 
 <div class:list={['scene', { 'dots-crowded': crowded }]} data-scene>
-  <div class="scene-stage" style={ratio}>
+  <div class="scene-stage" style={ratio} data-min-gap={Number.isFinite(minGap) ? minGap.toFixed(4) : undefined}>
     <Img src={image} lang={lang} sizes={sizes} />
     {
       items.map((h) => (
@@ -62,6 +70,7 @@ const crowded = hotspots.some((a, i) =>
             class="hs-dot"
             aria-expanded="false"
             aria-controls={`${id}-card-${h.n}`}
+            data-card={`${id}-card-${h.n}`}
             data-hs-btn
           >
             <span aria-hidden="true">{h.n}</span>
@@ -151,18 +160,43 @@ const crowded = hotspots.some((a, i) =>
       transform 0.25s var(--ease),
       background-color 0.2s var(--ease);
   }
-  .hs-dot:hover,
   .hs-dot[aria-expanded='true'] {
     transform: scale(1.08);
     background: var(--ink);
     color: var(--yellow);
   }
+  @media (hover: hover) {
+    .hs-dot:hover {
+      transform: scale(1.08);
+      background: var(--ink);
+      color: var(--yellow);
+    }
+  }
+  /* the dots sit on a light picture whatever band the scene is in */
+  .hs-dot {
+    --focus: var(--ink);
+  }
   .hs-dot:focus-visible {
-    outline: 3px solid var(--ink);
     outline-offset: 4px;
+  }
+  /* stage too narrow for 44px dots to stay apart (set by the script): smaller dot, same 44px touch area */
+  .dots-small .hs-dot {
+    left: -15px;
+    top: -15px;
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+  }
+  .dots-small .hs-dot::before {
+    content: '';
+    position: absolute;
+    inset: -7px;
+    border-radius: 50%;
   }
   .hs-card {
     position: absolute;
+    max-height: calc(100% - 40px);
+    overflow: auto;
     width: min(300px, 70vw);
     padding: var(--s-5);
     background: var(--paper);
@@ -301,29 +335,52 @@ const crowded = hotspots.some((a, i) =>
   document.querySelectorAll<HTMLElement>('[data-scene]').forEach((scene) => {
     const btns = Array.from(scene.querySelectorAll<HTMLButtonElement>('[data-hs-btn]'));
     const small = window.matchMedia('(max-width: 720px)');
+    const smooth = (): ScrollBehavior => (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
+    const cardOf = (b: HTMLButtonElement) => document.getElementById(b.dataset.card ?? '');
     const closeAll = (except?: HTMLButtonElement) =>
       btns.forEach((b) => {
         if (b === except) return;
-        b.setAttribute('aria-expanded', 'false');
-        const card = document.getElementById(b.getAttribute('aria-controls') ?? '');
+        if (b.hasAttribute('aria-expanded')) b.setAttribute('aria-expanded', 'false');
+        const card = cardOf(b);
         if (card) card.hidden = true;
       });
+    // On phones the cards are not shown (the legend takes over), so the dots are plain buttons there
+    const syncAria = () => {
+      closeAll();
+      btns.forEach((b) => {
+        if (small.matches) {
+          b.removeAttribute('aria-expanded');
+          b.removeAttribute('aria-controls');
+        } else {
+          b.setAttribute('aria-expanded', 'false');
+          b.setAttribute('aria-controls', b.dataset.card ?? '');
+        }
+      });
+    };
+    syncAria();
+    small.addEventListener('change', syncAria);
+    // smaller dots whenever two 44px dots would touch at the current stage width
+    const stage = scene.querySelector<HTMLElement>('.scene-stage');
+    const gap = Number(stage?.dataset.minGap);
+    if (stage && gap > 0 && 'ResizeObserver' in window) {
+      new ResizeObserver(() => scene.classList.toggle('dots-small', stage.clientWidth * gap < 48)).observe(stage);
+    }
     btns.forEach((b, i) => {
       b.addEventListener('click', () => {
         if (small.matches) {
           // On phones the cards are replaced by the legend: highlight the matching row
           const rows = Array.from(scene.querySelectorAll<HTMLElement>('.scene-legend li'));
           rows.forEach((r, k) => r.classList.toggle('is-active', k === i));
-          rows[i]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          rows[i]?.scrollIntoView({ block: 'nearest', behavior: smooth() });
           return;
         }
         const open = b.getAttribute('aria-expanded') !== 'true';
         closeAll(b);
         b.setAttribute('aria-expanded', String(open));
-        const card = document.getElementById(b.getAttribute('aria-controls') ?? '');
+        const card = cardOf(b);
         if (card) {
           card.hidden = !open;
-          if (open) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          if (open) card.scrollIntoView({ block: 'nearest', behavior: smooth() });
         }
       });
     });
@@ -340,7 +397,7 @@ const crowded = hotspots.some((a, i) =>
       lb.addEventListener('click', (e) => {
         e.stopPropagation();
         btns[Number(lb.dataset.legendN)]?.click();
-        if (!small.matches) btns[Number(lb.dataset.legendN)]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        if (!small.matches) btns[Number(lb.dataset.legendN)]?.scrollIntoView({ block: 'center', behavior: smooth() });
       }),
     );
     scene.addEventListener('keydown', (e) => {

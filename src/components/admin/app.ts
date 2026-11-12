@@ -18,6 +18,7 @@ import {
   readJSON,
   remove,
   saveOverride,
+  storageAvailable,
   updateInquiry,
   writeJSON,
   type CustomProduct,
@@ -108,6 +109,8 @@ export function boot(): void {
   const catById = new Map(D.categories.map((c) => [c.id, c]));
   const faqById = new Map<string, AdminFaqItem>(D.faq.flatMap((g) => g.items.map((i) => [i.id, i] as const)));
   const examples = exampleInquiries(lang);
+  /** false in private mode / with storage blocked: saving is refused up front */
+  const canStore = storageAvailable();
   const drawer = q<HTMLDialogElement>('[data-adm-drawer]')!;
   const confirmEl = q<HTMLDialogElement>('[data-adm-confirm]')!;
 
@@ -124,6 +127,8 @@ export function boot(): void {
     customTab: 'bg' as Lang,
     draft: null as Draft | null,
     draftBase: '',
+    /** texts the catalogue product editor was rendered with (what "changed" is measured against) */
+    edBase: null as Record<TextField, Pair> | null,
     busy: false,
     exampleStatus: {} as Record<string, InquiryStatus>,
   };
@@ -169,7 +174,8 @@ export function boot(): void {
     const p = productById.get(inq.productId);
     if (p) return effText(p, 'name', lang, ov);
     const c = getCustomProduct(inq.productId);
-    return c ? cText(c.name) : inq.productId;
+    if (c) return cText(c.name);
+    return inq.productId.startsWith('c-') ? S.deletedProduct : inq.productId;
   };
   const customUrl = (id: string) => `${D.itemUrl}?id=${encodeURIComponent(id)}`;
   const loadFaq = (): FaqEdits => {
@@ -225,7 +231,7 @@ export function boot(): void {
       link ? ` <a href="${esc(link.href)}" target="_blank" rel="noopener">${esc(link.label)}${newTab}</a>` : ''
     }</p><button type="button" class="adm-toast-x">${icon('close', 16)}<span class="sr-only">${esc(S.dismiss)}</span></button>`;
     region.appendChild(el);
-    while (region.children.length > 3) region.firstElementChild?.remove();
+    while (region.children.length > 2) region.firstElementChild?.remove();
     let timer = 0;
     const kill = () => {
       window.clearTimeout(timer);
@@ -252,7 +258,7 @@ export function boot(): void {
     const checkWrap = q('[data-cf-check]', confirmEl)!;
     const check = q<HTMLInputElement>('input', checkWrap)!;
     checkWrap.hidden = !o.check;
-    check.checked = true;
+    check.checked = false; // opt in: the extra action is the destructive one
     if (o.check) q('span', checkWrap)!.textContent = o.check;
     q('[data-cf-cancel]', confirmEl)!.textContent = o.cancel ?? S.cancel;
     confirmEl.returnValue = '';
@@ -919,15 +925,19 @@ export function boot(): void {
     }
     const o = overrides()[p.id] ?? {};
     const val = (f: TextField, l: Lang) => o[f]?.[l] || p[f][l];
+    state.edBase = editorBase(p, o);
     const tab = state.editorTab;
     const field = (f: TextField, l: Lang) => {
       const id = `adm-f-${f}-${l}`;
       const v = val(f, l);
       const orig = p[f][l];
+      // tagline and summary fall back to the catalogue text when left empty (the name is required)
+      const hint = f === 'name' ? '' : `<p class="hint" id="${id}-hint">${esc(S.emptyHint)}</p>`;
+      const described = `${id}-err${hint ? ` ${id}-hint` : ''}`;
       const control =
         f === 'summary'
-          ? `<textarea id="${id}" class="textarea" rows="4" data-field="${f}" data-l="${l}" aria-describedby="${id}-err">${esc(v)}</textarea>`
-          : `<input id="${id}" class="input" type="text" value="${esc(v)}" data-field="${f}" data-l="${l}" aria-describedby="${id}-err"${
+          ? `<textarea id="${id}" class="textarea" rows="4" data-field="${f}" data-l="${l}" aria-describedby="${described}">${esc(v)}</textarea>`
+          : `<input id="${id}" class="input" type="text" value="${esc(v)}" data-field="${f}" data-l="${l}" aria-describedby="${described}"${
               f === 'name' ? ' required' : ''
             } />`;
       return `<div class="field">
@@ -935,6 +945,7 @@ export function boot(): void {
           f === 'summary' ? `<span class="adm-counter num" data-counter="${l}">${esc(fmt(S.chars, { n: v.length }))}</span>` : ''
         }</div>
         ${control}
+        ${hint}
         <p class="hint adm-orig" data-orig="${f}-${l}"${v === orig ? ' hidden' : ''}>${esc(S.original)}: ${esc(orig)}</p>
         <p class="error" id="${id}-err" data-err="${f}-${l}"></p>
       </div>`;
@@ -959,6 +970,7 @@ export function boot(): void {
       </header>
       <div class="adm-editor">
         <form class="adm-panel adm-ed-form" data-ed-form novalidate>
+          <p class="adm-note adm-note-box adm-ed-stale" role="status" data-ed-stale hidden>${icon('info', 18)}<span>${esc(S.edStale)}</span></p>
           <div class="adm-tabs" role="tablist" aria-label="${esc(S.langTabs)}" data-tabs="ed">
             ${LANGS.map(
               (l) =>
@@ -1015,6 +1027,13 @@ export function boot(): void {
       <p class="adm-note adm-ed-more">${icon('info', 16)}<span>${esc(S.moreFields)}</span></p>`;
   }
 
+  /** The texts the editor shows for a product with the given stored override */
+  function editorBase(p: AdminProduct, o: ProductOverride = {}): Record<TextField, Pair> {
+    const out = {} as Record<TextField, Pair>;
+    TEXT_FIELDS.forEach((f) => (out[f] = { bg: o[f]?.bg || p[f].bg, en: o[f]?.en || p[f].en }));
+    return out;
+  }
+
   function editorValues(): Record<TextField, Pair> {
     const form = q('[data-ed-form]');
     const out = {} as Record<TextField, Pair>;
@@ -1030,13 +1049,13 @@ export function boot(): void {
   function onEditorInput() {
     const p = productById.get(state.arg);
     if (!p) return;
-    const o = overrides()[p.id] ?? {};
+    const base = state.edBase ?? editorBase(p, overrides()[p.id]);
     const v = editorValues();
     let dirty = false;
     const dirtyLang: Record<Lang, boolean> = { bg: false, en: false };
     TEXT_FIELDS.forEach((f) =>
       LANGS.forEach((l) => {
-        const stored = o[f]?.[l] || p[f][l];
+        const stored = base[f][l];
         if (v[f][l] !== stored) {
           dirty = true;
           dirtyLang[l] = true;
@@ -1094,19 +1113,25 @@ export function boot(): void {
         return;
       }
     }
+    // Only the texts edited here change; everything else is taken fresh from storage (another tab may have saved)
+    const o = overrides()[p.id];
+    const base = state.edBase ?? editorBase(p, o);
     const patch: ProductOverride = {};
     TEXT_FIELDS.forEach((f) => {
-      const diff: { bg?: string; en?: string } = {};
-      LANGS.forEach((l) => {
+      const touched = LANGS.filter((l) => v[f][l] !== base[f][l]);
+      if (!touched.length) return;
+      const next: { bg?: string; en?: string } = { ...(o?.[f] ?? {}) };
+      touched.forEach((l) => {
         const t = v[f][l].trim();
-        if (t && t !== p[f][l]) diff[l] = t;
+        if (t && t !== p[f][l]) next[l] = t;
+        else delete next[l];
       });
-      patch[f] = Object.keys(diff).length ? diff : undefined;
+      patch[f] = next.bg !== undefined || next.en !== undefined ? next : undefined;
     });
-    const o = overrides()[p.id];
+    const merged: ProductOverride = { ...o, ...patch };
     let ok = true;
     mutate(() => {
-      ok = !hasText(patch) && !o?.hidden ? clearOverride(p.id) : saveOverride(p.id, patch);
+      ok = !hasText(merged) && !o?.hidden ? clearOverride(p.id) : saveOverride(p.id, patch);
     });
     if (!ok) return failed(); // the form keeps the edits
     renderEditor();
@@ -1143,6 +1168,15 @@ export function boot(): void {
     const p = productById.get(state.arg);
     if (!p) return;
     const o = overrides()[p.id];
+    const now = editorBase(p, o);
+    const changed = !!state.edBase && JSON.stringify(now) !== JSON.stringify(state.edBase);
+    if (changed && !isDirty()) {
+      // saved elsewhere (another tab) and nothing typed here: show the stored texts
+      renderEditor();
+      return;
+    }
+    const stale = q('[data-ed-stale]');
+    if (stale && changed) stale.hidden = false;
     const vis = q('[data-ed-vis]');
     if (vis) keepFocus(vis, () => (vis.innerHTML = visSwitch(p, !!o?.hidden, effText(p, 'name'))));
     const st = q('[data-ed-state]');
@@ -1250,8 +1284,20 @@ export function boot(): void {
 
   const customStateText = (c?: CustomProduct) =>
     c ? fmt(S.lastSaved, { t: relTime(c.updatedAt || c.createdAt, lang, S.justNow) }) : S.unsaved;
-  const storageLine = () =>
-    fmt(S.cpStorage, { used: formatBytes(storageUsed(), lang), total: formatBytes(STORAGE_BUDGET, lang) });
+  /** Storage this origin would use with the draft saved (the stored copy of the product replaced by the draft) */
+  function projectedUse(d: Draft | null): number {
+    const used = storageUsed();
+    if (!d) return used;
+    const existing = d.id ? getCustomProduct(d.id) : undefined;
+    const before = existing ? JSON.stringify(existing).length + 1 : 0;
+    return Math.max(0, used - before + JSON.stringify(productFromDraft(d, existing)).length + 1);
+  }
+  const storageLine = (d: Draft | null = null) => {
+    const n = projectedUse(d);
+    const line = fmt(d ? S.cpStorageDraft : S.cpStorage, { used: formatBytes(n, lang), total: formatBytes(STORAGE_BUDGET, lang) });
+    return n > STORAGE_BUDGET * 0.9 ? `${line}. ${S.cpStorageWarn}` : line;
+  };
+  const storageFull = (d: Draft | null) => projectedUse(d) > STORAGE_BUDGET * 0.9;
 
   function renderCustomEditor() {
     const existing = state.arg === 'new' ? undefined : getCustomProduct(state.arg);
@@ -1411,7 +1457,7 @@ export function boot(): void {
                   </div>`
                 : `<p class="adm-note adm-cp-full">${icon('info', 16)}<span>${esc(fmt(S.cpTooMany, { n: MAX }))}</span></p>`
             }
-            <p class="adm-note adm-cp-storage" data-cp-storage>${icon('info', 16)}<span>${esc(storageLine())}</span></p>
+            <p class="adm-note adm-cp-storage${storageFull(d) ? ' is-warn' : ''}" data-cp-storage>${icon('info', 16)}<span>${esc(storageLine(d))}</span></p>
           </section>
           <p class="adm-cp-error" role="alert" data-cp-error></p>
           <div class="adm-ed-actions adm-cp-actions">
@@ -1531,7 +1577,7 @@ export function boot(): void {
       paintCustom();
       q<HTMLElement>('[data-cp-upload]')?.closest('.adm-drop')?.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true });
     }
-    problems.forEach((m) => toast(m));
+    problems.forEach((m) => toast(m, null, true));
   }
 
   function moveImage(from: number, to: number, focusKey: string) {
@@ -1575,8 +1621,8 @@ export function boot(): void {
       const msg = res.reason === 'quota' ? S.cpQuota : S.cpUnavailable;
       if (errBox) errBox.textContent = msg;
       const storage = q('[data-cp-storage] span');
-      if (storage) storage.textContent = storageLine();
-      toast(msg);
+      if (storage) storage.textContent = storageLine(d);
+      toast(msg, null, true);
       return;
     }
     state.draft = null;
@@ -1622,8 +1668,26 @@ export function boot(): void {
     if (state.arg === 'new') return;
     const c = getCustomProduct(state.arg);
     if (!c) {
+      if (state.draft && isDirty()) {
+        // deleted in another tab while edited here: keep the work as a new product instead of dropping it
+        state.draft.id = null;
+        state.arg = 'new';
+        state.draftBase = '';
+        history.replaceState(history.state, '', '#products/new');
+        currentHash = location.hash;
+        paintCustom();
+        document.title = `${viewTitle()} · ${S.title} · OUTPLAY`;
+        toast(S.cpGone, null, true);
+        return;
+      }
       state.draft = null;
       location.hash = '#products';
+      return;
+    }
+    if (state.draft && !isDirty() && JSON.stringify(draftFromProduct(c)) !== state.draftBase) {
+      // saved elsewhere and nothing typed here: show the stored product
+      state.draft = null;
+      paintCustom();
       return;
     }
     const vis = q('[data-cp-vis]');
@@ -2042,7 +2106,10 @@ export function boot(): void {
     if ((m = hit('[data-copy-value]'))) return void copyValue(m);
     if ((m = hit('[data-delete-inq]'))) return void deleteCurrent();
     if ((m = hit('[data-open-inq]'))) return void openInquiry(m.dataset.openInq!);
-    if ((m = hit('[data-toggle-vis]'))) return void toggleVisibility(m.dataset.toggleVis!);
+    if ((m = hit('[data-toggle-vis]'))) {
+      if (!canStore) return void toast(S.noStorage, null, true);
+      return void toggleVisibility(m.dataset.toggleVis!);
+    }
     if ((m = hit('[role="tab"][data-tab]'))) return void selectTab(m);
     if ((m = hit('[data-ed-discard]'))) {
       renderEditor();
@@ -2141,6 +2208,11 @@ export function boot(): void {
 
   root.addEventListener('submit', (e) => {
     const f = e.target as HTMLFormElement;
+    if (!canStore && f.matches('[data-ed-form], [data-faq-form], [data-cp-form]')) {
+      e.preventDefault();
+      toast(S.noStorage, null, true);
+      return;
+    }
     if (f.matches('[data-ed-form]')) {
       e.preventDefault();
       saveEditor();
@@ -2219,6 +2291,14 @@ export function boot(): void {
   // ---------------------------------------------------------------------------
   // Start
   // ---------------------------------------------------------------------------
+  if (!canStore) {
+    // private mode or blocked storage: say so up front instead of at the first save
+    const note = document.createElement('p');
+    note.className = 'adm-nostore';
+    note.setAttribute('role', 'status');
+    note.innerHTML = `${icon('info', 18)}<span>${esc(S.noStorage)}</span>`;
+    q('.adm-banner')?.after(note);
+  }
   if (readJSON<unknown>(KEYS.session, null)) docEl.classList.add('adm-authed');
   else docEl.classList.remove('adm-authed');
   if (isAuthed()) route(false);

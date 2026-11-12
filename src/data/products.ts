@@ -1759,7 +1759,7 @@ export const products: Product[] = [
         heading: { bg: 'Дигитална интеграция и визуална персонализация', en: 'Smart control, personal style' },
         paragraphs: [
           {
-            bg: 'Shell се синхронизира със SMART системите за управление на дома и се командва с дистанционни предаватели или мобилни устройства. Можете да настроите светлинния поток прецизно и да създадете свои сценарии за комфорт, а механизмите работят безшумно и са износоустойчиви.',
+            bg: 'Shell се синхронизира със системите за умен дом и се командва с дистанционни предаватели или мобилни устройства. Можете да настроите светлинния поток прецизно и да създадете свои сценарии за комфорт, а механизмите работят безшумно и са износоустойчиви.',
             en: 'Shell connects to smart-home systems and can be controlled from a remote or a mobile device, so you can fine-tune the light and set up your own comfort scenes. The mechanisms are quiet and hard-wearing.',
           },
           {
