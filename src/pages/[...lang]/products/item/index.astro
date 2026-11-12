@@ -382,6 +382,12 @@ const json = JSON.stringify(cfg).replace(/</g, '\\u003c');
   .ci-loading {
     min-height: 50vh;
   }
+  .ci-loading .ci-h1 {
+    margin-bottom: var(--s-4);
+  }
+  html:not(.js) [data-ci-loading] {
+    display: none;
+  }
   .ci-crumbs ol {
     display: flex;
     flex-wrap: wrap;

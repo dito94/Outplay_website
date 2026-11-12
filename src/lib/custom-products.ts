@@ -394,7 +394,7 @@ function relist(list: HTMLElement, lang: Lang): void {
   });
   const shown = items.filter(isShown);
   shown.forEach((el, i) => {
-    if (i > 0) list.insertBefore(document.createTextNode(' · '), el);
+    if (i > 0) list.insertBefore(document.createTextNode('\u00a0· '), el);
   });
   if (!shown.length) {
     const soon = document.createElement('span');

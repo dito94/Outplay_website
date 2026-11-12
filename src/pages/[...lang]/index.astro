@@ -9,7 +9,7 @@ import FaqAccordion from '../../components/FaqAccordion.astro';
 import CtaBand from '../../components/CtaBand.astro';
 import Img from '../../components/Img.astro';
 import Icon from '../../components/Icon.astro';
-import { preloadImage } from '../../lib/responsive';
+import { preloadImage, HOME_HERO_SIZES } from '../../lib/responsive';
 import { categories } from '../../data/categories';
 import { products } from '../../data/products';
 import { faq } from '../../data/faq';
@@ -58,7 +58,7 @@ const jsonLd = {
   },
 };
 // LCP: same image and sizes as the <Img> in src/components/HomeHero.astro
-const heroPreload = await preloadImage('home/hero.jpg', { sizes: '(max-width: 600px) 300vw, (max-width: 1100px) 160vw, 100vw' });
+const heroPreload = await preloadImage('home/hero.jpg', { sizes: HOME_HERO_SIZES });
 // Phones (one tile per row, ~0.9:1 boxes) get a 1.1:1 crop instead of the 2.4:1 panorama
 const tileCrop = { media: '(max-width: 480px)', ratio: 1.1 };
 ---

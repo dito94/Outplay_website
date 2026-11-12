@@ -55,6 +55,10 @@ const pagePid = routeMatch && products.some((p) => p.category === routeMatch[1] 
 </nav>
 
 <style>
+  /* sections take focus after a jump (jump() below) only to move the keyboard starting point */
+  :global([data-sn-section]:focus) {
+    outline: none;
+  }
   .subnav {
     position: sticky;
     top: var(--header-offset, var(--header-h));

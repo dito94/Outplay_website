@@ -443,7 +443,7 @@ export const pages = {
       title: { bg: 'Вход в администрацията', en: 'Admin sign-in' },
       username: { bg: 'Потребителско име', en: 'Username' },
       password: { bg: 'Парола', en: 'Password' },
-      submit: { bg: 'Влез', en: 'Sign in' },
+      submit: { bg: 'Вход', en: 'Sign in' },
       hint: {
         bg: 'Демо достъп: потребител demo, парола demo. В реалния сайт достъпът е защитен.',
         en: 'Demo access: username demo, password demo. On the live site access is protected.',
@@ -490,7 +490,7 @@ export const pages = {
       uploadImage: { bg: 'Качи снимка', en: 'Upload image' },
       addVideo: { bg: 'Добави видео (URL)', en: 'Add video (URL)' },
       exportJson: { bg: 'Експорт (JSON)', en: 'Export (JSON)' },
-      resetDemo: { bg: 'Нулирай демо данните', en: 'Reset demo data' },
+      resetDemo: { bg: 'Нулирайте демо данните', en: 'Reset demo data' },
       resetConfirm: { bg: 'Всички промени в този браузър ще бъдат изтрити. Да продължим ли?', en: 'All changes in this browser will be deleted. Continue?' },
     },
     fields: {

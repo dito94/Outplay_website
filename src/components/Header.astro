@@ -824,15 +824,20 @@ const quoteHref = isProductPage ? '#inquiry' : url(lang, '/contact/#inquiry');
     }),
   );
 
-  // Language switch (header, drawer, footer): keep the query and the hash the page has at the moment the link is used
-  // (/contact/?product=x#inquiry, /admin/#products/x, search filters), since both can change after load. Runs in the
-  // bubble phase, so it has the last word over any capture-phase handler that only carries the query.
+  // Language switch (header, drawer, footer): keep the hash and the language-neutral query parameters the page has at
+  // the moment the link is used (/contact/?product=x#inquiry, /admin/#products/x, /products/item/?id=x), since both can
+  // change after load (also the gallery filter, ?category=). Free-text filters are language-specific, so `q` is carried only from the search page.
   const syncLangLink = (e: Event) => {
     const a = (e.target as HTMLElement | null)?.closest?.<HTMLAnchorElement>('.lang a, .drawer-lang a, .langs a');
     if (!a) return;
     const base = a.dataset.base ?? (a.getAttribute('href') ?? '').split(/[?#]/)[0];
     a.dataset.base = base;
-    a.setAttribute('href', base + location.search + location.hash);
+    const keep = ['id', 'product', 'c', 'category'].concat(/\/search\/$/.test(location.pathname) ? ['q'] : []);
+    const from = new URLSearchParams(location.search);
+    const to = new URLSearchParams();
+    from.forEach((v, k) => keep.includes(k) && to.append(k, v));
+    const qs = to.toString();
+    a.setAttribute('href', base + (qs ? '?' + qs : '') + location.hash);
   };
   ['pointerdown', 'focusin', 'click', 'mouseover'].forEach((t) => document.addEventListener(t, syncLangLink));
 </script>

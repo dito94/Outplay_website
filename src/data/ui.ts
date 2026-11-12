@@ -56,11 +56,6 @@ export const ui = {
       city: { bg: 'Населено място', en: 'Town or city' },
       message: { bg: 'Допълнителна информация', en: 'Anything else we should know' },
       photos: { bg: 'Снимки на мястото', en: 'Photos of the space' },
-      contactChannel: { bg: 'Предпочитан начин за връзка', en: 'Preferred way to contact you' },
-      consent: {
-        bg: 'Съгласявам се OUTPLAY да използва данните ми, за да отговори на запитването.',
-        en: 'I agree that OUTPLAY may use my details to respond to this request.',
-      },
     },
     placeholders: {
       product: { bg: 'Изберете продукт', en: 'Choose a product' },
@@ -78,11 +73,6 @@ export const ui = {
       required: { bg: 'задължително', en: 'required' },
       phone: { bg: 'Ще Ви се обадим или ще Ви пишем във Viber на този номер.', en: 'We will call or message you on Viber at this number.' },
       photos: { bg: 'До няколко снимки – помагат ни да предложим точно решение.', en: 'A few photos help us suggest the right solution.' },
-      dimensions: {
-        bg: 'Приблизителните размери са достатъчни – точният замер се прави при огледа.',
-        en: 'Approximate sizes are fine; we measure precisely during the site visit.',
-      },
-      contactRequired: { bg: 'Посочете поне телефон или имейл.', en: 'Give us at least a phone number or an email.' },
     },
     errors: {
       required: { bg: 'Попълнете това поле.', en: 'Please fill in this field.' },
@@ -97,10 +87,6 @@ export const ui = {
       number: { bg: 'Въведете число, напр. 3,5.', en: 'Enter a number, e.g. 3.5.' },
       consent: { bg: 'Отбележете съгласието, за да изпратим запитването.', en: 'Please tick the consent box so we can send your request.' },
       fileType: { bg: 'Качете снимка във формат JPG, PNG или WEBP.', en: 'Upload a photo in JPG, PNG or WEBP format.' },
-      generic: {
-        bg: 'Запитването не беше изпратено. Опитайте отново или ни се обадете.',
-        en: 'Your request was not sent. Please try again or give us a call.',
-      },
     },
   },
 

@@ -4,6 +4,8 @@ import { getImage } from 'astro:assets';
 import { img, focalOf } from './images';
 
 export const DEFAULT_WIDTHS = [480, 768, 1080, 1440, 1920, 2400];
+/** `sizes` of the home hero photo (src/components/HomeHero.astro), shared with its LCP preload on the home page */
+export const HOME_HERO_SIZES = '(max-width: 600px) 300vw, (max-width: 1100px) 160vw, 100vw';
 const FORMAT = 'webp';
 const QUALITY = 80;
 

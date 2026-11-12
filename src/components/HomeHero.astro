@@ -8,6 +8,7 @@
 import type { Lang } from '../data/types';
 import Img from './Img.astro';
 import Icon from './Icon.astro';
+import { HOME_HERO_SIZES } from '../lib/responsive';
 
 interface Props {
   lang: Lang;
@@ -23,7 +24,7 @@ const SLATS = 12;
 
 <section class="hero night" aria-labelledby="hero-title">
   <div class="hero-media">
-    <Img src={image} lang={lang} priority sizes="(max-width: 600px) 300vw, (max-width: 1100px) 160vw, 100vw" class="hero-img" />
+    <Img src={image} lang={lang} priority sizes={HOME_HERO_SIZES} class="hero-img" />
     <div class="hero-scrim" aria-hidden="true"></div>
   </div>
   <div class="wrap hero-content">
